@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { OnlineIndicator } from "@/components/offline/online-indicator";
@@ -12,12 +11,13 @@ export default async function ProtectedLayout({
   children: React.ReactNode;
 }) {
   const supabase = await createSupabaseServerClient();
-  if (!supabase) return children;
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/login");
+  // Auth protection is enforced by `src/middleware.ts`.
+  // We keep this layout server-rendered for fast navigation and only use Supabase
+  // here to optionally display the user's email when available.
+  const user =
+    supabase
+      ? (await supabase.auth.getUser()).data.user
+      : null;
 
   const nav: readonly SidebarNavItem[] = [
     { href: "/dashboard", label: "Home", iconName: "home" },
@@ -43,7 +43,9 @@ export default async function ProtectedLayout({
               </div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <OnlineIndicator />
-                <span className="truncate">Signed in as {user.email}</span>
+                <span className="truncate">
+                  {user?.email ? `Signed in as ${user.email}` : "Signed in"}
+                </span>
               </div>
             </div>
             <Link className="text-sm underline" href="/auth/logout">

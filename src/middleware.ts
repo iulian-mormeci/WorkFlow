@@ -39,11 +39,13 @@ export async function middleware(req: NextRequest) {
   });
 
   // Refresh session if needed (best practice).
+  // Use getUser() to trigger refresh logic. Then use getSession() as the auth gate.
+  await supabase.auth.getUser();
   const {
-    data: { user }
-  } = await supabase.auth.getUser();
+    data: { session }
+  } = await supabase.auth.getSession();
 
-  if (user || isPublicPath(req.nextUrl.pathname)) return res;
+  if (session || isPublicPath(req.nextUrl.pathname)) return res;
 
   const redirectUrl = req.nextUrl.clone();
   redirectUrl.pathname = "/login";
