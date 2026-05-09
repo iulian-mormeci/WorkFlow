@@ -4,6 +4,10 @@ import { GlobalSearch } from "@/components/search/global-search";
 import { KeyboardShortcutsDialog } from "@/components/shortcuts/keyboard-shortcuts-dialog";
 import { SidebarNav, type SidebarNavItem } from "@/components/layout/sidebar-nav";
 
+// Protected area must never be statically cached.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function ProtectedLayout({
   children
 }: {

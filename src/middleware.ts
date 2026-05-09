@@ -69,6 +69,13 @@ export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
   if (isPublicPath(pathname)) return res;
 
+  // Prevent any intermediate cache (CDN / browser / SW) from caching
+  // authenticated HTML or redirects for protected routes.
+  res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  res.headers.set("Pragma", "no-cache");
+  res.headers.set("Expires", "0");
+  res.headers.set("Vary", "Cookie");
+
   // Fast gate: if the auth cookie is present, allow the request.
   // Then try to refresh in the background (best-effort).
   if (hasSupabaseAuthCookie(req)) {
@@ -83,8 +90,13 @@ export async function middleware(req: NextRequest) {
   // No auth cookie → treat as unauthenticated.
   const redirectUrl = req.nextUrl.clone();
   redirectUrl.pathname = "/login";
-  redirectUrl.searchParams.set("next", req.nextUrl.pathname);
-  return NextResponse.redirect(redirectUrl);
+  redirectUrl.searchParams.set("next", pathname);
+  const redirectRes = NextResponse.redirect(redirectUrl);
+  redirectRes.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  redirectRes.headers.set("Pragma", "no-cache");
+  redirectRes.headers.set("Expires", "0");
+  redirectRes.headers.set("Vary", "Cookie");
+  return redirectRes;
 }
 
 export const config = {
