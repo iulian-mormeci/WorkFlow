@@ -4,6 +4,7 @@ const withPWA = nextPWA({
   dest: "public",
   register: true,
   skipWaiting: true,
+  cleanupOutdatedCaches: true,
   disable: process.env.NODE_ENV === "development",
   runtimeCaching: [
     {
@@ -12,7 +13,7 @@ const withPWA = nextPWA({
         request.destination === "style",
       handler: "StaleWhileRevalidate",
       options: {
-        cacheName: "workflow-app-shell",
+        cacheName: "workflow-app-shell-v2",
         expiration: { maxEntries: 60, maxAgeSeconds: 7 * 24 * 60 * 60 }
       }
     },
@@ -20,7 +21,7 @@ const withPWA = nextPWA({
       urlPattern: ({ request }) => request.destination === "image",
       handler: "CacheFirst",
       options: {
-        cacheName: "workflow-images",
+        cacheName: "workflow-images-v2",
         expiration: { maxEntries: 200, maxAgeSeconds: 30 * 24 * 60 * 60 }
       }
     }
