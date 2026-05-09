@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --radius: 12px;
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
+  --primary: 222.2 47.4% 11.2%;
+  --primary-foreground: 210 40% 98%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --border: 214.3 31.8% 91.4%;
+  --ring: 222.2 47.4% 11.2%;
+}
+
+.dark {
+  /* slightly softer, more pleasant dark */
+  --background: 222 36% 8%;
+  --foreground: 210 40% 98%;
+  --primary: 210 40% 98%;
+  --primary-foreground: 222 36% 10%;
+  --muted: 222 24% 14%;
+  --muted-foreground: 215 20.2% 65.1%;
+  --border: 222 22% 18%;
+  --ring: 210 40% 98%;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+/* smoother taps/scroll on iPad */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+/* nicer focus + tap feedback */
+:focus-visible {
+  outline: none;
+}
+
+/* avoid iOS tap highlight */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* lightweight animations (Tailwind-like) */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes zoom-in-95 {
+  from { transform: translate(-50%, -50%) scale(0.95); }
+  to { transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes zoom-out-95 {
+  from { transform: translate(-50%, -50%) scale(1); }
+  to { transform: translate(-50%, -50%) scale(0.95); }
+}
+.animate-in { animation-duration: 180ms; animation-fill-mode: both; }
+.animate-out { animation-duration: 140ms; animation-fill-mode: both; }
+.fade-in-0 { animation-name: fade-in; }
+.fade-out-0 { animation-name: fade-out; }
+.zoom-in-95 { animation-name: zoom-in-95; }
+.zoom-out-95 { animation-name: zoom-out-95; }
+
+.bg-background {
+  background: hsl(var(--background));
+}
+.text-foreground {
+  color: hsl(var(--foreground));
+}
+.bg-primary {
+  background: hsl(var(--primary));
+}
+.text-primary-foreground {
+  color: hsl(var(--primary-foreground));
+}
+.text-muted-foreground {
+  color: hsl(var(--muted-foreground));
+}
+.border {
+  border-color: hsl(var(--border));
+}
+

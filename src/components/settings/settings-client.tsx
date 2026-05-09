@@ -1,0 +1,318 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import {
+  Database,
+  Download,
+  Monitor,
+  Moon,
+  Trash2,
+  Upload,
+  User
+} from "lucide-react";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { db } from "@/lib/db/workflow-db";
+import { Button } from "@/components/ui/button";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { IconBubble } from "@/components/ui/icon";
+import { useDarkMode } from "@/hooks/use-dark-mode";
+import { useToast } from "@/hooks/use-toast";
+import { usePwaInstallPrompt } from "@/hooks/use-pwa-install-prompt";
+import { getSupportEmailTo, setSupportEmailTo } from "@/lib/support-email/config";
+
+const APP_NAME = "WorkFlow";
+const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "0.1.0";
+
+async function blobToBase64(blob: Blob) {
+  const buf = await blob.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  let binary = "";
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary);
+}
+
+function base64ToBlob(base64: string, mime: string) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: mime || "application/octet-stream" });
+}
+
+export function SettingsClient() {
+  const { toast } = useToast();
+  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
+  const { theme, toggle } = useDarkMode();
+  const { canInstall, promptInstall } = usePwaInstallPrompt();
+
+  const [busy, setBusy] = useState(false);
+  const [techName, setTechName] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem("workflow:techName") ?? "";
+  });
+  const [supportEmail, setSupportEmail] = useState<string>(() => getSupportEmailTo());
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      <div className="lg:col-span-2 text-xs text-muted-foreground">
+        {APP_NAME} • v{APP_VERSION}
+      </div>
+      <Card className="rounded-2xl">
+        <CardHeader className="space-y-2">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <CardTitle className="text-base">Profile</CardTitle>
+              <CardDescription>Supabase account information.</CardDescription>
+            </div>
+            <IconBubble icon={User} />
+          </div>
+          <div className="mt-2 rounded-xl border bg-muted p-3 text-sm">
+            {supabase ? (
+              <ProfileInfo />
+            ) : (
+              <div className="text-muted-foreground">Supabase not configured.</div>
+            )}
+          </div>
+
+          <div className="mt-3 flex flex-col gap-2">
+            <div className="text-sm font-medium">Technician name (for PDF/CRM)</div>
+            <Input
+              value={techName}
+              onChange={(e) => {
+                setTechName(e.target.value);
+                localStorage.setItem("workflow:techName", e.target.value);
+              }}
+              placeholder="e.g. Mario Rossi"
+            />
+          </div>
+
+          <div className="mt-4 flex flex-col gap-2">
+            <div className="text-sm font-medium">Support email (Send to Support)</div>
+            <Input
+              value={supportEmail}
+              onChange={(e) => {
+                const v = e.target.value;
+                setSupportEmail(v);
+                setSupportEmailTo(v);
+              }}
+              placeholder="support@company.com"
+              inputMode="email"
+            />
+            <div className="text-xs text-muted-foreground">
+              Used when sending scanned documents. Leave empty to disable sending.
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
+
+      <Card className="rounded-2xl">
+        <CardHeader className="space-y-2">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <CardTitle className="text-base">Appearance</CardTitle>
+              <CardDescription>Optimized for iPad, supports dark mode.</CardDescription>
+            </div>
+            <IconBubble icon={Monitor} />
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button variant="outline" onClick={toggle}>
+              <Moon className="h-4 w-4" />
+              Toggle dark mode (now: {theme})
+            </Button>
+            <Button
+              variant="outline"
+              disabled={!canInstall}
+              onClick={async () => {
+                const ok = await promptInstall();
+                if (!ok) return;
+                toast({ title: "Install started", description: "Follow the iPad prompt." });
+              }}
+            >
+              <Download className="h-4 w-4" />
+              Install PWA
+            </Button>
+          </div>
+          <div className="mt-2 text-xs text-muted-foreground">
+            Tip: on iPad Safari you can also use Share → “Add to Home Screen”.
+          </div>
+        </CardHeader>
+      </Card>
+
+      <Card className="rounded-2xl lg:col-span-2">
+        <CardHeader className="space-y-2">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <CardTitle className="text-base">Offline data</CardTitle>
+              <CardDescription>Backup and maintenance for local IndexedDB.</CardDescription>
+            </div>
+            <IconBubble icon={Database} />
+          </div>
+
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                try {
+                  const data = {
+                    exportedAt: new Date().toISOString(),
+                    clients: await db.clients.toArray(),
+                    interventions: await db.interventions.toArray(),
+                    spareParts: await db.spareParts.toArray(),
+                    stockMovements: await db.stockMovements.toArray(),
+                    tickets: await db.tickets.toArray(),
+                    documents: await db.documents.toArray(),
+                    supportEmailOutbox: await db.supportEmailOutbox.toArray(),
+                    templates: await db.templates.toArray(),
+                    attachments: await Promise.all(
+                      (await db.attachments.toArray()).map(async (a) => ({
+                        ...a,
+                        blob: undefined,
+                        base64: await blobToBase64(a.blob)
+                      }))
+                    )
+                  };
+
+                  const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `workflow-full-backup-${new Date().toISOString().slice(0, 10)}.json`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                  toast({ title: "Backup exported", description: "Full JSON (incl. attachments) downloaded." });
+                } catch (e: any) {
+                  toast({
+                    title: "Export failed",
+                    description: e?.message ?? "Could not export data",
+                    variant: "destructive"
+                  });
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              <Download className="h-4 w-4" />
+              Export Full Backup
+            </Button>
+
+            <Button
+              variant="outline"
+              disabled={busy}
+              onClick={() => {
+                const input = document.createElement("input");
+                input.type = "file";
+                input.accept = "application/json";
+                input.onchange = async () => {
+                  const file = input.files?.[0];
+                  if (!file) return;
+                  setBusy(true);
+                  try {
+                    const text = await file.text();
+                    const parsed = JSON.parse(text);
+
+                    if (!confirm("Import backup and replace ALL local data? This cannot be undone.")) {
+                      return;
+                    }
+
+                    const attachments = (parsed.attachments ?? []).map((a: any) => {
+                      const mime = a.mime ?? "application/octet-stream";
+                      const blob = a.base64 ? base64ToBlob(a.base64, mime) : new Blob([], { type: mime });
+                      const rest = { ...a };
+                      delete rest.base64;
+                      return { ...rest, blob };
+                    });
+
+                    await db.transaction("rw", db.tables, async () => {
+                        await Promise.all([
+                          db.clients.clear(),
+                          db.interventions.clear(),
+                          db.spareParts.clear(),
+                          db.stockMovements.clear(),
+                          db.tickets.clear(),
+                          db.documents.clear(),
+                          db.supportEmailOutbox.clear(),
+                          db.templates.clear(),
+                          db.attachments.clear()
+                        ]);
+
+                        if (parsed.clients?.length) await db.clients.bulkAdd(parsed.clients);
+                        if (parsed.interventions?.length) await db.interventions.bulkAdd(parsed.interventions);
+                        if (parsed.spareParts?.length) await db.spareParts.bulkAdd(parsed.spareParts);
+                        if (parsed.stockMovements?.length) await db.stockMovements.bulkAdd(parsed.stockMovements);
+                        if (parsed.tickets?.length) await db.tickets.bulkAdd(parsed.tickets);
+                        if (parsed.documents?.length) await db.documents.bulkAdd(parsed.documents);
+                        if (parsed.supportEmailOutbox?.length) await db.supportEmailOutbox.bulkAdd(parsed.supportEmailOutbox);
+                        if (parsed.templates?.length) await db.templates.bulkAdd(parsed.templates);
+                        if (attachments.length) await db.attachments.bulkAdd(attachments);
+                      });
+
+                    toast({ title: "Import complete", description: "Local data replaced. Reloading…" });
+                    window.location.href = "/dashboard";
+                  } catch (e: any) {
+                    toast({
+                      title: "Import failed",
+                      description: e?.message ?? "Could not import backup",
+                      variant: "destructive"
+                    });
+                  } finally {
+                    setBusy(false);
+                  }
+                };
+                input.click();
+              }}
+            >
+              <Upload className="h-4 w-4" />
+              Import Backup
+            </Button>
+
+            <Button
+              variant="outline"
+              disabled={busy}
+              onClick={async () => {
+                if (!confirm("Clear ALL local data? This cannot be undone.")) return;
+                setBusy(true);
+                try {
+                  await db.delete();
+                  toast({ title: "Local data cleared", description: "Reloading…" });
+                  window.location.href = "/dashboard";
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+              Clear local database
+            </Button>
+          </div>
+
+          <div className="mt-2 text-xs text-muted-foreground">
+            Keyboard hint (iPad): use an external keyboard for faster entry. Common shortcuts:
+            Cmd+K global search, Cmd+F browser find, Cmd+R reload.
+          </div>
+        </CardHeader>
+      </Card>
+    </div>
+  );
+}
+
+function ProfileInfo() {
+  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
+  const [email, setEmail] = useState<string>("—");
+
+  useEffect(() => {
+    (async () => {
+      if (!supabase) return;
+      const { data } = await supabase.auth.getUser();
+      setEmail(data.user?.email ?? "—");
+    })();
+  }, [supabase]);
+
+  return (
+    <div className="space-y-1">
+      <div className="text-xs text-muted-foreground">Email</div>
+      <div className="font-semibold">{email}</div>
+    </div>
+  );
+}
+

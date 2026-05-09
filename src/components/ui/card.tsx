@@ -1,0 +1,42 @@
+import * as React from "react";
+import { cn } from "@/lib/utils";
+
+export function Card({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn(
+        "rounded-2xl border bg-background text-foreground shadow-sm shadow-black/5",
+        "transition-shadow hover:shadow-md hover:shadow-black/10",
+        className
+      )}
+      {...props}
+    />
+  );
+}
+
+export function CardHeader({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn("p-5 md:p-6", className)} {...props} />;
+}
+
+export function CardTitle({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLHeadingElement>) {
+  return (
+    <h3 className={cn("font-semibold leading-none tracking-tight", className)} {...props} />
+  );
+}
+
+export function CardDescription({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLParagraphElement>) {
+  return <p className={cn("text-sm text-muted-foreground", className)} {...props} />;
+}
+
