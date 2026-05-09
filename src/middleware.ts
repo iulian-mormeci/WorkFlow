@@ -1,17 +1,18 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-function hasSupabaseAuthCookie(req: NextRequest) {
-  // Supabase SSR stores the session in a cookie like:
-  // `sb-<project-ref>-auth-token`
-  // Relying on this avoids network flakiness / refresh timing issues in middleware.
-  return req.cookies
-    .getAll()
-    .some(
-      (c) =>
-        c.name.startsWith("sb-") &&
-        (c.name.endsWith("-auth-token") || c.name.includes("auth-token"))
+/** True if request carries any Supabase browser session cookie (names vary by SDK/version). */
+function hasSupabaseSessionCookie(req: NextRequest) {
+  return req.cookies.getAll().some((c) => {
+    const n = c.name;
+    if (!n.startsWith("sb-")) return false;
+    // Common patterns: sb-<ref>-auth-token, sb-<ref>-auth-token.0 (chunked), etc.
+    return (
+      n.includes("auth-token") ||
+      n.endsWith("-auth-token") ||
+      (n.includes("supabase") && n.includes("auth"))
     );
+  });
 }
 
 function isPublicPath(pathname: string) {
@@ -67,34 +68,29 @@ export async function middleware(req: NextRequest) {
   });
 
   const pathname = req.nextUrl.pathname;
-  if (isPublicPath(pathname)) return res;
-
-  // Prevent any intermediate cache (CDN / browser / SW) from caching
-  // authenticated HTML or redirects for protected routes.
-  res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  // Do not cache authenticated HTML (browser / reverse proxy). DNS-only Cloudflare still OK.
+  res.headers.set("Cache-Control", "private, no-cache, no-store, must-revalidate");
   res.headers.set("Pragma", "no-cache");
-  res.headers.set("Expires", "0");
   res.headers.set("Vary", "Cookie");
 
-  // Fast gate: if the auth cookie is present, allow the request.
-  // Then try to refresh in the background (best-effort).
-  if (hasSupabaseAuthCookie(req)) {
-    try {
-      await supabase.auth.getUser();
-    } catch {
-      // Fail open (offline-first app). Avoid redirect loops on transient failures.
-    }
-    return res;
-  }
+  if (isPublicPath(pathname)) return res;
 
-  // No auth cookie → treat as unauthenticated.
+  // Official pattern: getUser() refreshes JWT and writes cookies via setAll on this response.
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (user) return res;
+
+  // Cookie present but getUser failed (e.g. offline): allow app shell (offline-first).
+  if (hasSupabaseSessionCookie(req)) return res;
+
   const redirectUrl = req.nextUrl.clone();
   redirectUrl.pathname = "/login";
   redirectUrl.searchParams.set("next", pathname);
   const redirectRes = NextResponse.redirect(redirectUrl);
-  redirectRes.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  redirectRes.headers.set("Cache-Control", "private, no-cache, no-store, must-revalidate");
   redirectRes.headers.set("Pragma", "no-cache");
-  redirectRes.headers.set("Expires", "0");
   redirectRes.headers.set("Vary", "Cookie");
   return redirectRes;
 }
