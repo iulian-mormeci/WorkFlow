@@ -5,6 +5,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db/workflow-db";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { InterventionStatusBadge } from "@/components/interventions/intervention-status-badge";
+import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
 
 function fmt(iso: string) {
   return new Date(iso).toLocaleString(undefined, {
@@ -17,10 +18,11 @@ function fmt(iso: string) {
 }
 
 export function DashboardRecent() {
-  const clients = useLiveQuery(async () => db.clients.toArray(), []);
+  const liveEpoch = useWorkflowLiveEpoch();
+  const clients = useLiveQuery(async () => db.clients.toArray(), [liveEpoch]);
   const recent = useLiveQuery(async () => {
     return await db.interventions.orderBy("startAt").reverse().limit(6).toArray();
-  }, []);
+  }, [liveEpoch]);
 
   const clientById = new Map(clients?.map((c) => [c.id, c.name]) ?? []);
 

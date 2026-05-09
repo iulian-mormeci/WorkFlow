@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog";
+import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
 
 async function computeStockByPartId() {
   const moves = await db.stockMovements.toArray();
@@ -27,8 +28,9 @@ async function computeStockByPartId() {
 }
 
 export function SparePartsClient() {
-  const spareParts = useLiveQuery(async () => db.spareParts.orderBy("name").toArray(), []);
-  const stockByPartId = useLiveQuery(async () => await computeStockByPartId(), []);
+  const liveEpoch = useWorkflowLiveEpoch();
+  const spareParts = useLiveQuery(async () => db.spareParts.orderBy("name").toArray(), [liveEpoch]);
+  const stockByPartId = useLiveQuery(async () => await computeStockByPartId(), [liveEpoch]);
 
   const [addOpen, setAddOpen] = useState(false);
   const [adjustOpen, setAdjustOpen] = useState<null | string>(null);

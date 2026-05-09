@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { exportMonthForCrm } from "@/lib/export/crm-export";
 import { useToast } from "@/hooks/use-toast";
+import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
 
 function ymKey(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -16,6 +17,7 @@ function ymKey(d: Date) {
 
 export function StatisticsClient() {
   const { toast } = useToast();
+  const liveEpoch = useWorkflowLiveEpoch();
   const [month, setMonth] = useState(() => ymKey(new Date()));
 
   const stats = useLiveQuery(async () => {
@@ -64,7 +66,7 @@ export function StatisticsClient() {
       totalKm,
       topClients
     };
-  }, [month]);
+  }, [month, liveEpoch]);
 
   const totalHours = useMemo(() => {
     if (!stats) return "—";

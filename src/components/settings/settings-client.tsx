@@ -2,13 +2,16 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  Cloud,
   Database,
   Download,
   Monitor,
   Moon,
+  RefreshCw,
   Trash2,
   Upload,
-  User
+  User,
+  X
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { db } from "@/lib/db/workflow-db";
@@ -20,6 +23,12 @@ import { useDarkMode } from "@/hooks/use-dark-mode";
 import { useToast } from "@/hooks/use-toast";
 import { usePwaInstallPrompt } from "@/hooks/use-pwa-install-prompt";
 import { getSupportEmailTo, setSupportEmailTo } from "@/lib/support-email/config";
+import { useSyncFailureQueue } from "@/lib/sync/sync-failure-queue";
+import {
+  refreshPendingDirtyCount,
+  runForceFullWorkflowSync,
+  runManualFullSync
+} from "@/lib/sync/sync-engine";
 
 const APP_NAME = "WorkFlow";
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "0.1.0";
@@ -44,8 +53,17 @@ export function SettingsClient() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const { theme, toggle } = useDarkMode();
   const { canInstall, promptInstall } = usePwaInstallPrompt();
+  const syncFailures = useSyncFailureQueue((s) => s.items);
+  const hydrateFailures = useSyncFailureQueue((s) => s.hydrate);
+  const dismissFailure = useSyncFailureQueue((s) => s.dismiss);
+  const clearFailures = useSyncFailureQueue((s) => s.clearAll);
 
   const [busy, setBusy] = useState(false);
+  const [syncBusy, setSyncBusy] = useState(false);
+
+  useEffect(() => {
+    hydrateFailures();
+  }, [hydrateFailures]);
   const [techName, setTechName] = useState<string>(() => {
     if (typeof window === "undefined") return "";
     return localStorage.getItem("workflow:techName") ?? "";
@@ -101,6 +119,116 @@ export function SettingsClient() {
             <div className="text-xs text-muted-foreground">
               Used when sending scanned documents. Leave empty to disable sending.
             </div>
+          </div>
+        </CardHeader>
+      </Card>
+
+      <Card className="rounded-2xl lg:col-span-2">
+        <CardHeader className="space-y-2">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <CardTitle className="text-base">Cloud sync</CardTitle>
+              <CardDescription>
+                Retry failed uploads, flush pending remote deletes, and pull the latest from Supabase.
+              </CardDescription>
+            </div>
+            <IconBubble icon={Cloud} />
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              disabled={syncBusy || !supabase}
+              onClick={async () => {
+                setSyncBusy(true);
+                try {
+                  await runManualFullSync();
+                  await refreshPendingDirtyCount();
+                  toast({ title: "Sync finished", description: "Your data is up to date." });
+                } catch (e: unknown) {
+                  toast({
+                    title: "Sync error",
+                    description: e instanceof Error ? e.message : String(e),
+                    variant: "destructive"
+                  });
+                } finally {
+                  setSyncBusy(false);
+                }
+              }}
+            >
+              <RefreshCw className={`h-4 w-4 ${syncBusy ? "animate-spin" : ""}`} />
+              Sync now
+            </Button>
+            <Button
+              variant="secondary"
+              disabled={syncBusy || !supabase}
+              onClick={async () => {
+                setSyncBusy(true);
+                try {
+                  const r = await runForceFullWorkflowSync();
+                  await refreshPendingDirtyCount();
+                  if (r?.ok) {
+                    toast({ title: "Force sync complete", description: "Merged with the cloud." });
+                  } else if (r && !r.skipped) {
+                    toast({
+                      title: "Force sync finished with issues",
+                      description: r.errors[0] ?? "Check the failure list below.",
+                      variant: "destructive"
+                    });
+                  }
+                } catch (e: unknown) {
+                  toast({
+                    title: "Force sync error",
+                    description: e instanceof Error ? e.message : String(e),
+                    variant: "destructive"
+                  });
+                } finally {
+                  setSyncBusy(false);
+                }
+              }}
+            >
+              Force full sync
+            </Button>
+          </div>
+
+          <div className="mt-4 space-y-2">
+            <div className="text-sm font-medium">Recent failures</div>
+            {syncFailures.length === 0 ? (
+              <div className="rounded-xl border bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+                No recorded failures. If sync struggles, they will appear here with timestamps.
+              </div>
+            ) : (
+              <div className="max-h-52 space-y-2 overflow-y-auto rounded-xl border bg-muted/30 p-2">
+                {syncFailures.map((f) => (
+                  <div
+                    key={f.id}
+                    className="flex items-start justify-between gap-2 rounded-lg bg-background px-2 py-2 text-xs"
+                  >
+                    <div className="min-w-0">
+                      <div className="font-medium">
+                        [{f.kind}] {f.title}
+                      </div>
+                      <div className="mt-0.5 text-muted-foreground">{f.detail}</div>
+                      <div className="mt-1 text-[10px] text-muted-foreground">
+                        {new Date(f.at).toLocaleString()}
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0"
+                      aria-label="Dismiss"
+                      onClick={() => dismissFailure(f.id)}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
+                <Button type="button" variant="outline" size="sm" className="w-full" onClick={() => clearFailures()}>
+                  Clear failure list
+                </Button>
+              </div>
+            )}
           </div>
         </CardHeader>
       </Card>

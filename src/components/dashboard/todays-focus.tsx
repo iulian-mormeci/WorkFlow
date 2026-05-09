@@ -8,17 +8,19 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import { InterventionStatusBadge } from "@/components/interventions/intervention-status-badge";
 import { endOfDay, startOfDay } from "@/lib/dates";
 import { IconBubble } from "@/components/ui/icon";
+import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
 
 function fmtTime(iso: string) {
   return new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 }
 
 export function TodaysFocus() {
+  const liveEpoch = useWorkflowLiveEpoch();
   const now = new Date();
   const todayStart = startOfDay(now).toISOString();
   const todayEnd = endOfDay(now).toISOString();
 
-  const clients = useLiveQuery(async () => db.clients.toArray(), []);
+  const clients = useLiveQuery(async () => db.clients.toArray(), [liveEpoch]);
   const focus = useLiveQuery(async () => {
     const list = await db.interventions
       .where("startAt")
@@ -28,7 +30,7 @@ export function TodaysFocus() {
       .filter((i) => i.timerStartedAt || i.status !== "completed")
       .sort((a, b) => (b.timerStartedAt ? 1 : 0) - (a.timerStartedAt ? 1 : 0) || b.startAt.localeCompare(a.startAt))
       .slice(0, 6);
-  }, [todayStart, todayEnd]);
+  }, [todayStart, todayEnd, liveEpoch]);
 
   const clientById = new Map(clients?.map((c) => [c.id, c.name]) ?? []);
 

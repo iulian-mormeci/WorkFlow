@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Mic, Pause, Play, Save, Square, Trash2 } from "lucide-react";
 import { db } from "@/lib/db/workflow-db";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { persistAttachmentToCloud } from "@/lib/sync/attachment-cloud";
+import { scheduleWorkflowSync } from "@/lib/sync/sync-engine";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
@@ -30,6 +33,7 @@ export function VoiceNoteRecorder({ interventionId }: Props) {
   const [busy, setBusy] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
+  const [uploadPct, setUploadPct] = useState<number | null>(null);
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
@@ -142,6 +146,34 @@ export function VoiceNoteRecorder({ interventionId }: Props) {
         updatedAt: nowIso
       });
 
+      setUploadPct(0);
+      try {
+        const supabase = createSupabaseBrowserClient();
+        if (supabase && navigator.onLine) {
+          const {
+            data: { user }
+          } = await supabase.auth.getUser();
+          if (user) {
+            const att = await db.attachments.get(id);
+            if (att) {
+              await persistAttachmentToCloud(supabase, user.id, att, {
+                onProgress: (p) => setUploadPct(p)
+              });
+            }
+          }
+        }
+      } catch (e: unknown) {
+        toast({
+          title: "Cloud upload incomplete",
+          description:
+            e instanceof Error ? e.message : "Audio saved locally; will retry on next sync.",
+          variant: "destructive"
+        });
+      } finally {
+        setUploadPct(null);
+      }
+
+      scheduleWorkflowSync();
       toast({ title: "Voice note saved", description: "Stored locally (offline-first)." });
 
       // Clear any preview state created by onstop
@@ -188,6 +220,34 @@ export function VoiceNoteRecorder({ interventionId }: Props) {
         updatedAt: nowIso
       });
 
+      setUploadPct(0);
+      try {
+        const supabase = createSupabaseBrowserClient();
+        if (supabase && navigator.onLine) {
+          const {
+            data: { user }
+          } = await supabase.auth.getUser();
+          if (user) {
+            const att = await db.attachments.get(id);
+            if (att) {
+              await persistAttachmentToCloud(supabase, user.id, att, {
+                onProgress: (p) => setUploadPct(p)
+              });
+            }
+          }
+        }
+      } catch (e: unknown) {
+        toast({
+          title: "Cloud upload incomplete",
+          description:
+            e instanceof Error ? e.message : "Audio saved locally; will retry on next sync.",
+          variant: "destructive"
+        });
+      } finally {
+        setUploadPct(null);
+      }
+
+      scheduleWorkflowSync();
       toast({ title: "Voice note saved", description: "Stored locally (offline-first)." });
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       setPreviewUrl(null);
@@ -205,6 +265,19 @@ export function VoiceNoteRecorder({ interventionId }: Props) {
 
   return (
     <div className="grid gap-3 rounded-2xl border bg-background p-4">
+      {uploadPct != null ? (
+        <div className="grid gap-1">
+          <div className="text-xs font-medium text-muted-foreground">
+            Uploading… {uploadPct}%
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-2 rounded-full bg-primary transition-[width] duration-150"
+              style={{ width: `${uploadPct}%` }}
+            />
+          </div>
+        </div>
+      ) : null}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="text-sm font-semibold">Voice note</div>

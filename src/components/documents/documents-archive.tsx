@@ -8,6 +8,7 @@ import { db } from "@/lib/db/workflow-db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
 import { DocumentScannerDialog } from "@/components/documents/document-scanner-dialog";
 
 async function openPdf(attachmentId: string) {
@@ -30,6 +31,7 @@ async function sendToSupport(attachmentId: string, title: string) {
 
 export function DocumentsArchive() {
   const { toast } = useToast();
+  const liveEpoch = useWorkflowLiveEpoch();
   const [q, setQ] = useState("");
   const [scanOpen, setScanOpen] = useState(false);
 
@@ -38,7 +40,7 @@ export function DocumentsArchive() {
     const query = q.trim().toLowerCase();
     if (!query) return all;
     return all.filter((d) => d.title.toLowerCase().includes(query));
-  }, [q]);
+  }, [q, liveEpoch]);
 
   const canSend = typeof navigator !== "undefined" ? navigator.onLine : false;
 

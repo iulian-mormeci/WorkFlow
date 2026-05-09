@@ -7,6 +7,7 @@ import { FileText, Search } from "lucide-react";
 import { db } from "@/lib/db/workflow-db";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
 
 type Result =
   | { kind: "intervention"; id: string; title: string; subtitle: string; href: string }
@@ -14,6 +15,7 @@ type Result =
   | { kind: "document"; id: string; title: string; subtitle: string; href: string };
 
 export function GlobalSearch() {
+  const liveEpoch = useWorkflowLiveEpoch();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
 
@@ -85,7 +87,7 @@ export function GlobalSearch() {
     }
 
     return res.slice(0, 30);
-  }, [q]);
+  }, [q, liveEpoch]);
 
   const placeholder = useMemo(() => "Search… (⌘K)", []);
 

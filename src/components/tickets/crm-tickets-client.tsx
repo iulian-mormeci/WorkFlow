@@ -16,6 +16,7 @@ import {
   DialogTitle
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
 
 type Status = "all" | Ticket["status"];
 type Priority = Ticket["priority"] | "all";
@@ -33,6 +34,7 @@ function priorityPill(p: Ticket["priority"]) {
 
 export function CrmTicketsClient() {
   const { toast } = useToast();
+  const liveEpoch = useWorkflowLiveEpoch();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<Status>("all");
   const [priority, setPriority] = useState<Priority>("all");
@@ -62,7 +64,7 @@ export function CrmTicketsClient() {
     });
 
     return filtered;
-  }, [q, status, priority]);
+  }, [q, status, priority, liveEpoch]);
 
   const [form, setForm] = useState({
     title: "",

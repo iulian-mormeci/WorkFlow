@@ -1,10 +1,20 @@
 /**
- * WorkFlow cloud sync (Section Sync 1): bidirectional Dexie ↔ Supabase.
- * - Push dirty rows (local updatedAt > syncedAt) with last-write-wins timestamps.
- * - Pull remote rows when remote updated_at is newer than local updatedAt.
- * - Attachments: upload/download via Storage bucket `attachments` at `{userId}/{attachmentId}`.
+ * WorkFlow cloud sync: Dexie ↔ Supabase + realtime hooks (Sections 1–3).
+ * - Push / pull with merge: skip remote row only if local is newer **and** still dirty vs last sync.
+ * - Attachments: Storage path `{userId}/{attachmentId}-{safeName}` with XHR upload + retries on push.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { deleteInterventionWithRelations } from "@/lib/interventions/delete-intervention";
+import { flushPendingInterventionDeletes } from "@/lib/sync/cloud-delete";
+import { pushSyncFailure, useSyncFailureQueue } from "@/lib/sync/sync-failure-queue";
+import { syncAuditLog } from "@/lib/sync/sync-audit";
+import {
+  STORAGE_BUCKET,
+  buildAttachmentStoragePath,
+  legacyAttachmentStoragePath
+} from "@/lib/sync/sync-constants";
+import { uploadToSupabaseStorageWithRetries } from "@/lib/sync/storage-upload";
+import { useSyncUiStore } from "@/stores/sync-ui";
 import {
   db,
   type Attachment,
@@ -18,10 +28,37 @@ import {
   type Ticket
 } from "@/lib/db/workflow-db";
 
-const STORAGE_BUCKET = "attachments";
 const PAGE_SIZE = 500;
 const SYNC_DEBOUNCE_MS = 2000;
 const SYNC_USER_KEY = "workflow.sync.lastUserId.v1";
+
+function sleep(ms: number) {
+  return new Promise<void>((r) => setTimeout(r, ms));
+}
+
+let autoSyncRetryTimer: number | null = null;
+let autoSyncRetryAttempt = 0;
+
+export function cancelAutomatedSyncRetry(): void {
+  if (autoSyncRetryTimer) {
+    clearTimeout(autoSyncRetryTimer);
+    autoSyncRetryTimer = null;
+  }
+}
+
+function scheduleAutomatedSyncRetry(): void {
+  if (typeof window === "undefined") return;
+  if (!navigator.onLine) return;
+  if (autoSyncRetryTimer) return;
+  const exp = Math.max(0, autoSyncRetryAttempt - 1);
+  const delay = Math.min(90_000, 2000 * 2 ** exp);
+  autoSyncRetryTimer = window.setTimeout(() => {
+    autoSyncRetryTimer = null;
+    const c = syncSupabase;
+    if (!c || autoSyncRetryAttempt > 8) return;
+    void runFullSync(c);
+  }, delay);
+}
 
 export type SyncResult = {
   ok: boolean;
@@ -48,6 +85,24 @@ function isDirty(localUpdated: string, syncedAt?: string): boolean {
   return parseMs(localUpdated) > parseMs(syncedAt);
 }
 
+/** Skip applying a remote row when local is strictly newer and still has unsynced edits. */
+function shouldSkipRemoteMerge(
+  remoteUpdatedAt: string,
+  local: { updatedAt?: string; createdAt?: string; syncedAt?: string } | undefined
+): boolean {
+  if (!local) return false;
+  const localU = local.updatedAt ?? local.createdAt ?? "";
+  return shouldSkipRemoteMergeTs(remoteUpdatedAt, localU, local.syncedAt);
+}
+
+function shouldSkipRemoteMergeTs(
+  remoteUpdatedAt: string,
+  localUpdated: string,
+  syncedAt?: string
+): boolean {
+  return parseMs(localUpdated) > parseMs(remoteUpdatedAt) && isDirty(localUpdated, syncedAt);
+}
+
 function effectiveUpdated(
   row: { updatedAt?: string; createdAt: string }
 ): string {
@@ -57,10 +112,6 @@ function effectiveUpdated(
 function rememberUser(userId: string) {
   if (typeof window === "undefined") return;
   localStorage.setItem(SYNC_USER_KEY, userId);
-}
-
-function storagePath(userId: string, attachmentId: string): string {
-  return `${userId}/${attachmentId}`;
 }
 
 function chunk<T>(arr: T[], size: number): T[][] {
@@ -158,6 +209,7 @@ function attachmentFromRow(
     blob,
     createdAt: iso(r.created_at),
     updatedAt: iso(r.updated_at),
+    cloudStoragePath: r.storage_path ? String(r.storage_path) : undefined,
     syncedAt: new Date().toISOString(),
     remoteId: String(r.id)
   };
@@ -384,7 +436,7 @@ function templateFromRow(r: Record<string, unknown>): InterventionTemplate {
   };
 }
 
-async function pullPaged(
+async function pullPagedImpl(
   supabase: SupabaseClient,
   table: string,
   userId: string,
@@ -408,7 +460,28 @@ async function pullPaged(
   return out;
 }
 
-async function upsertBatch(
+/** Pull all pages with a few retries for transient network errors. */
+async function pullPaged(
+  supabase: SupabaseClient,
+  table: string,
+  userId: string,
+  orderCol: string
+): Promise<Record<string, unknown>[]> {
+  let last: Error | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      return await pullPagedImpl(supabase, table, userId, orderCol);
+    } catch (e) {
+      last = e instanceof Error ? e : new Error(String(e));
+      if (attempt < 2) {
+        await sleep(450 * 2 ** attempt + Math.floor(Math.random() * 200));
+      }
+    }
+  }
+  throw last ?? new Error("pull failed");
+}
+
+export async function upsertBatch(
   supabase: SupabaseClient,
   table: string,
   rows: Record<string, unknown>[]
@@ -474,6 +547,13 @@ async function pushAttachments(
   userId: string,
   errors: string[]
 ): Promise<number> {
+  const {
+    data: { session }
+  } = await supabase.auth.getSession();
+  const accessToken = session?.access_token;
+  const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
   const all = await db.attachments.toArray();
   const dirty = all.filter((a) =>
     isDirty(effectiveUpdated({ updatedAt: a.updatedAt, createdAt: a.createdAt }), a.syncedAt)
@@ -481,18 +561,39 @@ async function pushAttachments(
   let n = 0;
   for (const a of dirty) {
     try {
-      const path = storagePath(userId, a.id);
-      const { error: upErr } = await supabase.storage
-        .from(STORAGE_BUCKET)
-        .upload(path, a.blob, {
+      const path = buildAttachmentStoragePath(userId, a.id, a.name);
+
+      if (accessToken && baseUrl && anonKey) {
+        await uploadToSupabaseStorageWithRetries({
+          supabaseUrl: baseUrl,
+          anonKey,
+          accessToken,
+          bucket: STORAGE_BUCKET,
+          objectPath: path,
+          body: a.blob,
+          contentType: a.mime || "application/octet-stream",
           upsert: true,
-          contentType: a.mime || "application/octet-stream"
+          maxRetries: 3
         });
-      if (upErr) throw upErr;
+      } else {
+        const { error: upErr } = await supabase.storage
+          .from(STORAGE_BUCKET)
+          .upload(path, a.blob, {
+            upsert: true,
+            contentType: a.mime || "application/octet-stream"
+          });
+        if (upErr) throw upErr;
+      }
+
       await upsertBatch(supabase, "wf_attachments", [
         attachmentToRow(a, userId, path)
       ]);
-      await markSynced("attachments", a.id);
+      const nowIso = new Date().toISOString();
+      await db.attachments.update(a.id, {
+        syncedAt: nowIso,
+        cloudStoragePath: path,
+        updatedAt: a.updatedAt ?? nowIso
+      });
       n += 1;
     } catch (e: unknown) {
       errors.push(
@@ -659,7 +760,7 @@ async function pullClients(supabase: SupabaseClient, userId: string) {
   for (const r of rows) {
     const remoteU = iso(r.updated_at);
     const local = await db.clients.get(String(r.id));
-    if (local && parseMs(local.updatedAt) > parseMs(remoteU)) continue;
+    if (local && shouldSkipRemoteMerge(remoteU, local)) continue;
     await db.clients.put(clientFromRow(r));
     n += 1;
   }
@@ -672,7 +773,7 @@ async function pullSpares(supabase: SupabaseClient, userId: string) {
   for (const r of rows) {
     const remoteU = iso(r.updated_at);
     const local = await db.spareParts.get(String(r.id));
-    if (local && parseMs(local.updatedAt) > parseMs(remoteU)) continue;
+    if (local && shouldSkipRemoteMerge(remoteU, local)) continue;
     await db.spareParts.put(spareFromRow(r));
     n += 1;
   }
@@ -686,19 +787,24 @@ async function pullAttachments(supabase: SupabaseClient, userId: string) {
     const remoteU = iso(r.updated_at);
     const id = String(r.id);
     const local = await db.attachments.get(id);
-    if (
-      local &&
-      parseMs(effectiveUpdated({ updatedAt: local.updatedAt, createdAt: local.createdAt })) >
-        parseMs(remoteU)
-    ) {
-      continue;
-    }
+    const localU = local
+      ? effectiveUpdated({ updatedAt: local.updatedAt, createdAt: local.createdAt })
+      : "";
+    if (local && shouldSkipRemoteMergeTs(remoteU, localU, local.syncedAt)) continue;
+
     const path = String(r.storage_path);
-    const { data: file, error } = await supabase.storage
-      .from(STORAGE_BUCKET)
-      .download(path);
-    if (error || !file) {
-      console.warn("[sync] attachment download skipped", id, error?.message);
+    let file: Blob | null = null;
+    const primary = await supabase.storage.from(STORAGE_BUCKET).download(path);
+    if (!primary.error && primary.data) file = primary.data;
+    if (!file) {
+      const legacy = legacyAttachmentStoragePath(userId, id);
+      if (legacy !== path) {
+        const second = await supabase.storage.from(STORAGE_BUCKET).download(legacy);
+        if (!second.error && second.data) file = second.data;
+      }
+    }
+    if (!file) {
+      console.warn("[sync] attachment download skipped", id);
       continue;
     }
     await db.attachments.put(attachmentFromRow(r, file));
@@ -713,7 +819,7 @@ async function pullInterventions(supabase: SupabaseClient, userId: string) {
   for (const r of rows) {
     const remoteU = iso(r.updated_at);
     const local = await db.interventions.get(String(r.id));
-    if (local && parseMs(local.updatedAt) > parseMs(remoteU)) continue;
+    if (local && shouldSkipRemoteMerge(remoteU, local)) continue;
     await db.interventions.put(interventionFromRow(r));
     n += 1;
   }
@@ -734,7 +840,7 @@ async function pullStock(supabase: SupabaseClient, userId: string) {
     const localU = local
       ? effectiveUpdated({ updatedAt: local.updatedAt, createdAt: local.createdAt })
       : "";
-    if (local && parseMs(localU) > parseMs(remoteU)) continue;
+    if (local && shouldSkipRemoteMergeTs(remoteU, localU, local.syncedAt)) continue;
     await db.stockMovements.put(stockFromRow(r));
     n += 1;
   }
@@ -747,7 +853,7 @@ async function pullTickets(supabase: SupabaseClient, userId: string) {
   for (const r of rows) {
     const remoteU = iso(r.updated_at);
     const local = await db.tickets.get(String(r.id));
-    if (local && parseMs(local.updatedAt) > parseMs(remoteU)) continue;
+    if (local && shouldSkipRemoteMerge(remoteU, local)) continue;
     await db.tickets.put(ticketFromRow(r));
     n += 1;
   }
@@ -763,7 +869,7 @@ async function pullDocuments(supabase: SupabaseClient, userId: string) {
     const localU = local
       ? effectiveUpdated({ updatedAt: local.updatedAt, createdAt: local.createdAt })
       : "";
-    if (local && parseMs(localU) > parseMs(remoteU)) continue;
+    if (local && shouldSkipRemoteMergeTs(remoteU, localU, local.syncedAt)) continue;
     await db.documents.put(documentFromRow(r));
     n += 1;
   }
@@ -781,7 +887,7 @@ async function pullOutbox(supabase: SupabaseClient, userId: string) {
   for (const r of rows) {
     const remoteU = iso(r.updated_at);
     const local = await db.supportEmailOutbox.get(String(r.id));
-    if (local && parseMs(local.updatedAt) > parseMs(remoteU)) continue;
+    if (local && shouldSkipRemoteMerge(remoteU, local)) continue;
     await db.supportEmailOutbox.put(outboxFromRow(r));
     n += 1;
   }
@@ -794,7 +900,7 @@ async function pullTemplates(supabase: SupabaseClient, userId: string) {
   for (const r of rows) {
     const remoteU = iso(r.updated_at);
     const local = await db.templates.get(String(r.id));
-    if (local && parseMs(local.updatedAt) > parseMs(remoteU)) continue;
+    if (local && shouldSkipRemoteMerge(remoteU, local)) continue;
     await db.templates.put(templateFromRow(r));
     n += 1;
   }
@@ -815,7 +921,11 @@ export function setSyncSupabaseClient(client: SupabaseClient | null) {
 
 export function scheduleWorkflowSync() {
   if (typeof window === "undefined") return;
-  if (!navigator.onLine) return;
+  if (!navigator.onLine) {
+    useSyncUiStore.getState().setPhase("offline_pending");
+    void refreshPendingDirtyCount();
+    return;
+  }
   if (syncMutationDepth > 0) return;
   if (debounceTimer) clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => {
@@ -878,6 +988,8 @@ export async function runFullSync(
       result.skipped = true;
       result.reason = "offline";
       result.ok = false;
+      useSyncUiStore.getState().setPhase("offline_pending");
+      void refreshPendingDirtyCount();
       return result;
     }
 
@@ -889,12 +1001,17 @@ export async function runFullSync(
       result.skipped = true;
       result.reason = "not_authenticated";
       result.ok = false;
+      useSyncUiStore.getState().setPhase("idle");
       return result;
     }
 
     rememberUser(user.id);
+    useSyncUiStore.getState().setPhase("syncing");
     syncMutationDepth += 1;
     try {
+      await flushPendingInterventionDeletes(supabase, user.id);
+      syncAuditLog("full_sync_start", { userId: user.id });
+
       // Push FK-safe order
       result.pushed.clients = await pushClients(supabase, user.id);
       result.pushed.spareParts = await pushSpareParts(supabase, user.id);
@@ -918,11 +1035,49 @@ export async function runFullSync(
       result.pulled.supportEmailOutbox = await pullOutbox(supabase, user.id);
 
       result.ok = result.errors.length === 0;
+
+      const attErrs = result.errors.filter((e) => e.startsWith("attachment "));
+      if (attErrs.length) {
+        pushSyncFailure({
+          kind: "upload",
+          title: `${attErrs.length} attachment upload(s) need retry`,
+          detail: attErrs.slice(0, 4).join("; ")
+        });
+      }
     } catch (e: unknown) {
       result.ok = false;
       result.errors.push(e instanceof Error ? e.message : String(e));
     } finally {
       syncMutationDepth -= 1;
+      const clean = result.errors.length === 0 && result.ok;
+      useSyncUiStore
+        .getState()
+        .setFullSyncDone(
+          clean,
+          result.errors.length ? result.errors.join("; ") : null
+        );
+      if (!result.skipped && clean) {
+        autoSyncRetryAttempt = 0;
+        cancelAutomatedSyncRetry();
+        useSyncFailureQueue.getState().clearKind("sync");
+        syncAuditLog("full_sync_ok", {
+          pushed: result.pushed,
+          pulled: result.pulled
+        });
+      } else if (!result.skipped && !clean) {
+        syncAuditLog("full_sync_errors", { errors: result.errors });
+        const nonAtt = result.errors.filter((e) => !e.startsWith("attachment "));
+        if (nonAtt.length) {
+          pushSyncFailure({
+            kind: "sync",
+            title: "Sync incomplete",
+            detail: nonAtt.slice(0, 6).join("; ")
+          });
+        }
+        autoSyncRetryAttempt = Math.min(autoSyncRetryAttempt + 1, 8);
+        scheduleAutomatedSyncRetry();
+      }
+      void refreshPendingDirtyCount();
     }
 
     return result;
@@ -932,5 +1087,220 @@ export async function runFullSync(
     return await inflight;
   } finally {
     inflight = null;
+  }
+}
+
+export async function refreshPendingDirtyCount(): Promise<void> {
+  const n = await computePendingDirtyCount();
+  useSyncUiStore.getState().setDirtyCount(n);
+}
+
+export async function computePendingDirtyCount(): Promise<number> {
+  let n = 0;
+  for (const r of await db.clients.toArray()) {
+    if (isDirty(r.updatedAt, r.syncedAt)) n += 1;
+  }
+  for (const r of await db.interventions.toArray()) {
+    if (isDirty(r.updatedAt, r.syncedAt)) n += 1;
+  }
+  for (const r of await db.spareParts.toArray()) {
+    if (isDirty(r.updatedAt, r.syncedAt)) n += 1;
+  }
+  for (const r of await db.stockMovements.toArray()) {
+    const u = effectiveUpdated({ updatedAt: r.updatedAt, createdAt: r.createdAt });
+    if (isDirty(u, r.syncedAt)) n += 1;
+  }
+  for (const r of await db.tickets.toArray()) {
+    if (isDirty(r.updatedAt, r.syncedAt)) n += 1;
+  }
+  for (const r of await db.attachments.toArray()) {
+    const u = effectiveUpdated({ updatedAt: r.updatedAt, createdAt: r.createdAt });
+    if (isDirty(u, r.syncedAt)) n += 1;
+  }
+  for (const r of await db.documents.toArray()) {
+    const u = effectiveUpdated({ updatedAt: r.updatedAt, createdAt: r.createdAt });
+    if (isDirty(u, r.syncedAt)) n += 1;
+  }
+  for (const r of await db.supportEmailOutbox.toArray()) {
+    if (isDirty(r.updatedAt, r.syncedAt)) n += 1;
+  }
+  for (const r of await db.templates.toArray()) {
+    if (isDirty(r.updatedAt, r.syncedAt)) n += 1;
+  }
+  return n;
+}
+
+export async function runManualFullSync(): Promise<SyncResult | null> {
+  const c = syncSupabase;
+  if (!c) return null;
+  return runFullSync(c);
+}
+
+/**
+ * Flush pending remote deletes, run a full sync, and bump UI query epoch (Settings / power users).
+ */
+export async function runForceFullWorkflowSync(): Promise<SyncResult | null> {
+  const c = syncSupabase;
+  if (!c) return null;
+  cancelAutomatedSyncRetry();
+  const {
+    data: { user }
+  } = await c.auth.getUser();
+  if (user) {
+    await flushPendingInterventionDeletes(c, user.id);
+  }
+  const r = await runFullSync(c);
+  useSyncUiStore.getState().bumpLiveQueryEpoch();
+  return r;
+}
+
+type RealtimePayload = {
+  eventType: "INSERT" | "UPDATE" | "DELETE" | string;
+  new: Record<string, unknown> | null;
+  old: Record<string, unknown> | null;
+  table: string;
+};
+
+export async function applyRealtimePostgresChange(
+  supabase: SupabaseClient,
+  userId: string,
+  payload: RealtimePayload
+): Promise<void> {
+  const { eventType, new: rec, old: prev, table } = payload;
+  const ev = String(eventType).toUpperCase();
+  const uid = String((rec ?? prev)?.user_id ?? "");
+  if (uid && uid !== userId) return;
+
+  syncMutationDepth += 1;
+  try {
+    if (ev === "DELETE") {
+      const id = String(prev?.id ?? "");
+      if (!id) return;
+      switch (table) {
+        case "wf_clients":
+          await db.clients.delete(id);
+          break;
+        case "wf_spare_parts":
+          await db.spareParts.delete(id);
+          break;
+        case "wf_attachments":
+          await db.attachments.delete(id);
+          break;
+        case "wf_interventions":
+          try {
+            await deleteInterventionWithRelations(id);
+          } catch {
+            await db.interventions.delete(id);
+          }
+          break;
+        case "wf_stock_movements":
+          await db.stockMovements.delete(id);
+          break;
+        case "wf_tickets":
+          await db.tickets.delete(id);
+          break;
+        case "wf_documents":
+          await db.documents.delete(id);
+          break;
+        case "wf_support_email_outbox":
+          await db.supportEmailOutbox.delete(id);
+          break;
+        case "wf_templates":
+          await db.templates.delete(id);
+          break;
+        default:
+          break;
+      }
+      useSyncUiStore.getState().touchRealtime();
+      return;
+    }
+
+    const row = rec;
+    if (!row) return;
+    const remoteU = iso(row.updated_at ?? row.created_at);
+
+    switch (table) {
+      case "wf_clients": {
+        const local = await db.clients.get(String(row.id));
+        if (local && shouldSkipRemoteMerge(remoteU, local)) return;
+        await db.clients.put(clientFromRow(row));
+        break;
+      }
+      case "wf_spare_parts": {
+        const local = await db.spareParts.get(String(row.id));
+        if (local && shouldSkipRemoteMerge(remoteU, local)) return;
+        await db.spareParts.put(spareFromRow(row));
+        break;
+      }
+      case "wf_attachments": {
+        const id = String(row.id);
+        const local = await db.attachments.get(id);
+        const localU = local
+          ? effectiveUpdated({ updatedAt: local.updatedAt, createdAt: local.createdAt })
+          : "";
+        if (local && shouldSkipRemoteMergeTs(remoteU, localU, local.syncedAt)) return;
+        const path = String(row.storage_path);
+        let file: Blob | null = null;
+        const first = await supabase.storage.from(STORAGE_BUCKET).download(path);
+        if (!first.error && first.data) file = first.data;
+        if (!file) {
+          const legacy = legacyAttachmentStoragePath(userId, id);
+          if (legacy !== path) {
+            const second = await supabase.storage.from(STORAGE_BUCKET).download(legacy);
+            if (!second.error && second.data) file = second.data;
+          }
+        }
+        if (!file) return;
+        await db.attachments.put(attachmentFromRow(row, file));
+        break;
+      }
+      case "wf_interventions": {
+        const local = await db.interventions.get(String(row.id));
+        if (local && shouldSkipRemoteMerge(remoteU, local)) return;
+        await db.interventions.put(interventionFromRow(row));
+        break;
+      }
+      case "wf_stock_movements": {
+        const local = await db.stockMovements.get(String(row.id));
+        const localU = local
+          ? effectiveUpdated({ updatedAt: local.updatedAt, createdAt: local.createdAt })
+          : "";
+        if (local && shouldSkipRemoteMergeTs(remoteU, localU, local.syncedAt)) return;
+        await db.stockMovements.put(stockFromRow(row));
+        break;
+      }
+      case "wf_tickets": {
+        const local = await db.tickets.get(String(row.id));
+        if (local && shouldSkipRemoteMerge(remoteU, local)) return;
+        await db.tickets.put(ticketFromRow(row));
+        break;
+      }
+      case "wf_documents": {
+        const local = await db.documents.get(String(row.id));
+        const localU = local
+          ? effectiveUpdated({ updatedAt: local.updatedAt, createdAt: local.createdAt })
+          : "";
+        if (local && shouldSkipRemoteMergeTs(remoteU, localU, local.syncedAt)) return;
+        await db.documents.put(documentFromRow(row));
+        break;
+      }
+      case "wf_support_email_outbox": {
+        const local = await db.supportEmailOutbox.get(String(row.id));
+        if (local && shouldSkipRemoteMerge(remoteU, local)) return;
+        await db.supportEmailOutbox.put(outboxFromRow(row));
+        break;
+      }
+      case "wf_templates": {
+        const local = await db.templates.get(String(row.id));
+        if (local && shouldSkipRemoteMerge(remoteU, local)) return;
+        await db.templates.put(templateFromRow(row));
+        break;
+      }
+      default:
+        break;
+    }
+    useSyncUiStore.getState().touchRealtime();
+  } finally {
+    syncMutationDepth -= 1;
   }
 }

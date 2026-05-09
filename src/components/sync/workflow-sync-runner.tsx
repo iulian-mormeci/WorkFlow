@@ -1,9 +1,14 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { startWorkflowRealtime } from "@/lib/sync/realtime-subscriptions";
+import { maybeToastSyncFailure } from "@/lib/sync/sync-notify";
+import { useSyncFailureQueue } from "@/lib/sync/sync-failure-queue";
 import {
+  cancelAutomatedSyncRetry,
   registerWorkflowDexieSyncHooks,
+  refreshPendingDirtyCount,
   runFullSync,
   scheduleWorkflowSync,
   setSyncSupabaseClient
@@ -11,38 +16,55 @@ import {
 
 /**
  * Registers Dexie → debounced sync, runs full sync on startup (when signed in),
- * and on `online` + auth session changes.
- *
- * Note: Dexie DB name is global (`workflow`). If multiple accounts use the same
- * browser profile, merge local data before enabling sync or use a per-user DB name.
+ * starts Supabase Realtime, and listens for `online` + auth session changes.
  */
 export function WorkflowSyncRunner() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
+  const stopRealtimeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (!supabase) return;
     setSyncSupabaseClient(supabase);
     registerWorkflowDexieSyncHooks();
 
+    useSyncFailureQueue.getState().hydrate();
+
     const onOnline = () => scheduleWorkflowSync();
+    const onOffline = () => cancelAutomatedSyncRetry();
     window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
 
     void (async () => {
       const {
         data: { session }
       } = await supabase.auth.getSession();
-      if (session) await runFullSync(supabase);
+      if (session?.user) {
+        const r = await runFullSync(supabase);
+        maybeToastSyncFailure(r);
+        stopRealtimeRef.current?.();
+        stopRealtimeRef.current = startWorkflowRealtime(supabase, session.user.id);
+        await refreshPendingDirtyCount();
+      }
     })();
 
     const {
       data: { subscription }
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) scheduleWorkflowSync();
+      stopRealtimeRef.current?.();
+      stopRealtimeRef.current = null;
+      if (session?.user) {
+        void runFullSync(supabase).then((r) => maybeToastSyncFailure(r));
+        stopRealtimeRef.current = startWorkflowRealtime(supabase, session.user.id);
+      }
+      void refreshPendingDirtyCount();
     });
 
     return () => {
       subscription.unsubscribe();
       window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+      stopRealtimeRef.current?.();
+      stopRealtimeRef.current = null;
       setSyncSupabaseClient(null);
     };
   }, [supabase]);

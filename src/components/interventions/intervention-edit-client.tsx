@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
@@ -46,17 +47,23 @@ import {
   DialogTitle
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { performInterventionCloudSyncDelete } from "@/lib/sync/cloud-delete";
+import { scheduleWorkflowSync } from "@/lib/sync/sync-engine";
 
 export function InterventionEditClient({ id }: { id: string }) {
-  const intervention = useLiveQuery(async () => await db.interventions.get(id), [id]);
+  const liveEpoch = useWorkflowLiveEpoch();
+  const intervention = useLiveQuery(async () => await db.interventions.get(id), [id, liveEpoch]);
   const client = useLiveQuery(async () => {
     if (!intervention?.clientId) return null;
     return await db.clients.get(intervention.clientId);
-  }, [intervention?.clientId]);
+  }, [intervention?.clientId, liveEpoch]);
 
   const [open, setOpen] = useState(false);
   const [photoOpen, setPhotoOpen] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [pdfOpen, setPdfOpen] = useState(false);
   const [ticketOpen, setTicketOpen] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
@@ -64,6 +71,7 @@ export function InterventionEditClient({ id }: { id: string }) {
   const [templateOpen, setTemplateOpen] = useState(false);
   const [templateName, setTemplateName] = useState("");
   const { toast } = useToast();
+  const router = useRouter();
   const [nowTick, setNowTick] = useState(0);
 
   useEffect(() => {
@@ -118,15 +126,16 @@ export function InterventionEditClient({ id }: { id: string }) {
         </div>
         <div className="flex items-center gap-2">
           <InterventionStatusBadge intervention={intervention} />
-          <Button variant="outline" onClick={() => setPdfOpen(true)}>
+          <Button type="button" variant="outline" onClick={() => setPdfOpen(true)}>
             <FileDown className="h-4 w-4" />
             PDF
           </Button>
-          <Button variant="outline" onClick={() => setTicketOpen(true)}>
+          <Button type="button" variant="outline" onClick={() => setTicketOpen(true)}>
             <MessageSquarePlus className="h-4 w-4" />
             Ticket
           </Button>
           <Button
+            type="button"
             variant="outline"
             onClick={async () => {
               try {
@@ -143,11 +152,12 @@ export function InterventionEditClient({ id }: { id: string }) {
           >
             Export for CRM
           </Button>
-          <Button onClick={() => setOpen(true)} variant="outline">
+          <Button type="button" onClick={() => setOpen(true)} variant="outline">
             <Pencil className="h-4 w-4" />
             Edit
           </Button>
           <Button
+            type="button"
             onClick={() => {
               setTemplateName(
                 `${client?.name ?? "Client"} • ${intervention.type}`
@@ -159,7 +169,7 @@ export function InterventionEditClient({ id }: { id: string }) {
             <Layers className="h-4 w-4" />
             Save template
           </Button>
-          <Button onClick={() => setConfirmDelete(true)} variant="outline">
+          <Button type="button" onClick={() => setConfirmDelete(true)} variant="outline">
             <Trash2 className="h-4 w-4" />
             Delete
           </Button>
@@ -502,30 +512,73 @@ export function InterventionEditClient({ id }: { id: string }) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+      <Dialog open={confirmDelete} onOpenChange={(open) => !deleting && setConfirmDelete(open)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete intervention?</DialogTitle>
             <DialogDescription>
-              This removes the intervention locally (offline). You can’t undo this.
+              When you are online, this also removes the intervention from your Supabase account
+              (documents, attachments, and queued emails in the cloud). CRM tickets stay but are
+              unlinked. This cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4 flex items-center justify-end gap-2">
-            <Button variant="outline" onClick={() => setConfirmDelete(false)} type="button">
+            <Button
+              variant="outline"
+              onClick={() => setConfirmDelete(false)}
+              type="button"
+              disabled={deleting}
+            >
               Cancel
             </Button>
             <Button
-              onClick={async () => {
-                // delete attachments first
-                const photoIds = intervention.photoIds ?? [];
-                if (photoIds.length) await db.attachments.bulkDelete(photoIds);
-                await db.interventions.delete(intervention.id);
-                toast({ title: "Deleted", description: "Intervention removed locally." });
-                window.location.href = "/interventions";
-              }}
+              variant="outline"
+              className="border-destructive/50 text-destructive hover:bg-destructive/10"
+              disabled={deleting}
               type="button"
+              onClick={async () => {
+                setDeleting(true);
+                try {
+                  const supabase = createSupabaseBrowserClient();
+                  const {
+                    data: { user }
+                  } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
+                  const res = await performInterventionCloudSyncDelete({
+                    interventionId: intervention.id,
+                    supabase: supabase ?? null,
+                    userId: user?.id ?? null
+                  });
+                  if (!res.ok) {
+                    toast({
+                      title: "Could not delete in the cloud",
+                      description: res.message,
+                      variant: "destructive"
+                    });
+                    return;
+                  }
+                  setConfirmDelete(false);
+                  toast({
+                    title: "Intervention deleted",
+                    description: navigator.onLine
+                      ? "Removed from this device and from your cloud account."
+                      : "Removed from this device; cloud removal is queued for the next online sync."
+                  });
+                  scheduleWorkflowSync();
+                  router.push("/interventions");
+                  router.refresh();
+                } catch (e: unknown) {
+                  const msg = e instanceof Error ? e.message : String(e);
+                  toast({
+                    title: "Could not delete",
+                    description: msg,
+                    variant: "destructive"
+                  });
+                } finally {
+                  setDeleting(false);
+                }
+              }}
             >
-              Delete
+              {deleting ? "Deleting…" : "Delete"}
             </Button>
           </div>
         </DialogContent>
@@ -538,7 +591,8 @@ export function InterventionEditClient({ id }: { id: string }) {
 
 function DocumentRow({ docId, onSend }: { docId: string; onSend: (id: string) => void }) {
   const { toast } = useToast();
-  const doc = useLiveQuery(async () => await db.documents.get(docId), [docId]);
+  const liveEpoch = useWorkflowLiveEpoch();
+  const doc = useLiveQuery(async () => await db.documents.get(docId), [docId, liveEpoch]);
 
   if (!doc) return null;
 

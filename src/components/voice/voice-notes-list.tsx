@@ -6,10 +6,17 @@ import { Trash2 } from "lucide-react";
 import { db } from "@/lib/db/workflow-db";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { deleteVoiceAttachmentRemote } from "@/lib/sync/cloud-delete";
 
 export function VoiceNotesList({ interventionId }: { interventionId: string }) {
   const { toast } = useToast();
-  const intervention = useLiveQuery(async () => db.interventions.get(interventionId), [interventionId]);
+  const liveEpoch = useWorkflowLiveEpoch();
+  const intervention = useLiveQuery(async () => db.interventions.get(interventionId), [
+    interventionId,
+    liveEpoch
+  ]);
   const [urls, setUrls] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
@@ -26,7 +33,7 @@ export function VoiceNotesList({ interventionId }: { interventionId: string }) {
       .filter(Boolean)
       .map((a) => a!)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }, [intervention?.voiceNoteIds?.join(",") ?? ""]);
+  }, [intervention?.voiceNoteIds?.join(",") ?? "", liveEpoch]);
 
   useEffect(() => {
     (async () => {
@@ -68,8 +75,24 @@ export function VoiceNotesList({ interventionId }: { interventionId: string }) {
               <Button
                 variant="outline"
                 onClick={async () => {
-                  if (!confirm("Delete this voice note?")) return;
+                  if (
+                    !confirm(
+                      "Delete this voice note from this device and from the cloud (when online)?"
+                    )
+                  ) {
+                    return;
+                  }
                   try {
+                    const supabase = createSupabaseBrowserClient();
+                    const {
+                      data: { user }
+                    } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
+                    if (supabase && user && typeof navigator !== "undefined" && navigator.onLine) {
+                      await deleteVoiceAttachmentRemote(supabase, user.id, {
+                        attachmentId: a.id,
+                        interventionId
+                      });
+                    }
                     const nowIso = new Date().toISOString();
                     await db.attachments.delete(a.id);
                     const prev = intervention?.voiceNoteIds ?? [];

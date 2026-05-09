@@ -6,12 +6,14 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import { db } from "@/lib/db/workflow-db";
 import { endOfDay, endOfMonth, startOfDay, startOfMonth } from "@/lib/dates";
 import { IconBubble } from "@/components/ui/icon";
+import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
 
 function minutesToHours(min: number) {
   return Math.round((min / 60) * 10) / 10;
 }
 
 export function DashboardStats() {
+  const liveEpoch = useWorkflowLiveEpoch();
   const now = new Date();
   const todayStart = startOfDay(now).toISOString();
   const todayEnd = endOfDay(now).toISOString();
@@ -23,7 +25,7 @@ export function DashboardStats() {
       .where("startAt")
       .between(todayStart, todayEnd, true, true)
       .count();
-  }, [todayStart, todayEnd]);
+  }, [todayStart, todayEnd, liveEpoch]);
 
   const monthTotals = useLiveQuery(async () => {
     const items = await db.interventions
@@ -34,7 +36,7 @@ export function DashboardStats() {
     const durationMinutes = items.reduce((acc, it) => acc + (it.durationMinutes ?? 0), 0);
     const km = items.reduce((acc, it) => acc + (it.km ?? 0), 0);
     return { durationMinutes, km };
-  }, [monthStart, monthEnd]);
+  }, [monthStart, monthEnd, liveEpoch]);
 
   const pendingTickets = useLiveQuery(async () => {
     // Pending = open/pending. If reminderAt exists and is <= now, it’s due.
@@ -46,7 +48,7 @@ export function DashboardStats() {
     const nowIso = now.toISOString();
     const due = tickets.filter((t) => !t.reminderAt || t.reminderAt <= nowIso);
     return { due: due.length, total: tickets.length };
-  }, [now.toDateString()]);
+  }, [now.toDateString(), liveEpoch]);
 
   const cards = [
     {

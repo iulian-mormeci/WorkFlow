@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import jsPDF from "jspdf";
 import { db } from "@/lib/db/workflow-db";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { persistAttachmentToCloud } from "@/lib/sync/attachment-cloud";
+import { scheduleWorkflowSync } from "@/lib/sync/sync-engine";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -72,6 +75,7 @@ export function DocumentScannerDialog({
   const [pages, setPages] = useState<PageItem[]>([]);
   const [enhance, setEnhance] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadPct, setUploadPct] = useState<number | null>(null);
 
   const canSave = useMemo(
     () => title.trim().length > 2 && pages.length > 0,
@@ -199,15 +203,44 @@ export function DocumentScannerDialog({
       const attachmentId = crypto.randomUUID();
       const docId = crypto.randomUUID();
 
+      const pdfName = `${title.trim().replaceAll(/[^\w\- ]+/g, "").slice(0, 48)}.pdf`;
+
       await db.attachments.add({
         id: attachmentId,
         kind: "document",
         mime: "application/pdf",
-        name: `${title.trim().replaceAll(/[^\w\- ]+/g, "").slice(0, 48)}.pdf`,
+        name: pdfName,
         size: blob.size,
         blob,
         createdAt: nowIso
       });
+
+      setUploadPct(0);
+      try {
+        const supabase = createSupabaseBrowserClient();
+        if (supabase && navigator.onLine) {
+          const {
+            data: { user }
+          } = await supabase.auth.getUser();
+          if (user) {
+            const att = await db.attachments.get(attachmentId);
+            if (att) {
+              await persistAttachmentToCloud(supabase, user.id, att, {
+                onProgress: (p) => setUploadPct(p)
+              });
+            }
+          }
+        }
+      } catch (e: unknown) {
+        toast({
+          title: "Cloud upload incomplete",
+          description:
+            e instanceof Error ? e.message : "PDF is saved locally; will retry on next sync.",
+          variant: "destructive"
+        });
+      } finally {
+        setUploadPct(null);
+      }
 
       await db.documents.add({
         id: docId,
@@ -227,7 +260,11 @@ export function DocumentScannerDialog({
         });
       }
 
-      toast({ title: "Document saved", description: "PDF stored locally." });
+      scheduleWorkflowSync();
+      toast({
+        title: "Document saved",
+        description: "PDF stored locally and queued for sync."
+      });
       setPages([]);
       onOpenChange(false);
     } catch (e: any) {
@@ -336,12 +373,26 @@ export function DocumentScannerDialog({
             </div>
           )}
 
+          {uploadPct != null ? (
+            <div className="grid gap-1">
+              <div className="text-xs font-medium text-muted-foreground">
+                Uploading to cloud… {uploadPct}%
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-2 rounded-full bg-primary transition-[width] duration-150"
+                  style={{ width: `${uploadPct}%` }}
+                />
+              </div>
+            </div>
+          ) : null}
+
           <div className="flex items-center justify-end gap-2">
             <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
             <Button disabled={!canSave || saving} type="button" onClick={savePdf}>
-              {saving ? "Saving…" : "Save PDF"}
+              {saving ? (uploadPct != null ? `Upload ${uploadPct}%` : "Saving…") : "Save PDF"}
             </Button>
           </div>
         </div>

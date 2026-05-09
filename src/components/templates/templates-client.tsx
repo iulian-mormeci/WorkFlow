@@ -15,10 +15,17 @@ import {
 } from "@/components/ui/dialog";
 import { InterventionFormDialog } from "@/components/interventions/intervention-form-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { deleteTemplateRemote } from "@/lib/sync/cloud-delete";
 
 export function TemplatesClient() {
   const { toast } = useToast();
-  const templates = useLiveQuery(async () => db.templates.orderBy("updatedAt").reverse().toArray(), []);
+  const liveEpoch = useWorkflowLiveEpoch();
+  const templates = useLiveQuery(
+    async () => db.templates.orderBy("updatedAt").reverse().toArray(),
+    [liveEpoch]
+  );
   const [createOpen, setCreateOpen] = useState(false);
   const [useOpen, setUseOpen] = useState(false);
   const [selected, setSelected] = useState<InterventionTemplate | null>(null);
@@ -81,9 +88,26 @@ export function TemplatesClient() {
                 <Button
                   variant="outline"
                   onClick={async () => {
-                    if (!confirm("Delete this template?")) return;
-                    await db.templates.delete(t.id);
-                    toast({ title: "Deleted", description: "Template removed." });
+                    if (!confirm("Delete this template from this device and from the cloud (when online)?")) {
+                      return;
+                    }
+                    try {
+                      const supabase = createSupabaseBrowserClient();
+                      const {
+                        data: { user }
+                      } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
+                      if (supabase && user && typeof navigator !== "undefined" && navigator.onLine) {
+                        await deleteTemplateRemote(supabase, user.id, t.id);
+                      }
+                      await db.templates.delete(t.id);
+                      toast({ title: "Deleted", description: "Template removed." });
+                    } catch (e: unknown) {
+                      toast({
+                        title: "Delete failed",
+                        description: e instanceof Error ? e.message : String(e),
+                        variant: "destructive"
+                      });
+                    }
                   }}
                 >
                   <Trash2 className="h-4 w-4" />

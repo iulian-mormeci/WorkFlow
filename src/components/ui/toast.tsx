@@ -4,12 +4,15 @@ import * as React from "react";
 import * as ToastPrimitive from "@radix-ui/react-toast";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 export type Toast = {
   id: string;
   title?: string;
   description?: string;
   variant?: "default" | "destructive";
+  /** Optional action (e.g. Retry after sync failure). */
+  action?: { label: string; onClick: () => void };
 };
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
@@ -34,18 +37,19 @@ export function ToastItem({
   onOpenChange: (open: boolean) => void;
 }) {
   const destructive = toast.variant === "destructive";
+  const duration = toast.action ? 12_000 : 4000;
   return (
     <ToastPrimitive.Root
       open
       onOpenChange={onOpenChange}
-      duration={4000}
+      duration={duration}
       className={cn(
         "rounded-2xl border bg-background p-4 shadow-lg",
         destructive && "border-red-200 bg-red-50"
       )}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="space-y-1">
+        <div className="min-w-0 flex-1 space-y-1">
           {toast.title ? (
             <ToastPrimitive.Title className={cn("text-sm font-semibold", destructive && "text-red-800")}>
               {toast.title}
@@ -56,9 +60,25 @@ export function ToastItem({
               {toast.description}
             </ToastPrimitive.Description>
           ) : null}
+          {toast.action ? (
+            <div className="pt-2">
+              <Button
+                type="button"
+                size="sm"
+                variant={destructive ? "secondary" : "default"}
+                className="h-8"
+                onClick={() => {
+                  toast.action?.onClick();
+                  onOpenChange(false);
+                }}
+              >
+                {toast.action.label}
+              </Button>
+            </div>
+          ) : null}
         </div>
         <ToastPrimitive.Close asChild>
-          <button className="rounded-lg p-1 hover:bg-muted" aria-label="Close">
+          <button className="shrink-0 rounded-lg p-1 hover:bg-muted" aria-label="Close">
             <X className="h-4 w-4" />
           </button>
         </ToastPrimitive.Close>

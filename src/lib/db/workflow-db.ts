@@ -89,6 +89,8 @@ export type Attachment = {
   blob: Blob;
   createdAt: string;
   updatedAt?: string;
+  /** Supabase Storage object path after cloud persist (Section Sync 2). */
+  cloudStoragePath?: string;
 } & SyncMeta;
 
 export type Document = {

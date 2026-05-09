@@ -8,14 +8,21 @@ import { db } from "@/lib/db/workflow-db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { deleteDocumentRemote } from "@/lib/sync/cloud-delete";
 import { SendToSupportDialog } from "@/components/support/send-to-support-dialog";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function DocumentDetailClient({ id }: { id: string }) {
   const { toast } = useToast();
-  const doc = useLiveQuery(async () => await db.documents.get(id), [id]);
-  const attachment = useLiveQuery(async () => (doc ? await db.attachments.get(doc.attachmentId) : null), [doc?.attachmentId]);
+  const liveEpoch = useWorkflowLiveEpoch();
+  const doc = useLiveQuery(async () => await db.documents.get(id), [id, liveEpoch]);
+  const attachment = useLiveQuery(
+    async () => (doc ? await db.attachments.get(doc.attachmentId) : null),
+    [doc?.attachmentId, liveEpoch]
+  );
 
   const [rename, setRename] = useState(false);
   const [title, setTitle] = useState("");
@@ -139,20 +146,43 @@ export function DocumentDetailClient({ id }: { id: string }) {
           <Button
             variant="outline"
             onClick={async () => {
-              if (!confirm("Delete this document?")) return;
+              if (
+                !confirm(
+                  "Delete this document from this device and from the cloud (when online)?"
+                )
+              ) {
+                return;
+              }
               try {
-                // remove from linked intervention
+                const supabase = createSupabaseBrowserClient();
+                const {
+                  data: { user }
+                } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
+                if (supabase && user && typeof navigator !== "undefined" && navigator.onLine) {
+                  await deleteDocumentRemote(supabase, user.id, {
+                    documentId: doc.id,
+                    attachmentId: doc.attachmentId,
+                    interventionId: doc.interventionId ?? null
+                  });
+                }
                 if (doc.interventionId) {
                   const it = await db.interventions.get(doc.interventionId);
                   const next = (it?.documentIds ?? []).filter((x) => x !== doc.id);
-                  await db.interventions.update(doc.interventionId, { documentIds: next, updatedAt: new Date().toISOString() });
+                  await db.interventions.update(doc.interventionId, {
+                    documentIds: next,
+                    updatedAt: new Date().toISOString()
+                  });
                 }
                 await db.attachments.delete(doc.attachmentId);
                 await db.documents.delete(doc.id);
-                toast({ title: "Deleted", description: "Document removed locally." });
+                toast({ title: "Deleted", description: "Document removed." });
                 window.location.href = "/documents";
               } catch (e: any) {
-                toast({ title: "Delete failed", description: e?.message ?? "Could not delete", variant: "destructive" });
+                toast({
+                  title: "Delete failed",
+                  description: e?.message ?? "Could not delete",
+                  variant: "destructive"
+                });
               }
             }}
           >

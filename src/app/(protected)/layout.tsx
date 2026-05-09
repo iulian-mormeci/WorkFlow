@@ -1,4 +1,6 @@
 import { OnlineIndicator } from "@/components/offline/online-indicator";
+import { SidebarSignOut } from "@/components/auth/sidebar-sign-out";
+import { SyncStatus } from "@/components/sync/sync-status";
 import { GlobalSearch } from "@/components/search/global-search";
 import { KeyboardShortcutsDialog } from "@/components/shortcuts/keyboard-shortcuts-dialog";
 import { SidebarNav, type SidebarNavItem } from "@/components/layout/sidebar-nav";
@@ -46,12 +48,12 @@ export default async function ProtectedLayout({
                 </span>
               </div>
             </div>
-            <a className="text-sm underline" href="/auth/logout">
-              Sign out
-            </a>
+            <SidebarSignOut />
           </div>
 
           <GlobalSearch />
+
+          <SyncStatus />
 
           <SidebarNav items={nav} />
 
