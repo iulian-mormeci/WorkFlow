@@ -1,0 +1,936 @@
+/**
+ * WorkFlow cloud sync (Section Sync 1): bidirectional Dexie ↔ Supabase.
+ * - Push dirty rows (local updatedAt > syncedAt) with last-write-wins timestamps.
+ * - Pull remote rows when remote updated_at is newer than local updatedAt.
+ * - Attachments: upload/download via Storage bucket `attachments` at `{userId}/{attachmentId}`.
+ */
+import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  db,
+  type Attachment,
+  type Client,
+  type Document,
+  type Intervention,
+  type InterventionTemplate,
+  type SparePart,
+  type StockMovement,
+  type SupportEmailOutboxItem,
+  type Ticket
+} from "@/lib/db/workflow-db";
+
+const STORAGE_BUCKET = "attachments";
+const PAGE_SIZE = 500;
+const SYNC_DEBOUNCE_MS = 2000;
+const SYNC_USER_KEY = "workflow.sync.lastUserId.v1";
+
+export type SyncResult = {
+  ok: boolean;
+  pushed: Record<string, number>;
+  pulled: Record<string, number>;
+  errors: string[];
+  skipped: boolean;
+  reason?: string;
+};
+
+function iso(v: unknown): string {
+  if (v == null) return new Date(0).toISOString();
+  if (typeof v === "string") return v;
+  return String(v);
+}
+
+function parseMs(isoStr: string): number {
+  const t = new Date(isoStr).getTime();
+  return Number.isFinite(t) ? t : 0;
+}
+
+function isDirty(localUpdated: string, syncedAt?: string): boolean {
+  if (!syncedAt) return true;
+  return parseMs(localUpdated) > parseMs(syncedAt);
+}
+
+function effectiveUpdated(
+  row: { updatedAt?: string; createdAt: string }
+): string {
+  return row.updatedAt ?? row.createdAt;
+}
+
+function rememberUser(userId: string) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(SYNC_USER_KEY, userId);
+}
+
+function storagePath(userId: string, attachmentId: string): string {
+  return `${userId}/${attachmentId}`;
+}
+
+function chunk<T>(arr: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+
+// —— row mappers: Supabase (snake) ↔ Dexie (camel) ——————————————————
+
+function clientToRow(c: Client, userId: string) {
+  return {
+    id: c.id,
+    user_id: userId,
+    name: c.name,
+    address: c.address ?? null,
+    city: c.city ?? null,
+    phone: c.phone ?? null,
+    email: c.email ?? null,
+    vat_number: c.vatNumber ?? null,
+    notes: c.notes ?? null,
+    created_at: c.createdAt,
+    updated_at: c.updatedAt
+  };
+}
+
+function clientFromRow(r: Record<string, unknown>): Client {
+  return {
+    id: String(r.id),
+    name: String(r.name),
+    address: (r.address as string) ?? undefined,
+    city: (r.city as string) ?? undefined,
+    phone: (r.phone as string) ?? undefined,
+    email: (r.email as string) ?? undefined,
+    vatNumber: (r.vat_number as string) ?? undefined,
+    notes: (r.notes as string) ?? undefined,
+    createdAt: iso(r.created_at),
+    updatedAt: iso(r.updated_at),
+    syncedAt: new Date().toISOString(),
+    remoteId: String(r.id)
+  };
+}
+
+function spareToRow(s: SparePart, userId: string) {
+  return {
+    id: s.id,
+    user_id: userId,
+    sku: s.sku,
+    name: s.name,
+    unit: s.unit ?? null,
+    min_stock: s.minStock ?? null,
+    created_at: s.createdAt,
+    updated_at: s.updatedAt
+  };
+}
+
+function spareFromRow(r: Record<string, unknown>): SparePart {
+  return {
+    id: String(r.id),
+    sku: String(r.sku),
+    name: String(r.name),
+    unit: (r.unit as string) ?? undefined,
+    minStock: r.min_stock != null ? Number(r.min_stock) : undefined,
+    createdAt: iso(r.created_at),
+    updatedAt: iso(r.updated_at),
+    syncedAt: new Date().toISOString(),
+    remoteId: String(r.id)
+  };
+}
+
+function attachmentToRow(a: Attachment, userId: string, storage_path: string) {
+  return {
+    id: a.id,
+    user_id: userId,
+    kind: a.kind,
+    mime: a.mime,
+    name: a.name ?? null,
+    size: a.size ?? null,
+    storage_path,
+    created_at: a.createdAt,
+    updated_at: a.updatedAt ?? a.createdAt
+  };
+}
+
+function attachmentFromRow(
+  r: Record<string, unknown>,
+  blob: Blob
+): Attachment {
+  return {
+    id: String(r.id),
+    kind: r.kind as Attachment["kind"],
+    mime: String(r.mime),
+    name: (r.name as string) ?? undefined,
+    size: r.size != null ? Number(r.size) : undefined,
+    blob,
+    createdAt: iso(r.created_at),
+    updatedAt: iso(r.updated_at),
+    syncedAt: new Date().toISOString(),
+    remoteId: String(r.id)
+  };
+}
+
+function interventionToRow(i: Intervention, userId: string) {
+  return {
+    id: i.id,
+    user_id: userId,
+    client_id: i.clientId,
+    created_by: i.createdBy ?? null,
+    type: i.type,
+    status: i.status ?? null,
+    start_at: i.startAt,
+    end_at: i.endAt ?? null,
+    duration_minutes: i.durationMinutes ?? null,
+    timer_started_at: i.timerStartedAt ?? null,
+    km: i.km ?? null,
+    notes: i.notes ?? null,
+    photo_ids: i.photoIds?.length ? i.photoIds : null,
+    document_ids: i.documentIds?.length ? i.documentIds : null,
+    voice_note_ids: i.voiceNoteIds?.length ? i.voiceNoteIds : null,
+    checklist: i.checklist ?? null,
+    spare_parts_used: i.sparePartsUsed ?? null,
+    created_at: i.createdAt,
+    updated_at: i.updatedAt
+  };
+}
+
+function interventionFromRow(r: Record<string, unknown>): Intervention {
+  const photoIds = (r.photo_ids as string[] | null) ?? undefined;
+  const documentIds = (r.document_ids as string[] | null) ?? undefined;
+  const voiceNoteIds = (r.voice_note_ids as string[] | null) ?? undefined;
+  return {
+    id: String(r.id),
+    clientId: String(r.client_id),
+    createdBy: (r.created_by as string) ?? undefined,
+    type: r.type as Intervention["type"],
+    status: (r.status as Intervention["status"]) ?? undefined,
+    startAt: iso(r.start_at),
+    endAt: r.end_at ? iso(r.end_at) : undefined,
+    durationMinutes:
+      r.duration_minutes != null ? Number(r.duration_minutes) : undefined,
+    timerStartedAt: r.timer_started_at ? iso(r.timer_started_at) : undefined,
+    km: r.km != null ? Number(r.km) : undefined,
+    notes: (r.notes as string) ?? undefined,
+    photoIds: photoIds ?? undefined,
+    documentIds: documentIds ?? undefined,
+    voiceNoteIds: voiceNoteIds ?? undefined,
+    checklist: (r.checklist as Intervention["checklist"]) ?? undefined,
+    sparePartsUsed:
+      (r.spare_parts_used as Intervention["sparePartsUsed"]) ?? undefined,
+    createdAt: iso(r.created_at),
+    updatedAt: iso(r.updated_at),
+    syncedAt: new Date().toISOString(),
+    remoteId: String(r.id)
+  };
+}
+
+function stockToRow(m: StockMovement, userId: string) {
+  const u = m.updatedAt ?? m.createdAt;
+  return {
+    id: m.id,
+    user_id: userId,
+    spare_part_id: m.sparePartId,
+    type: m.type,
+    qty: m.qty,
+    reason: m.reason ?? null,
+    intervention_id: m.interventionId ?? null,
+    created_at: m.createdAt,
+    updated_at: u
+  };
+}
+
+function stockFromRow(r: Record<string, unknown>): StockMovement {
+  const createdAt = iso(r.created_at);
+  const updatedAt = iso(r.updated_at);
+  return {
+    id: String(r.id),
+    sparePartId: String(r.spare_part_id),
+    type: r.type as StockMovement["type"],
+    qty: Number(r.qty),
+    reason: (r.reason as string) ?? undefined,
+    interventionId: (r.intervention_id as string) ?? undefined,
+    createdAt,
+    updatedAt,
+    syncedAt: new Date().toISOString(),
+    remoteId: String(r.id)
+  };
+}
+
+function ticketToRow(t: Ticket, userId: string) {
+  return {
+    id: t.id,
+    user_id: userId,
+    title: t.title,
+    description: t.description ?? null,
+    client_id: t.clientId ?? null,
+    intervention_id: t.interventionId ?? null,
+    priority: t.priority,
+    status: t.status,
+    reminder_at: t.reminderAt ?? null,
+    due_at: t.dueAt ?? null,
+    created_at: t.createdAt,
+    updated_at: t.updatedAt
+  };
+}
+
+function ticketFromRow(r: Record<string, unknown>): Ticket {
+  return {
+    id: String(r.id),
+    title: String(r.title),
+    description: (r.description as string) ?? undefined,
+    clientId: (r.client_id as string) ?? undefined,
+    interventionId: (r.intervention_id as string) ?? undefined,
+    priority: r.priority as Ticket["priority"],
+    status: r.status as Ticket["status"],
+    reminderAt: r.reminder_at ? iso(r.reminder_at) : undefined,
+    dueAt: r.due_at ? iso(r.due_at) : undefined,
+    createdAt: iso(r.created_at),
+    updatedAt: iso(r.updated_at),
+    syncedAt: new Date().toISOString(),
+    remoteId: String(r.id)
+  };
+}
+
+function documentToRow(d: Document, userId: string) {
+  const u = d.updatedAt ?? d.createdAt;
+  return {
+    id: d.id,
+    user_id: userId,
+    intervention_id: d.interventionId ?? null,
+    title: d.title,
+    attachment_id: d.attachmentId,
+    page_count: d.pageCount,
+    created_at: d.createdAt,
+    updated_at: u
+  };
+}
+
+function documentFromRow(r: Record<string, unknown>): Document {
+  const createdAt = iso(r.created_at);
+  const updatedAt = iso(r.updated_at);
+  return {
+    id: String(r.id),
+    interventionId: (r.intervention_id as string) ?? undefined,
+    title: String(r.title),
+    attachmentId: String(r.attachment_id),
+    pageCount: Number(r.page_count ?? 1),
+    createdAt,
+    updatedAt,
+    syncedAt: new Date().toISOString(),
+    remoteId: String(r.id)
+  };
+}
+
+function outboxToRow(o: SupportEmailOutboxItem, userId: string) {
+  return {
+    id: o.id,
+    user_id: userId,
+    status: o.status,
+    to_addr: o.to,
+    title: o.title,
+    note: o.note ?? null,
+    document_id: o.documentId ?? null,
+    intervention_id: o.interventionId ?? null,
+    attachment_id: o.attachmentId,
+    last_error: o.lastError ?? null,
+    created_at: o.createdAt,
+    updated_at: o.updatedAt
+  };
+}
+
+function outboxFromRow(r: Record<string, unknown>): SupportEmailOutboxItem {
+  return {
+    id: String(r.id),
+    status: r.status as SupportEmailOutboxItem["status"],
+    to: String(r.to_addr),
+    title: String(r.title),
+    note: (r.note as string) ?? undefined,
+    documentId: (r.document_id as string) ?? undefined,
+    interventionId: (r.intervention_id as string) ?? undefined,
+    attachmentId: String(r.attachment_id),
+    lastError: (r.last_error as string) ?? undefined,
+    createdAt: iso(r.created_at),
+    updatedAt: iso(r.updated_at),
+    syncedAt: new Date().toISOString(),
+    remoteId: String(r.id)
+  };
+}
+
+function templateToRow(t: InterventionTemplate, userId: string) {
+  return {
+    id: t.id,
+    user_id: userId,
+    name: t.name,
+    client_name: t.clientName ?? null,
+    type: t.type,
+    km: t.km ?? null,
+    notes: t.notes ?? null,
+    checklist: t.checklist ?? null,
+    spare_parts_used: t.sparePartsUsed ?? null,
+    created_at: t.createdAt,
+    updated_at: t.updatedAt
+  };
+}
+
+function templateFromRow(r: Record<string, unknown>): InterventionTemplate {
+  return {
+    id: String(r.id),
+    name: String(r.name),
+    clientName: (r.client_name as string) ?? undefined,
+    type: r.type as InterventionTemplate["type"],
+    km: r.km != null ? Number(r.km) : undefined,
+    notes: (r.notes as string) ?? undefined,
+    checklist: (r.checklist as InterventionTemplate["checklist"]) ?? undefined,
+    sparePartsUsed:
+      (r.spare_parts_used as InterventionTemplate["sparePartsUsed"]) ??
+      undefined,
+    createdAt: iso(r.created_at),
+    updatedAt: iso(r.updated_at),
+    syncedAt: new Date().toISOString(),
+    remoteId: String(r.id)
+  };
+}
+
+async function pullPaged(
+  supabase: SupabaseClient,
+  table: string,
+  userId: string,
+  orderCol: string
+): Promise<Record<string, unknown>[]> {
+  const out: Record<string, unknown>[] = [];
+  let from = 0;
+  for (;;) {
+    const { data, error } = await supabase
+      .from(table)
+      .select("*")
+      .eq("user_id", userId)
+      .order(orderCol, { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) throw new Error(`${table} pull: ${error.message}`);
+    const rows = data ?? [];
+    out.push(...rows);
+    if (rows.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+  return out;
+}
+
+async function upsertBatch(
+  supabase: SupabaseClient,
+  table: string,
+  rows: Record<string, unknown>[]
+) {
+  if (!rows.length) return;
+  const { error } = await supabase.from(table).upsert(rows, {
+    onConflict: "id"
+  });
+  if (error) throw new Error(`${table} upsert: ${error.message}`);
+}
+
+async function markSynced(
+  table:
+    | "clients"
+    | "interventions"
+    | "spareParts"
+    | "stockMovements"
+    | "tickets"
+    | "attachments"
+    | "documents"
+    | "supportEmailOutbox"
+    | "templates",
+  id: string
+) {
+  const now = new Date().toISOString();
+  switch (table) {
+    case "clients":
+      await db.clients.update(id, { syncedAt: now });
+      break;
+    case "interventions":
+      await db.interventions.update(id, { syncedAt: now });
+      break;
+    case "spareParts":
+      await db.spareParts.update(id, { syncedAt: now });
+      break;
+    case "stockMovements":
+      await db.stockMovements.update(id, { syncedAt: now });
+      break;
+    case "tickets":
+      await db.tickets.update(id, { syncedAt: now });
+      break;
+    case "attachments":
+      await db.attachments.update(id, { syncedAt: now });
+      break;
+    case "documents":
+      await db.documents.update(id, { syncedAt: now });
+      break;
+    case "supportEmailOutbox":
+      await db.supportEmailOutbox.update(id, { syncedAt: now });
+      break;
+    case "templates":
+      await db.templates.update(id, { syncedAt: now });
+      break;
+    default:
+      break;
+  }
+}
+
+// —— Push phases ——————————————————————————————————————————
+
+async function pushAttachments(
+  supabase: SupabaseClient,
+  userId: string,
+  errors: string[]
+): Promise<number> {
+  const all = await db.attachments.toArray();
+  const dirty = all.filter((a) =>
+    isDirty(effectiveUpdated({ updatedAt: a.updatedAt, createdAt: a.createdAt }), a.syncedAt)
+  );
+  let n = 0;
+  for (const a of dirty) {
+    try {
+      const path = storagePath(userId, a.id);
+      const { error: upErr } = await supabase.storage
+        .from(STORAGE_BUCKET)
+        .upload(path, a.blob, {
+          upsert: true,
+          contentType: a.mime || "application/octet-stream"
+        });
+      if (upErr) throw upErr;
+      await upsertBatch(supabase, "wf_attachments", [
+        attachmentToRow(a, userId, path)
+      ]);
+      await markSynced("attachments", a.id);
+      n += 1;
+    } catch (e: unknown) {
+      errors.push(
+        `attachment ${a.id}: ${e instanceof Error ? e.message : String(e)}`
+      );
+    }
+  }
+  return n;
+}
+
+async function pushClients(supabase: SupabaseClient, userId: string) {
+  const rows = await db.clients.toArray();
+  const dirty = rows.filter((r) => isDirty(r.updatedAt, r.syncedAt));
+  let n = 0;
+  for (const batch of chunk(dirty, 80)) {
+    await upsertBatch(
+      supabase,
+      "wf_clients",
+      batch.map((c) => clientToRow(c, userId))
+    );
+    for (const c of batch) {
+      await markSynced("clients", c.id);
+      n += 1;
+    }
+  }
+  return n;
+}
+
+async function pushSpareParts(supabase: SupabaseClient, userId: string) {
+  const rows = await db.spareParts.toArray();
+  const dirty = rows.filter((r) => isDirty(r.updatedAt, r.syncedAt));
+  let n = 0;
+  for (const batch of chunk(dirty, 80)) {
+    await upsertBatch(
+      supabase,
+      "wf_spare_parts",
+      batch.map((s) => spareToRow(s, userId))
+    );
+    for (const s of batch) {
+      await markSynced("spareParts", s.id);
+      n += 1;
+    }
+  }
+  return n;
+}
+
+async function pushTemplates(supabase: SupabaseClient, userId: string) {
+  const rows = await db.templates.toArray();
+  const dirty = rows.filter((r) => isDirty(r.updatedAt, r.syncedAt));
+  let n = 0;
+  for (const batch of chunk(dirty, 80)) {
+    await upsertBatch(
+      supabase,
+      "wf_templates",
+      batch.map((t) => templateToRow(t, userId))
+    );
+    for (const t of batch) {
+      await markSynced("templates", t.id);
+      n += 1;
+    }
+  }
+  return n;
+}
+
+async function pushInterventions(supabase: SupabaseClient, userId: string) {
+  const rows = await db.interventions.toArray();
+  const dirty = rows.filter((r) => isDirty(r.updatedAt, r.syncedAt));
+  let n = 0;
+  for (const batch of chunk(dirty, 50)) {
+    await upsertBatch(
+      supabase,
+      "wf_interventions",
+      batch.map((i) => interventionToRow(i, userId))
+    );
+    for (const i of batch) {
+      await markSynced("interventions", i.id);
+      n += 1;
+    }
+  }
+  return n;
+}
+
+async function pushStock(supabase: SupabaseClient, userId: string) {
+  const rows = await db.stockMovements.toArray();
+  const dirty = rows.filter((r) =>
+    isDirty(effectiveUpdated({ updatedAt: r.updatedAt, createdAt: r.createdAt }), r.syncedAt)
+  );
+  let n = 0;
+  for (const batch of chunk(dirty, 80)) {
+    await upsertBatch(
+      supabase,
+      "wf_stock_movements",
+      batch.map((m) => stockToRow(m, userId))
+    );
+    for (const m of batch) {
+      await markSynced("stockMovements", m.id);
+      n += 1;
+    }
+  }
+  return n;
+}
+
+async function pushTickets(supabase: SupabaseClient, userId: string) {
+  const rows = await db.tickets.toArray();
+  const dirty = rows.filter((r) => isDirty(r.updatedAt, r.syncedAt));
+  let n = 0;
+  for (const batch of chunk(dirty, 80)) {
+    await upsertBatch(
+      supabase,
+      "wf_tickets",
+      batch.map((t) => ticketToRow(t, userId))
+    );
+    for (const t of batch) {
+      await markSynced("tickets", t.id);
+      n += 1;
+    }
+  }
+  return n;
+}
+
+async function pushDocuments(supabase: SupabaseClient, userId: string) {
+  const rows = await db.documents.toArray();
+  const dirty = rows.filter((d) =>
+    isDirty(effectiveUpdated({ updatedAt: d.updatedAt, createdAt: d.createdAt }), d.syncedAt)
+  );
+  let n = 0;
+  for (const batch of chunk(dirty, 80)) {
+    await upsertBatch(
+      supabase,
+      "wf_documents",
+      batch.map((d) => documentToRow(d, userId))
+    );
+    for (const d of batch) {
+      await markSynced("documents", d.id);
+      n += 1;
+    }
+  }
+  return n;
+}
+
+async function pushOutbox(supabase: SupabaseClient, userId: string) {
+  const rows = await db.supportEmailOutbox.toArray();
+  const dirty = rows.filter((r) => isDirty(r.updatedAt, r.syncedAt));
+  let n = 0;
+  for (const batch of chunk(dirty, 40)) {
+    await upsertBatch(
+      supabase,
+      "wf_support_email_outbox",
+      batch.map((o) => outboxToRow(o, userId))
+    );
+    for (const o of batch) {
+      await markSynced("supportEmailOutbox", o.id);
+      n += 1;
+    }
+  }
+  return n;
+}
+
+// —— Pull + LWW ————————————————————————————————————————————
+
+async function pullClients(supabase: SupabaseClient, userId: string) {
+  const rows = await pullPaged(supabase, "wf_clients", userId, "updated_at");
+  let n = 0;
+  for (const r of rows) {
+    const remoteU = iso(r.updated_at);
+    const local = await db.clients.get(String(r.id));
+    if (local && parseMs(local.updatedAt) > parseMs(remoteU)) continue;
+    await db.clients.put(clientFromRow(r));
+    n += 1;
+  }
+  return n;
+}
+
+async function pullSpares(supabase: SupabaseClient, userId: string) {
+  const rows = await pullPaged(supabase, "wf_spare_parts", userId, "updated_at");
+  let n = 0;
+  for (const r of rows) {
+    const remoteU = iso(r.updated_at);
+    const local = await db.spareParts.get(String(r.id));
+    if (local && parseMs(local.updatedAt) > parseMs(remoteU)) continue;
+    await db.spareParts.put(spareFromRow(r));
+    n += 1;
+  }
+  return n;
+}
+
+async function pullAttachments(supabase: SupabaseClient, userId: string) {
+  const rows = await pullPaged(supabase, "wf_attachments", userId, "updated_at");
+  let n = 0;
+  for (const r of rows) {
+    const remoteU = iso(r.updated_at);
+    const id = String(r.id);
+    const local = await db.attachments.get(id);
+    if (
+      local &&
+      parseMs(effectiveUpdated({ updatedAt: local.updatedAt, createdAt: local.createdAt })) >
+        parseMs(remoteU)
+    ) {
+      continue;
+    }
+    const path = String(r.storage_path);
+    const { data: file, error } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .download(path);
+    if (error || !file) {
+      console.warn("[sync] attachment download skipped", id, error?.message);
+      continue;
+    }
+    await db.attachments.put(attachmentFromRow(r, file));
+    n += 1;
+  }
+  return n;
+}
+
+async function pullInterventions(supabase: SupabaseClient, userId: string) {
+  const rows = await pullPaged(supabase, "wf_interventions", userId, "updated_at");
+  let n = 0;
+  for (const r of rows) {
+    const remoteU = iso(r.updated_at);
+    const local = await db.interventions.get(String(r.id));
+    if (local && parseMs(local.updatedAt) > parseMs(remoteU)) continue;
+    await db.interventions.put(interventionFromRow(r));
+    n += 1;
+  }
+  return n;
+}
+
+async function pullStock(supabase: SupabaseClient, userId: string) {
+  const rows = await pullPaged(
+    supabase,
+    "wf_stock_movements",
+    userId,
+    "updated_at"
+  );
+  let n = 0;
+  for (const r of rows) {
+    const remoteU = iso(r.updated_at);
+    const local = await db.stockMovements.get(String(r.id));
+    const localU = local
+      ? effectiveUpdated({ updatedAt: local.updatedAt, createdAt: local.createdAt })
+      : "";
+    if (local && parseMs(localU) > parseMs(remoteU)) continue;
+    await db.stockMovements.put(stockFromRow(r));
+    n += 1;
+  }
+  return n;
+}
+
+async function pullTickets(supabase: SupabaseClient, userId: string) {
+  const rows = await pullPaged(supabase, "wf_tickets", userId, "updated_at");
+  let n = 0;
+  for (const r of rows) {
+    const remoteU = iso(r.updated_at);
+    const local = await db.tickets.get(String(r.id));
+    if (local && parseMs(local.updatedAt) > parseMs(remoteU)) continue;
+    await db.tickets.put(ticketFromRow(r));
+    n += 1;
+  }
+  return n;
+}
+
+async function pullDocuments(supabase: SupabaseClient, userId: string) {
+  const rows = await pullPaged(supabase, "wf_documents", userId, "updated_at");
+  let n = 0;
+  for (const r of rows) {
+    const remoteU = iso(r.updated_at);
+    const local = await db.documents.get(String(r.id));
+    const localU = local
+      ? effectiveUpdated({ updatedAt: local.updatedAt, createdAt: local.createdAt })
+      : "";
+    if (local && parseMs(localU) > parseMs(remoteU)) continue;
+    await db.documents.put(documentFromRow(r));
+    n += 1;
+  }
+  return n;
+}
+
+async function pullOutbox(supabase: SupabaseClient, userId: string) {
+  const rows = await pullPaged(
+    supabase,
+    "wf_support_email_outbox",
+    userId,
+    "updated_at"
+  );
+  let n = 0;
+  for (const r of rows) {
+    const remoteU = iso(r.updated_at);
+    const local = await db.supportEmailOutbox.get(String(r.id));
+    if (local && parseMs(local.updatedAt) > parseMs(remoteU)) continue;
+    await db.supportEmailOutbox.put(outboxFromRow(r));
+    n += 1;
+  }
+  return n;
+}
+
+async function pullTemplates(supabase: SupabaseClient, userId: string) {
+  const rows = await pullPaged(supabase, "wf_templates", userId, "updated_at");
+  let n = 0;
+  for (const r of rows) {
+    const remoteU = iso(r.updated_at);
+    const local = await db.templates.get(String(r.id));
+    if (local && parseMs(local.updatedAt) > parseMs(remoteU)) continue;
+    await db.templates.put(templateFromRow(r));
+    n += 1;
+  }
+  return n;
+}
+
+// —— Public API —————————————————————————————————————————————
+
+let syncSupabase: SupabaseClient | null = null;
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+let inflight: Promise<SyncResult> | null = null;
+/** Avoid Dexie hooks re-scheduling sync while a run is mutating Dexie. */
+let syncMutationDepth = 0;
+
+export function setSyncSupabaseClient(client: SupabaseClient | null) {
+  syncSupabase = client;
+}
+
+export function scheduleWorkflowSync() {
+  if (typeof window === "undefined") return;
+  if (!navigator.onLine) return;
+  if (syncMutationDepth > 0) return;
+  if (debounceTimer) clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    debounceTimer = null;
+    const c = syncSupabase;
+    if (c) void runFullSync(c);
+  }, SYNC_DEBOUNCE_MS);
+}
+
+let hooksRegistered = false;
+
+export function registerWorkflowDexieSyncHooks() {
+  if (typeof window === "undefined" || hooksRegistered) return;
+  hooksRegistered = true;
+  const hook = () => scheduleWorkflowSync();
+  db.clients.hook("creating", hook);
+  db.clients.hook("updating", hook);
+  db.clients.hook("deleting", hook);
+  db.interventions.hook("creating", hook);
+  db.interventions.hook("updating", hook);
+  db.interventions.hook("deleting", hook);
+  db.spareParts.hook("creating", hook);
+  db.spareParts.hook("updating", hook);
+  db.spareParts.hook("deleting", hook);
+  db.stockMovements.hook("creating", hook);
+  db.stockMovements.hook("updating", hook);
+  db.stockMovements.hook("deleting", hook);
+  db.tickets.hook("creating", hook);
+  db.tickets.hook("updating", hook);
+  db.tickets.hook("deleting", hook);
+  db.attachments.hook("creating", hook);
+  db.attachments.hook("updating", hook);
+  db.attachments.hook("deleting", hook);
+  db.documents.hook("creating", hook);
+  db.documents.hook("updating", hook);
+  db.documents.hook("deleting", hook);
+  db.supportEmailOutbox.hook("creating", hook);
+  db.supportEmailOutbox.hook("updating", hook);
+  db.supportEmailOutbox.hook("deleting", hook);
+  db.templates.hook("creating", hook);
+  db.templates.hook("updating", hook);
+  db.templates.hook("deleting", hook);
+}
+
+export async function runFullSync(
+  supabase: SupabaseClient
+): Promise<SyncResult> {
+  if (inflight) return inflight;
+
+  const result: SyncResult = {
+    ok: true,
+    pushed: {},
+    pulled: {},
+    errors: [],
+    skipped: false
+  };
+
+  inflight = (async () => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      result.skipped = true;
+      result.reason = "offline";
+      result.ok = false;
+      return result;
+    }
+
+    const {
+      data: { user },
+      error: userErr
+    } = await supabase.auth.getUser();
+    if (userErr || !user) {
+      result.skipped = true;
+      result.reason = "not_authenticated";
+      result.ok = false;
+      return result;
+    }
+
+    rememberUser(user.id);
+    syncMutationDepth += 1;
+    try {
+      // Push FK-safe order
+      result.pushed.clients = await pushClients(supabase, user.id);
+      result.pushed.spareParts = await pushSpareParts(supabase, user.id);
+      result.pushed.attachments = await pushAttachments(supabase, user.id, result.errors);
+      result.pushed.templates = await pushTemplates(supabase, user.id);
+      result.pushed.interventions = await pushInterventions(supabase, user.id);
+      result.pushed.stockMovements = await pushStock(supabase, user.id);
+      result.pushed.tickets = await pushTickets(supabase, user.id);
+      result.pushed.documents = await pushDocuments(supabase, user.id);
+      result.pushed.supportEmailOutbox = await pushOutbox(supabase, user.id);
+
+      // Pull same order (attachments before docs that reference them is satisfied after interventions)
+      result.pulled.clients = await pullClients(supabase, user.id);
+      result.pulled.spareParts = await pullSpares(supabase, user.id);
+      result.pulled.attachments = await pullAttachments(supabase, user.id);
+      result.pulled.templates = await pullTemplates(supabase, user.id);
+      result.pulled.interventions = await pullInterventions(supabase, user.id);
+      result.pulled.stockMovements = await pullStock(supabase, user.id);
+      result.pulled.tickets = await pullTickets(supabase, user.id);
+      result.pulled.documents = await pullDocuments(supabase, user.id);
+      result.pulled.supportEmailOutbox = await pullOutbox(supabase, user.id);
+
+      result.ok = result.errors.length === 0;
+    } catch (e: unknown) {
+      result.ok = false;
+      result.errors.push(e instanceof Error ? e.message : String(e));
+    } finally {
+      syncMutationDepth -= 1;
+    }
+
+    return result;
+  })();
+
+  try {
+    return await inflight;
+  } finally {
+    inflight = null;
+  }
+}

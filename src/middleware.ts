@@ -27,7 +27,10 @@ function isPublicPath(pathname: string) {
     pathname.startsWith("/_next/") ||
     pathname.startsWith("/icons/") ||
     pathname === "/site.webmanifest" ||
-    pathname === "/favicon.ico"
+    pathname === "/manifest.webmanifest" ||
+    pathname === "/favicon.ico" ||
+    pathname === "/icon" ||
+    pathname === "/apple-icon"
   );
 }
 

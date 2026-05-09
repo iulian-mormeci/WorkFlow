@@ -2,6 +2,14 @@ import Dexie, { type Table } from "dexie";
 
 export type Id = string;
 
+/** Optional metadata for Supabase ↔ Dexie sync (Section Sync 1). */
+export type SyncMeta = {
+  /** Last time this row was successfully reconciled with the cloud (ISO). */
+  syncedAt?: string;
+  /** Reserved for server-assigned ids; today local `id` is the canonical UUID everywhere. */
+  remoteId?: string;
+};
+
 export type Client = {
   id: Id;
   name: string;
@@ -13,7 +21,7 @@ export type Client = {
   notes?: string;
   createdAt: string;
   updatedAt: string;
-};
+} & SyncMeta;
 
 export type Intervention = {
   id: Id;
@@ -34,7 +42,7 @@ export type Intervention = {
   sparePartsUsed?: { sparePartId: Id; qty: number }[];
   createdAt: string;
   updatedAt: string;
-};
+} & SyncMeta;
 
 export type SparePart = {
   id: Id;
@@ -44,7 +52,7 @@ export type SparePart = {
   minStock?: number;
   createdAt: string;
   updatedAt: string;
-};
+} & SyncMeta;
 
 export type StockMovement = {
   id: Id;
@@ -54,7 +62,9 @@ export type StockMovement = {
   reason?: string;
   interventionId?: Id;
   createdAt: string;
-};
+  /** Server LWW field; defaults to createdAt when pushing if unset. */
+  updatedAt?: string;
+} & SyncMeta;
 
 export type Ticket = {
   id: Id;
@@ -68,7 +78,7 @@ export type Ticket = {
   dueAt?: string; // ISO
   createdAt: string;
   updatedAt: string;
-};
+} & SyncMeta;
 
 export type Attachment = {
   id: Id;
@@ -78,7 +88,8 @@ export type Attachment = {
   size?: number;
   blob: Blob;
   createdAt: string;
-};
+  updatedAt?: string;
+} & SyncMeta;
 
 export type Document = {
   id: Id;
@@ -87,7 +98,8 @@ export type Document = {
   attachmentId: Id; // PDF blob in attachments
   pageCount: number;
   createdAt: string;
-};
+  updatedAt?: string;
+} & SyncMeta;
 
 export type SupportEmailOutboxItem = {
   id: Id;
@@ -101,7 +113,7 @@ export type SupportEmailOutboxItem = {
   lastError?: string;
   createdAt: string;
   updatedAt: string;
-};
+} & SyncMeta;
 
 export type InterventionTemplate = {
   id: Id;
@@ -114,7 +126,7 @@ export type InterventionTemplate = {
   sparePartsUsed?: { sparePartId: Id; qty: number }[];
   createdAt: string;
   updatedAt: string;
-};
+} & SyncMeta;
 
 export class WorkFlowDB extends Dexie {
   clients!: Table<Client, Id>;
@@ -234,6 +246,21 @@ export class WorkFlowDB extends Dexie {
       supportEmailOutbox:
         "&id, status, to, createdAt, updatedAt, documentId, interventionId",
       templates: "&id, name, updatedAt"
+    });
+
+    // Cloud sync: indexed syncedAt for future dirty queries / maintenance.
+    this.version(11).stores({
+      clients: "&id, name, updatedAt, syncedAt",
+      interventions:
+        "&id, clientId, startAt, updatedAt, status, createdBy, timerStartedAt, syncedAt",
+      spareParts: "&id, sku, name, updatedAt, syncedAt",
+      stockMovements: "&id, sparePartId, createdAt, interventionId, syncedAt",
+      tickets: "&id, status, priority, reminderAt, dueAt, updatedAt, clientId, interventionId, syncedAt",
+      attachments: "&id, kind, createdAt, mime, syncedAt",
+      documents: "&id, interventionId, createdAt, title, syncedAt",
+      supportEmailOutbox:
+        "&id, status, to, createdAt, updatedAt, documentId, interventionId, syncedAt",
+      templates: "&id, name, updatedAt, syncedAt"
     });
   }
 }

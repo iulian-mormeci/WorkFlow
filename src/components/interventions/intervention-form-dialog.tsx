@@ -3,9 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
-  Camera,
   Clock3,
-  FileImage,
   ListChecks,
   NotebookPen,
   Package,
@@ -115,8 +113,6 @@ export function InterventionFormDialog(props: Props) {
   const [durationOverride, setDurationOverride] = useState("");
   const [checklist, setChecklist] = useState<ChecklistItem[]>(checklistTemplate);
   const [partsUsed, setPartsUsed] = useState<SparePartLine[]>([]);
-  const [photosBefore, setPhotosBefore] = useState<File[]>([]);
-  const [photosAfter, setPhotosAfter] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -154,8 +150,6 @@ export function InterventionFormDialog(props: Props) {
           qty: String(x.qty)
         }))
       );
-      setPhotosBefore([]);
-      setPhotosAfter([]);
       return;
     }
 
@@ -179,8 +173,6 @@ export function InterventionFormDialog(props: Props) {
           qty: String(x.qty)
         }))
       );
-      setPhotosBefore([]);
-      setPhotosAfter([]);
     }
   }, [
     open,
@@ -234,33 +226,10 @@ export function InterventionFormDialog(props: Props) {
         .filter((l) => l.sparePartId && Number(l.qty) > 0)
         .map((l) => ({ sparePartId: l.sparePartId, qty: Number(l.qty) }));
 
-      const photoIds: string[] = [];
-      for (const file of photosBefore) {
-        const id = crypto.randomUUID();
-        await db.attachments.add({
-          id,
-          kind: "photo",
-          mime: file.type || "image/jpeg",
-          name: `before-${file.name}`,
-          size: file.size,
-          blob: file,
-          createdAt: nowIso
-        });
-        photoIds.push(id);
-      }
-      for (const file of photosAfter) {
-        const id = crypto.randomUUID();
-        await db.attachments.add({
-          id,
-          kind: "photo",
-          mime: file.type || "image/jpeg",
-          name: `after-${file.name}`,
-          size: file.size,
-          blob: file,
-          createdAt: nowIso
-        });
-        photoIds.push(id);
-      }
+      const existingPhotoIds =
+        mode === "edit" && interventionId && existing?.photoIds?.length
+          ? [...existing.photoIds]
+          : undefined;
 
       const payload: Intervention = {
         id: mode === "edit" && interventionId ? interventionId : crypto.randomUUID(),
@@ -274,15 +243,12 @@ export function InterventionFormDialog(props: Props) {
         notes: notes.trim() || undefined,
         checklist,
         sparePartsUsed: sparePartsUsed.length ? sparePartsUsed : undefined,
-        photoIds: photoIds.length ? photoIds : undefined,
+        photoIds: existingPhotoIds,
         createdAt: existing?.createdAt ?? nowIso,
         updatedAt: nowIso
       };
 
       if (mode === "edit" && interventionId) {
-        // merge photos if adding new ones
-        const prev = existing?.photoIds ?? [];
-        payload.photoIds = [...prev, ...photoIds].length ? [...prev, ...photoIds] : undefined;
         await db.interventions.put(payload);
       } else {
         await db.interventions.add(payload);
@@ -501,65 +467,6 @@ export function InterventionFormDialog(props: Props) {
                 })}
               </div>
             )}
-          </div>
-
-          {/* Photos (before/after) */}
-          <div className="grid gap-2">
-            <Label className="flex items-center gap-2">
-              <Icon icon={FileImage} />
-              Photos (before)
-            </Label>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <Input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={(e) => {
-                  const files = Array.from(e.target.files ?? []);
-                  setPhotosBefore(files);
-                }}
-              />
-              <div className="text-xs text-muted-foreground">
-                {photosBefore.length ? `${photosBefore.length} selected` : "Add multiple photos"}
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {photosBefore.slice(0, 6).map((f) => (
-                <div key={f.name} className="rounded-xl border bg-muted px-3 py-2 text-xs">
-                  <Camera className="mr-2 inline-block h-4 w-4" />
-                  {f.name}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid gap-2">
-            <Label className="flex items-center gap-2">
-              <Icon icon={FileImage} />
-              Photos (after)
-            </Label>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <Input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={(e) => {
-                  const files = Array.from(e.target.files ?? []);
-                  setPhotosAfter(files);
-                }}
-              />
-              <div className="text-xs text-muted-foreground">
-                {photosAfter.length ? `${photosAfter.length} selected` : "Add multiple photos"}
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {photosAfter.slice(0, 6).map((f) => (
-                <div key={f.name} className="rounded-xl border bg-muted px-3 py-2 text-xs">
-                  <Camera className="mr-2 inline-block h-4 w-4" />
-                  {f.name}
-                </div>
-              ))}
-            </div>
           </div>
 
           {/* Checklist */}

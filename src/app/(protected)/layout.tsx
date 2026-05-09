@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { OnlineIndicator } from "@/components/offline/online-indicator";
 import { GlobalSearch } from "@/components/search/global-search";
 import { KeyboardShortcutsDialog } from "@/components/shortcuts/keyboard-shortcuts-dialog";
