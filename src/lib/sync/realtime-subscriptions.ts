@@ -17,6 +17,9 @@ export type WorkflowRealtimeStop = () => void;
 
 /**
  * One Realtime channel with multiple `postgres_changes` listeners (efficient vs N channels).
+ *
+ * Requires `user_id` on DELETE payloads so `filter: user_id=eq.<id>` matches — apply
+ * `supabase/migrations/003_workflow_realtime_delete_replica.sql` (REPLICA IDENTITY FULL).
  */
 export function startWorkflowRealtime(
   supabase: SupabaseClient,
@@ -32,6 +35,15 @@ export function startWorkflowRealtime(
   }) => {
     const table = payload.table;
     if (!table || !(TABLES as readonly string[]).includes(table)) return;
+
+    const ev = String(payload.eventType ?? "").toUpperCase();
+    if (ev === "DELETE" && table === "wf_interventions") {
+      console.info("[realtime] wf_interventions DELETE event", {
+        id: (payload.old as Record<string, unknown> | null)?.id,
+        user_id: (payload.old as Record<string, unknown> | null)?.user_id
+      });
+    }
+
     void applyRealtimePostgresChange(supabase, userId, {
       eventType: payload.eventType,
       new: payload.new,

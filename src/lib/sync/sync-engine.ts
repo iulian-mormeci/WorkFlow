@@ -821,9 +821,11 @@ async function pullAttachments(supabase: SupabaseClient, userId: string) {
 async function pullInterventions(supabase: SupabaseClient, userId: string) {
   const rows = await pullPaged(supabase, "wf_interventions", userId, "updated_at");
   const pend = getPendingInterventionPullSkipContext();
+  const serverIds = new Set<string>();
   let n = 0;
   for (const r of rows) {
     const id = String(r.id);
+    serverIds.add(id);
     if (pend.interventionIds.has(id)) continue;
     const remoteU = iso(r.updated_at);
     const local = await db.interventions.get(id);
@@ -831,6 +833,20 @@ async function pullInterventions(supabase: SupabaseClient, userId: string) {
     await db.interventions.put(interventionFromRow(r));
     n += 1;
   }
+
+  // Tombstone sync: pull only upserts — rows deleted on another device never appear in `rows`.
+  const locals = await db.interventions.toArray();
+  for (const local of locals) {
+    if (serverIds.has(local.id)) continue;
+    if (pend.interventionIds.has(local.id)) continue;
+    if (!local.syncedAt) continue;
+    console.info(
+      "[sync] pull: removing intervention absent on server (remote delete)",
+      local.id
+    );
+    await purgeInterventionLocallyById(local.id);
+  }
+
   return n;
 }
 
@@ -1199,8 +1215,15 @@ export async function applyRealtimePostgresChange(
   syncMutationDepth += 1;
   try {
     if (ev === "DELETE") {
-      const id = String(prev?.id ?? "");
-      if (!id) return;
+      const id = String(
+        (prev as Record<string, unknown> | null)?.id ??
+          (rec as Record<string, unknown> | null)?.id ??
+          ""
+      );
+      if (!id) {
+        console.warn("[sync] realtime DELETE skipped (missing id)", { table, prev, rec });
+        return;
+      }
       switch (table) {
         case "wf_clients":
           await db.clients.delete(id);
@@ -1213,6 +1236,7 @@ export async function applyRealtimePostgresChange(
           break;
         case "wf_interventions":
           await purgeInterventionLocallyById(id);
+          console.info("[sync] realtime: remote intervention delete applied", id);
           break;
         case "wf_stock_movements":
           await db.stockMovements.delete(id);
