@@ -30,7 +30,20 @@ export function LoginClient() {
       data: { subscription }
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (session?.user) router.replace(nextPath);
+      // Ensure SSR/middleware can see the session (cookie-based) after password login.
+      // OAuth already goes through /auth/callback which sets cookies server-side.
+      if (session?.user && session.access_token && session.refresh_token) {
+        fetch("/auth/session", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            access_token: session.access_token,
+            refresh_token: session.refresh_token
+          })
+        }).finally(() => {
+          router.replace(nextPath);
+        });
+      }
     });
     return () => subscription.unsubscribe();
   }, [router, supabase, setSession, nextPath]);
@@ -49,7 +62,7 @@ export function LoginClient() {
         password
       });
       if (signInError) throw signInError;
-      router.replace(nextPath);
+      // onAuthStateChange will handle cookie sync + redirect
     } catch (err: any) {
       setError(err?.message ?? "Login failed");
     } finally {
