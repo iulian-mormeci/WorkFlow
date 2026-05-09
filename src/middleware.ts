@@ -1,6 +1,19 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+function hasSupabaseAuthCookie(req: NextRequest) {
+  // Supabase SSR stores the session in a cookie like:
+  // `sb-<project-ref>-auth-token`
+  // Relying on this avoids network flakiness / refresh timing issues in middleware.
+  return req.cookies
+    .getAll()
+    .some(
+      (c) =>
+        c.name.startsWith("sb-") &&
+        (c.name.endsWith("-auth-token") || c.name.includes("auth-token"))
+    );
+}
+
 function isPublicPath(pathname: string) {
   return (
     pathname === "/" ||
@@ -53,13 +66,21 @@ export async function middleware(req: NextRequest) {
     }
   });
 
-  // Refresh session if needed (best practice). This will also update cookies.
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  const pathname = req.nextUrl.pathname;
+  if (isPublicPath(pathname)) return res;
 
-  if (user || isPublicPath(req.nextUrl.pathname)) return res;
+  // Fast gate: if the auth cookie is present, allow the request.
+  // Then try to refresh in the background (best-effort).
+  if (hasSupabaseAuthCookie(req)) {
+    try {
+      await supabase.auth.getUser();
+    } catch {
+      // Fail open (offline-first app). Avoid redirect loops on transient failures.
+    }
+    return res;
+  }
 
+  // No auth cookie → treat as unauthenticated.
   const redirectUrl = req.nextUrl.clone();
   redirectUrl.pathname = "/login";
   redirectUrl.searchParams.set("next", req.nextUrl.pathname);
