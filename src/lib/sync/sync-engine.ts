@@ -4,8 +4,11 @@
  * - Attachments: Storage path `{userId}/{attachmentId}-{safeName}` with XHR upload + retries on push.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { deleteInterventionWithRelations } from "@/lib/interventions/delete-intervention";
-import { flushPendingInterventionDeletes } from "@/lib/sync/cloud-delete";
+import { purgeInterventionLocallyById } from "@/lib/interventions/delete-intervention";
+import {
+  flushPendingInterventionDeletes,
+  getPendingInterventionPullSkipContext
+} from "@/lib/sync/cloud-delete";
 import { pushSyncFailure, useSyncFailureQueue } from "@/lib/sync/sync-failure-queue";
 import { syncAuditLog } from "@/lib/sync/sync-audit";
 import {
@@ -782,10 +785,12 @@ async function pullSpares(supabase: SupabaseClient, userId: string) {
 
 async function pullAttachments(supabase: SupabaseClient, userId: string) {
   const rows = await pullPaged(supabase, "wf_attachments", userId, "updated_at");
+  const pend = getPendingInterventionPullSkipContext();
   let n = 0;
   for (const r of rows) {
     const remoteU = iso(r.updated_at);
     const id = String(r.id);
+    if (pend.attachmentIds.has(id)) continue;
     const local = await db.attachments.get(id);
     const localU = local
       ? effectiveUpdated({ updatedAt: local.updatedAt, createdAt: local.createdAt })
@@ -815,10 +820,13 @@ async function pullAttachments(supabase: SupabaseClient, userId: string) {
 
 async function pullInterventions(supabase: SupabaseClient, userId: string) {
   const rows = await pullPaged(supabase, "wf_interventions", userId, "updated_at");
+  const pend = getPendingInterventionPullSkipContext();
   let n = 0;
   for (const r of rows) {
+    const id = String(r.id);
+    if (pend.interventionIds.has(id)) continue;
     const remoteU = iso(r.updated_at);
-    const local = await db.interventions.get(String(r.id));
+    const local = await db.interventions.get(id);
     if (local && shouldSkipRemoteMerge(remoteU, local)) continue;
     await db.interventions.put(interventionFromRow(r));
     n += 1;
@@ -833,10 +841,15 @@ async function pullStock(supabase: SupabaseClient, userId: string) {
     userId,
     "updated_at"
   );
+  const pend = getPendingInterventionPullSkipContext();
   let n = 0;
   for (const r of rows) {
+    const rowId = String(r.id);
+    if (pend.stockMovementIds.has(rowId)) continue;
+    const ivRef = (r.intervention_id as string) ?? "";
+    if (ivRef && pend.interventionIds.has(ivRef)) continue;
     const remoteU = iso(r.updated_at);
-    const local = await db.stockMovements.get(String(r.id));
+    const local = await db.stockMovements.get(rowId);
     const localU = local
       ? effectiveUpdated({ updatedAt: local.updatedAt, createdAt: local.createdAt })
       : "";
@@ -862,10 +875,15 @@ async function pullTickets(supabase: SupabaseClient, userId: string) {
 
 async function pullDocuments(supabase: SupabaseClient, userId: string) {
   const rows = await pullPaged(supabase, "wf_documents", userId, "updated_at");
+  const pend = getPendingInterventionPullSkipContext();
   let n = 0;
   for (const r of rows) {
+    const rowId = String(r.id);
+    if (pend.documentIds.has(rowId)) continue;
+    const ivRef = (r.intervention_id as string) ?? "";
+    if (ivRef && pend.interventionIds.has(ivRef)) continue;
     const remoteU = iso(r.updated_at);
-    const local = await db.documents.get(String(r.id));
+    const local = await db.documents.get(rowId);
     const localU = local
       ? effectiveUpdated({ updatedAt: local.updatedAt, createdAt: local.createdAt })
       : "";
@@ -883,10 +901,15 @@ async function pullOutbox(supabase: SupabaseClient, userId: string) {
     userId,
     "updated_at"
   );
+  const pend = getPendingInterventionPullSkipContext();
   let n = 0;
   for (const r of rows) {
+    const rowId = String(r.id);
+    if (pend.outboxIds.has(rowId)) continue;
+    const ivRef = (r.intervention_id as string) ?? "";
+    if (ivRef && pend.interventionIds.has(ivRef)) continue;
     const remoteU = iso(r.updated_at);
-    const local = await db.supportEmailOutbox.get(String(r.id));
+    const local = await db.supportEmailOutbox.get(rowId);
     if (local && shouldSkipRemoteMerge(remoteU, local)) continue;
     await db.supportEmailOutbox.put(outboxFromRow(r));
     n += 1;
@@ -1033,6 +1056,8 @@ export async function runFullSync(
       result.pulled.tickets = await pullTickets(supabase, user.id);
       result.pulled.documents = await pullDocuments(supabase, user.id);
       result.pulled.supportEmailOutbox = await pullOutbox(supabase, user.id);
+
+      await flushPendingInterventionDeletes(supabase, user.id);
 
       result.ok = result.errors.length === 0;
 
@@ -1187,11 +1212,7 @@ export async function applyRealtimePostgresChange(
           await db.attachments.delete(id);
           break;
         case "wf_interventions":
-          try {
-            await deleteInterventionWithRelations(id);
-          } catch {
-            await db.interventions.delete(id);
-          }
+          await purgeInterventionLocallyById(id);
           break;
         case "wf_stock_movements":
           await db.stockMovements.delete(id);

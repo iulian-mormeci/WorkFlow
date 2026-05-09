@@ -16,9 +16,12 @@ export { persistAttachmentToCloud } from "./attachment-cloud";
 export { STORAGE_BUCKET, buildAttachmentStoragePath } from "./sync-constants";
 export {
   performInterventionCloudSyncDelete,
+  flushPendingInterventionDeletes,
+  getPendingInterventionPullSkipContext,
   deleteDocumentRemote,
   deleteVoiceAttachmentRemote,
-  deleteTemplateRemote
+  deleteTemplateRemote,
+  type InterventionCloudDeleteResult
 } from "./cloud-delete";
 export { pushSyncFailure, useSyncFailureQueue } from "./sync-failure-queue";
 export { syncAuditLog } from "./sync-audit";

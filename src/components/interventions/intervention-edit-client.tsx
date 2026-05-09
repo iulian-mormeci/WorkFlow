@@ -540,13 +540,12 @@ export function InterventionEditClient({ id }: { id: string }) {
                 setDeleting(true);
                 try {
                   const supabase = createSupabaseBrowserClient();
-                  const {
-                    data: { user }
-                  } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
+                  const session =
+                    (await supabase?.auth.getSession())?.data.session ?? null;
                   const res = await performInterventionCloudSyncDelete({
                     interventionId: intervention.id,
                     supabase: supabase ?? null,
-                    userId: user?.id ?? null
+                    userId: session?.user?.id ?? null
                   });
                   if (!res.ok) {
                     toast({
@@ -559,9 +558,10 @@ export function InterventionEditClient({ id }: { id: string }) {
                   setConfirmDelete(false);
                   toast({
                     title: "Intervention deleted",
-                    description: navigator.onLine
-                      ? "Removed from this device and from your cloud account."
-                      : "Removed from this device; cloud removal is queued for the next online sync."
+                    description:
+                      res.mode === "queued"
+                        ? "Deleted locally. Will be removed from the cloud when you are online."
+                        : "Deleted from all devices."
                   });
                   scheduleWorkflowSync();
                   router.push("/interventions");
