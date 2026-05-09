@@ -47,9 +47,9 @@ export default async function ProtectedLayout({
                 </span>
               </div>
             </div>
-            <Link className="text-sm underline" href="/auth/logout">
+            <a className="text-sm underline" href="/auth/logout">
               Sign out
-            </Link>
+            </a>
           </div>
 
           <GlobalSearch />

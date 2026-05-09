@@ -25,9 +25,9 @@ export default async function HomePage() {
               <Link className="underline" href="/dashboard">
                 Dashboard
               </Link>
-              <Link className="underline" href="/auth/logout">
+              <a className="underline" href="/auth/logout">
                 Sign out
-              </Link>
+              </a>
             </>
           ) : (
             <>
