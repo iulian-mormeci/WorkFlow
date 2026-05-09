@@ -22,6 +22,7 @@ import { IconBubble } from "@/components/ui/icon";
 import { useDarkMode } from "@/hooks/use-dark-mode";
 import { useToast } from "@/hooks/use-toast";
 import { usePwaInstallPrompt } from "@/hooks/use-pwa-install-prompt";
+import { getReminderDefaultEmail, setReminderDefaultEmail } from "@/lib/reminders/config";
 import { getSupportEmailTo, setSupportEmailTo } from "@/lib/support-email/config";
 import { useSyncFailureQueue } from "@/lib/sync/sync-failure-queue";
 import {
@@ -69,6 +70,7 @@ export function SettingsClient() {
     return localStorage.getItem("workflow:techName") ?? "";
   });
   const [supportEmail, setSupportEmail] = useState<string>(() => getSupportEmailTo());
+  const [reminderEmail, setReminderEmail] = useState<string>(() => getReminderDefaultEmail());
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
@@ -119,6 +121,43 @@ export function SettingsClient() {
             <div className="text-xs text-muted-foreground">
               Used when sending scanned documents. Leave empty to disable sending.
             </div>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-2">
+            <div className="text-sm font-medium">Default reminder email</div>
+            <Input
+              value={reminderEmail}
+              onChange={(e) => {
+                const v = e.target.value;
+                setReminderEmail(v);
+                setReminderDefaultEmail(v);
+              }}
+              placeholder="you@company.com"
+              inputMode="email"
+            />
+            <div className="text-xs text-muted-foreground">
+              Used when an intervention enables reminders but leaves its own email blank. Requires Resend env on
+              the server.
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-fit"
+              onClick={async () => {
+                if (typeof Notification === "undefined") return;
+                const p = await Notification.requestPermission();
+                toast({
+                  title: p === "granted" ? "Notifications enabled" : `Permission: ${p}`,
+                  description:
+                    p === "granted"
+                      ? "You will get local reminders while WorkFlow is open."
+                      : "You can change this in the browser site settings."
+                });
+              }}
+            >
+              Request browser notification permission
+            </Button>
           </div>
         </CardHeader>
       </Card>

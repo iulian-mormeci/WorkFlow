@@ -4,6 +4,7 @@ import { SyncStatus } from "@/components/sync/sync-status";
 import { GlobalSearch } from "@/components/search/global-search";
 import { KeyboardShortcutsDialog } from "@/components/shortcuts/keyboard-shortcuts-dialog";
 import { SidebarNav, type SidebarNavItem } from "@/components/layout/sidebar-nav";
+import { ProtectedAppEffects } from "@/components/layout/protected-app-effects";
 
 // Protected area must never be statically cached.
 export const dynamic = "force-dynamic";
@@ -72,6 +73,7 @@ export default async function ProtectedLayout({
         </aside>
 
         <main className="rounded-2xl border bg-background p-4 md:p-6">
+          <ProtectedAppEffects />
           {children}
         </main>
       </div>

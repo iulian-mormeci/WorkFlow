@@ -218,6 +218,24 @@ function attachmentFromRow(
   };
 }
 
+function interventionGeoToJson(
+  g: Intervention["startLocation"] | Intervention["endLocation"] | undefined
+) {
+  if (!g || typeof g.lat !== "number" || typeof g.lng !== "number") return null;
+  return { address: g.address ?? "", lat: g.lat, lng: g.lng };
+}
+
+function interventionGeoFromJson(
+  v: unknown
+): Intervention["startLocation"] | undefined {
+  if (!v || typeof v !== "object") return undefined;
+  const o = v as Record<string, unknown>;
+  const lat = Number(o.lat);
+  const lng = Number(o.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return undefined;
+  return { lat, lng, address: String(o.address ?? "") };
+}
+
 function interventionToRow(i: Intervention, userId: string) {
   return {
     id: i.id,
@@ -225,11 +243,24 @@ function interventionToRow(i: Intervention, userId: string) {
     client_id: i.clientId,
     created_by: i.createdBy ?? null,
     type: i.type,
+    work_category: i.workCategory ?? "intervention",
+    is_office_activity: i.isOfficeActivity ?? false,
     status: i.status ?? null,
     start_at: i.startAt,
     end_at: i.endAt ?? null,
     duration_minutes: i.durationMinutes ?? null,
     timer_started_at: i.timerStartedAt ?? null,
+    timer_run_state: i.timerRunState ?? "idle",
+    timer_accumulated_seconds: Math.max(0, Math.floor(i.timerAccumulatedSeconds ?? 0)),
+    due_at: i.dueAt ?? null,
+    reminders_enabled: i.remindersEnabled ?? false,
+    reminder_preset: i.reminderPreset ?? null,
+    reminder_custom_at: i.reminderCustomAt ?? null,
+    reminder_email_to: i.reminderEmailTo ?? null,
+    reminder_last_fire_at: i.reminderLastFireAt ?? null,
+    start_location: interventionGeoToJson(i.startLocation),
+    end_location: interventionGeoToJson(i.endLocation),
+    location_km_auto: i.locationKmAuto ?? null,
     km: i.km ?? null,
     notes: i.notes ?? null,
     photo_ids: i.photoIds?.length ? i.photoIds : null,
@@ -246,17 +277,47 @@ function interventionFromRow(r: Record<string, unknown>): Intervention {
   const photoIds = (r.photo_ids as string[] | null) ?? undefined;
   const documentIds = (r.document_ids as string[] | null) ?? undefined;
   const voiceNoteIds = (r.voice_note_ids as string[] | null) ?? undefined;
+  const wc = r.work_category;
+  const workCategory: Intervention["workCategory"] =
+    wc === "activity" ? "activity" : "intervention";
+  const trs = r.timer_run_state;
+  const timerRunState: Intervention["timerRunState"] =
+    trs === "running" || trs === "paused" || trs === "idle" ? trs : undefined;
+  const reminderPreset = r.reminder_preset as Intervention["reminderPreset"] | undefined;
   return {
     id: String(r.id),
     clientId: String(r.client_id),
     createdBy: (r.created_by as string) ?? undefined,
-    type: r.type as Intervention["type"],
+    type: String(r.type ?? "maintenance"),
+    workCategory,
+    isOfficeActivity: Boolean(r.is_office_activity),
     status: (r.status as Intervention["status"]) ?? undefined,
     startAt: iso(r.start_at),
     endAt: r.end_at ? iso(r.end_at) : undefined,
     durationMinutes:
       r.duration_minutes != null ? Number(r.duration_minutes) : undefined,
+    timerAccumulatedSeconds:
+      r.timer_accumulated_seconds != null
+        ? Math.max(0, Math.floor(Number(r.timer_accumulated_seconds)))
+        : 0,
+    timerRunState: timerRunState ?? (r.timer_started_at ? "running" : "idle"),
     timerStartedAt: r.timer_started_at ? iso(r.timer_started_at) : undefined,
+    dueAt: r.due_at ? iso(r.due_at) : undefined,
+    remindersEnabled: Boolean(r.reminders_enabled),
+    reminderPreset:
+      reminderPreset === "1d" ||
+      reminderPreset === "2h" ||
+      reminderPreset === "30m" ||
+      reminderPreset === "custom"
+        ? reminderPreset
+        : undefined,
+    reminderCustomAt: r.reminder_custom_at ? iso(r.reminder_custom_at) : undefined,
+    reminderEmailTo: (r.reminder_email_to as string) ?? undefined,
+    reminderLastFireAt: r.reminder_last_fire_at ? iso(r.reminder_last_fire_at) : undefined,
+    startLocation: interventionGeoFromJson(r.start_location),
+    endLocation: interventionGeoFromJson(r.end_location),
+    locationKmAuto:
+      r.location_km_auto != null ? Number(r.location_km_auto) : undefined,
     km: r.km != null ? Number(r.km) : undefined,
     notes: (r.notes as string) ?? undefined,
     photoIds: photoIds ?? undefined,
@@ -410,7 +471,11 @@ function templateToRow(t: InterventionTemplate, userId: string) {
     user_id: userId,
     name: t.name,
     client_name: t.clientName ?? null,
+    default_client_id: t.defaultClientId ?? null,
     type: t.type,
+    work_category: t.workCategory ?? "intervention",
+    is_office_activity: t.isOfficeActivity ?? false,
+    default_duration_minutes: t.defaultDurationMinutes ?? null,
     km: t.km ?? null,
     notes: t.notes ?? null,
     checklist: t.checklist ?? null,
@@ -421,11 +486,19 @@ function templateToRow(t: InterventionTemplate, userId: string) {
 }
 
 function templateFromRow(r: Record<string, unknown>): InterventionTemplate {
+  const twc = r.work_category;
+  const workCategory: InterventionTemplate["workCategory"] =
+    twc === "activity" ? "activity" : "intervention";
   return {
     id: String(r.id),
     name: String(r.name),
     clientName: (r.client_name as string) ?? undefined,
-    type: r.type as InterventionTemplate["type"],
+    defaultClientId: r.default_client_id ? String(r.default_client_id) : undefined,
+    type: String(r.type ?? "maintenance"),
+    workCategory,
+    isOfficeActivity: Boolean(r.is_office_activity),
+    defaultDurationMinutes:
+      r.default_duration_minutes != null ? Number(r.default_duration_minutes) : undefined,
     km: r.km != null ? Number(r.km) : undefined,
     notes: (r.notes as string) ?? undefined,
     checklist: (r.checklist as InterventionTemplate["checklist"]) ?? undefined,

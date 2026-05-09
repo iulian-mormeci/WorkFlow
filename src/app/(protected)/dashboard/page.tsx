@@ -3,6 +3,7 @@ import { OfflineBanner } from "@/components/offline/offline-banner";
 import { DashboardRecent } from "@/components/dashboard/dashboard-recent";
 import { DashboardQuickActions } from "@/components/dashboard/dashboard-quick-actions";
 import { QuickNoteFab } from "@/components/notes/quick-note-fab";
+import { DashboardAttention } from "@/components/dashboard/dashboard-attention";
 import { TodaysFocus } from "@/components/dashboard/todays-focus";
 import { InstallPromptBanner } from "@/components/pwa/install-prompt-banner";
 import { TodaysQuickActions } from "@/components/dashboard/todays-quick-actions";
@@ -20,6 +21,8 @@ export default function ProtectedDashboardPage() {
       <OfflineBanner />
       <InstallPromptBanner />
       <DashboardStats />
+
+      <DashboardAttention />
 
       <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="grid gap-4">

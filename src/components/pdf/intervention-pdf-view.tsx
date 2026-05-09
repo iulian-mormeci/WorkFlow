@@ -43,8 +43,13 @@ export function InterventionPdfView({ id }: { id: string }) {
             {new Date(intervention.startAt).toLocaleDateString()}
           </div>
           <div className="mt-1">{new Date(intervention.startAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
-          <div className="mt-2 rounded border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-800">
-            {intervention.type.toUpperCase()}
+          <div className="mt-2 space-y-1 text-right">
+            <div className="rounded border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-semibold text-gray-800">
+              {(intervention.workCategory ?? "intervention") === "activity" ? "ACTIVITY" : "INTERVENTION"}
+            </div>
+            <div className="rounded border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-800">
+              {String(intervention.type).toUpperCase()}
+            </div>
           </div>
         </div>
       </div>
@@ -76,6 +81,16 @@ export function InterventionPdfView({ id }: { id: string }) {
             <div>
               <div className="text-[10px] font-semibold text-gray-600">Status</div>
               <div className="mt-0.5 font-semibold">{intervention.status ?? "—"}</div>
+            </div>
+            <div>
+              <div className="text-[10px] font-semibold text-gray-600">Due</div>
+              <div className="mt-0.5 font-semibold">
+                {intervention.dueAt ? new Date(intervention.dueAt).toLocaleString() : "—"}
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] font-semibold text-gray-600">Route auto KM</div>
+              <div className="mt-0.5 font-semibold">{intervention.locationKmAuto ?? "—"}</div>
             </div>
           </div>
         </div>

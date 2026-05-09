@@ -5,8 +5,14 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { Target } from "lucide-react";
 import { db } from "@/lib/db/workflow-db";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DueCountdown } from "@/components/interventions/due-countdown";
 import { InterventionStatusBadge } from "@/components/interventions/intervention-status-badge";
 import { endOfDay, startOfDay } from "@/lib/dates";
+import {
+  formatElapsedHms,
+  getTimerElapsedSeconds,
+  normalizeTimerRunState
+} from "@/lib/interventions/intervention-helpers";
 import { IconBubble } from "@/components/ui/icon";
 import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
 
@@ -27,8 +33,16 @@ export function TodaysFocus() {
       .between(todayStart, todayEnd, true, true)
       .toArray();
     return list
-      .filter((i) => i.timerStartedAt || i.status !== "completed")
-      .sort((a, b) => (b.timerStartedAt ? 1 : 0) - (a.timerStartedAt ? 1 : 0) || b.startAt.localeCompare(a.startAt))
+      .filter((i) => {
+        const ts = normalizeTimerRunState(i);
+        if (ts === "running" || ts === "paused") return true;
+        return i.status !== "completed";
+      })
+      .sort(
+        (a, b) =>
+          (normalizeTimerRunState(b) === "running" ? 1 : 0) -
+            (normalizeTimerRunState(a) === "running" ? 1 : 0) || b.startAt.localeCompare(a.startAt)
+      )
       .slice(0, 6);
   }, [todayStart, todayEnd, liveEpoch]);
 
@@ -60,7 +74,21 @@ export function TodaysFocus() {
                     {clientById.get(it.clientId) ?? "Client"}
                   </div>
                   <div className="mt-0.5 text-xs text-muted-foreground">
-                    {fmtTime(it.startAt)} • {it.type}
+                    {fmtTime(it.startAt)} •{" "}
+                    {(it.workCategory ?? "intervention") === "activity" ? "Activity · " : ""}
+                    {it.type}
+                    {it.dueAt && it.status !== "completed" ? (
+                      <>
+                        {" "}
+                        · <DueCountdown intervention={it} />
+                      </>
+                    ) : null}
+                    {normalizeTimerRunState(it) === "running" ? (
+                      <>
+                        {" "}
+                        · <span className="font-mono">{formatElapsedHms(getTimerElapsedSeconds(it))}</span>
+                      </>
+                    ) : null}
                   </div>
                 </div>
                 <InterventionStatusBadge intervention={it} />

@@ -11,13 +11,12 @@ import {
   FileScan,
   Layers,
   Mail,
+  MapPin,
   MessageSquarePlus,
   Mic,
   NotebookPen,
   Pencil,
-  Play,
   Scan,
-  Square,
   Trash2
 } from "lucide-react";
 import { db } from "@/lib/db/workflow-db";
@@ -36,7 +35,10 @@ import { exportInterventionForCrm } from "@/lib/export/crm-export";
 import { VoiceNoteRecorder } from "@/components/voice/voice-note-recorder";
 import { VoiceNotesList } from "@/components/voice/voice-notes-list";
 import { QuickNoteFab } from "@/components/notes/quick-note-fab";
+import { DueCountdown } from "@/components/interventions/due-countdown";
 import { InterventionStatusBadge } from "@/components/interventions/intervention-status-badge";
+import { InterventionTimerPanel } from "@/components/interventions/intervention-timer-panel";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { IconBubble } from "@/components/ui/icon";
 import {
@@ -51,6 +53,12 @@ import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { performInterventionCloudSyncDelete } from "@/lib/sync/cloud-delete";
 import { scheduleWorkflowSync } from "@/lib/sync/sync-engine";
+import { interventionStaticMapUrl } from "@/lib/geo/static-map-url";
+import {
+  formatElapsedHms,
+  getTimerElapsedSeconds,
+  normalizeTimerRunState
+} from "@/lib/interventions/intervention-helpers";
 
 export function InterventionEditClient({ id }: { id: string }) {
   const liveEpoch = useWorkflowLiveEpoch();
@@ -72,10 +80,9 @@ export function InterventionEditClient({ id }: { id: string }) {
   const [templateName, setTemplateName] = useState("");
   const { toast } = useToast();
   const router = useRouter();
-  const [nowTick, setNowTick] = useState(0);
-
+  const [, setClock] = useState(0);
   useEffect(() => {
-    const t = window.setInterval(() => setNowTick((x) => x + 1), 1000);
+    const t = window.setInterval(() => setClock((c) => c + 1), 1000);
     return () => window.clearInterval(t);
   }, []);
 
@@ -122,6 +129,13 @@ export function InterventionEditClient({ id }: { id: string }) {
           </h1>
           <p className="text-sm text-muted-foreground">
             {new Date(intervention.startAt).toLocaleString()}
+            {intervention.dueAt ? (
+              <>
+                {" "}
+                · Must complete by {new Date(intervention.dueAt).toLocaleString()} (
+                <DueCountdown intervention={intervention} />)
+              </>
+            ) : null}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -180,22 +194,37 @@ export function InterventionEditClient({ id }: { id: string }) {
 
       <div className="grid gap-3 rounded-2xl border p-4 sm:grid-cols-2">
         <div>
-          <div className="text-xs text-muted-foreground">Type</div>
+          <div className="text-xs text-muted-foreground">Work</div>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <Badge
+              className={
+                (intervention.workCategory ?? "intervention") === "activity"
+                  ? "border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-900/50 dark:bg-violet-950/40 dark:text-violet-200"
+                  : "border-primary/30 bg-primary/10 text-primary"
+              }
+            >
+              {(intervention.workCategory ?? "intervention") === "activity" ? "Activity" : "Intervention"}
+            </Badge>
+            {(intervention.workCategory ?? "intervention") === "activity" &&
+            intervention.isOfficeActivity ? (
+              <span className="text-xs text-muted-foreground">On-site office</span>
+            ) : (intervention.workCategory ?? "intervention") === "activity" ? (
+              <span className="text-xs text-muted-foreground">Remote</span>
+            ) : null}
+          </div>
+        </div>
+        <div>
+          <div className="text-xs text-muted-foreground">Job type</div>
           <div className="font-semibold">{intervention.type}</div>
         </div>
         <div>
           <div className="text-xs text-muted-foreground">Duration</div>
           <div className="font-semibold">
-            {intervention.timerStartedAt ? (
-              <span>
-                Running •{" "}
-                {Math.max(
-                  0,
-                  Math.round(
-                    (Date.now() - new Date(intervention.timerStartedAt).getTime()) / 60000
-                  )
-                )}{" "}
-                min
+            {normalizeTimerRunState(intervention) === "running" ||
+            normalizeTimerRunState(intervention) === "paused" ? (
+              <span className="font-mono">
+                Timer {normalizeTimerRunState(intervention)} ·{" "}
+                {formatElapsedHms(getTimerElapsedSeconds(intervention))}
               </span>
             ) : intervention.durationMinutes != null ? (
               `${intervention.durationMinutes} min`
@@ -216,47 +245,53 @@ export function InterventionEditClient({ id }: { id: string }) {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        {!intervention.timerStartedAt ? (
-          <Button
-            onClick={async () => {
-              await db.interventions.update(intervention.id, {
-                timerStartedAt: new Date().toISOString(),
-                status: "open",
-                updatedAt: new Date().toISOString()
-              });
-              toast({ title: "Timer started", description: "Elapsed time is now running." });
-            }}
-            type="button"
-          >
-            <Play className="h-4 w-4" />
-            Start Timer
-          </Button>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <InterventionTimerPanel interventionId={intervention.id} />
+        {intervention.startLocation || intervention.endLocation ? (
+          <Card className="rounded-2xl">
+            <CardHeader className="space-y-2">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <CardTitle className="text-base">Route</CardTitle>
+                  <CardDescription>Start / end stops and auto distance.</CardDescription>
+                </div>
+                <IconBubble icon={MapPin} />
+              </div>
+              <div className="mt-2 space-y-2 text-sm">
+                {intervention.startLocation ? (
+                  <div>
+                    <div className="text-xs font-medium text-muted-foreground">Start</div>
+                    <div>{intervention.startLocation.address}</div>
+                  </div>
+                ) : null}
+                {intervention.endLocation ? (
+                  <div>
+                    <div className="text-xs font-medium text-muted-foreground">End</div>
+                    <div>{intervention.endLocation.address}</div>
+                  </div>
+                ) : null}
+                {intervention.locationKmAuto != null ? (
+                  <div className="text-xs text-muted-foreground">
+                    Auto route ≈ {intervention.locationKmAuto} km · Manual KM: {intervention.km ?? "—"}
+                  </div>
+                ) : null}
+              </div>
+              {interventionStaticMapUrl(intervention.startLocation, intervention.endLocation) ? (
+                <div className="mt-2 overflow-hidden rounded-xl border">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={interventionStaticMapUrl(intervention.startLocation, intervention.endLocation)!}
+                    alt="Map"
+                    className="w-full"
+                    loading="lazy"
+                  />
+                </div>
+              ) : null}
+            </CardHeader>
+          </Card>
         ) : (
-          <Button
-            onClick={async () => {
-              const start = new Date(intervention.timerStartedAt!).getTime();
-              const endIso = new Date().toISOString();
-              const end = new Date(endIso).getTime();
-              const dur = Math.max(1, Math.round((end - start) / 60000));
-              await db.interventions.update(intervention.id, {
-                timerStartedAt: undefined,
-                endAt: endIso,
-                durationMinutes: dur,
-                status: "completed",
-                updatedAt: new Date().toISOString()
-              });
-              toast({ title: "Timer stopped", description: `Duration saved: ${dur} min` });
-            }}
-            type="button"
-          >
-            <Square className="h-4 w-4" />
-            Stop Timer
-          </Button>
+          <div className="hidden lg:block" aria-hidden />
         )}
-        <div className="text-sm text-muted-foreground">
-          {nowTick >= 0 ? "" : null}
-        </div>
       </div>
 
       {intervention.notes ? (
@@ -485,8 +520,12 @@ export function InterventionEditClient({ id }: { id: string }) {
                     await db.templates.add({
                       id: crypto.randomUUID(),
                       name: templateName.trim(),
-                      clientName: client?.name ?? undefined,
+                      clientName: undefined,
+                      defaultClientId: intervention.clientId,
                       type: intervention.type,
+                      workCategory: intervention.workCategory ?? "intervention",
+                      isOfficeActivity: intervention.isOfficeActivity,
+                      defaultDurationMinutes: intervention.durationMinutes,
                       km: intervention.km ?? undefined,
                       notes: intervention.notes ?? undefined,
                       checklist: intervention.checklist ?? undefined,

@@ -62,13 +62,14 @@ export function GlobalSearch() {
 
     for (const it of interventions) {
       const clientName = clientById.get(it.clientId) ?? "Client";
-      const hay = `${clientName} ${it.type} ${(it.notes ?? "")}`.toLowerCase();
+      const wc = it.workCategory ?? "intervention";
+      const hay = `${clientName} ${it.type} ${wc} ${it.dueAt ?? ""} ${(it.notes ?? "")}`.toLowerCase();
       if (hay.includes(query)) {
         res.push({
           kind: "intervention",
           id: it.id,
           title: clientName,
-          subtitle: `${new Date(it.startAt).toLocaleString()} • ${it.type}`,
+          subtitle: `${new Date(it.startAt).toLocaleString()} • ${wc === "activity" ? "Activity" : "Intervention"} • ${it.type}`,
           href: `/interventions/${it.id}`
         });
       }

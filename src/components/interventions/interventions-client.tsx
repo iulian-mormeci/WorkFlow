@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Plus, Search, Trash2 } from "lucide-react";
+import { Plus, Search, Timer, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { db } from "@/lib/db/workflow-db";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -15,14 +16,21 @@ import {
   DialogTitle
 } from "@/components/ui/dialog";
 import { startOfDay } from "@/lib/dates";
+import { DueCountdown } from "@/components/interventions/due-countdown";
 import { InterventionFormDialog } from "@/components/interventions/intervention-form-dialog";
 import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { performInterventionCloudSyncDelete } from "@/lib/sync/cloud-delete";
 import { scheduleWorkflowSync } from "@/lib/sync/sync-engine";
 import { useToast } from "@/hooks/use-toast";
+import {
+  formatElapsedHms,
+  getTimerElapsedSeconds,
+  isInterventionOverdue,
+  normalizeTimerRunState
+} from "@/lib/interventions/intervention-helpers";
 
-type QuickFilter = "today" | "month" | "all";
+type ListScope = "all" | "today" | "overdue" | "interventions" | "activities";
 type StatusFilter = "all" | "open" | "completed";
 
 function formatTime(iso: string) {
@@ -40,7 +48,7 @@ export function InterventionsClient() {
   const { toast } = useToast();
   const liveEpoch = useWorkflowLiveEpoch();
   const [q, setQ] = useState("");
-  const [filter, setFilter] = useState<QuickFilter>("today");
+  const [scope, setScope] = useState<ListScope>("today");
   const [status, setStatus] = useState<StatusFilter>("all");
   const [open, setOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{
@@ -55,19 +63,25 @@ export function InterventionsClient() {
 
   const interventions = useLiveQuery(async () => {
     const all = await db.interventions.orderBy("startAt").reverse().toArray();
-    const now = new Date();
-    const todayStart = startOfDay(now);
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const now = Date.now();
+    const todayStart = startOfDay(new Date()).getTime();
 
-    const inRange = all.filter((it) => {
-      const t = new Date(it.startAt).getTime();
-      if (filter === "today") return t >= todayStart.getTime();
-      if (filter === "month") return t >= monthStart.getTime();
-      return true;
-    });
+    let list = all;
+    if (scope === "today") {
+      list = list.filter((it) => new Date(it.startAt).getTime() >= todayStart);
+    } else if (scope === "overdue") {
+      list = list.filter(
+        (it) =>
+          it.status !== "completed" && it.dueAt && new Date(it.dueAt).getTime() < now
+      );
+    } else if (scope === "interventions") {
+      list = list.filter((it) => (it.workCategory ?? "intervention") === "intervention");
+    } else if (scope === "activities") {
+      list = list.filter((it) => (it.workCategory ?? "intervention") === "activity");
+    }
 
     const withStatus =
-      status === "all" ? inRange : inRange.filter((it) => (it.status ?? "open") === status);
+      status === "all" ? list : list.filter((it) => (it.status ?? "open") === status);
 
     const query = q.trim().toLowerCase();
     if (!query) return withStatus;
@@ -75,47 +89,60 @@ export function InterventionsClient() {
     const clientById = new Map(clients?.map((c) => [c.id, c.name.toLowerCase()]));
     return withStatus.filter((it) => {
       const clientName = clientById.get(it.clientId) ?? "";
+      const cat = (it.workCategory ?? "intervention").toLowerCase();
+      const dueBit = (it.dueAt ?? "").toLowerCase();
       return (
         it.type.toLowerCase().includes(query) ||
         (it.notes ?? "").toLowerCase().includes(query) ||
-        clientName.includes(query)
+        clientName.includes(query) ||
+        cat.includes(query) ||
+        dueBit.includes(query)
       );
     });
-  }, [q, filter, status, clients, liveEpoch]);
+  }, [q, scope, status, clients, liveEpoch]);
 
   return (
     <div className="relative">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="flex flex-1 items-center gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search by client, type, notes…"
-              className="pl-9"
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {(["today", "month", "all"] as const).map((k) => (
-            <Button
-              key={k}
-              variant={filter === k ? "default" : "outline"}
-              onClick={() => setFilter(k)}
-            >
-              {k === "today" ? "Today" : k === "month" ? "This month" : "All"}
-            </Button>
-          ))}
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search by client, type, notes, due…"
+            className="pl-9"
+          />
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-2">
+      <div className="mt-3 flex flex-wrap gap-2">
+        {(
+          [
+            ["all", "All"],
+            ["today", "Today"],
+            ["overdue", "Overdue"],
+            ["interventions", "Interventions"],
+            ["activities", "Activities"]
+          ] as const
+        ).map(([k, label]) => (
+          <Button
+            key={k}
+            variant={scope === k ? "default" : "outline"}
+            className="min-h-11"
+            onClick={() => setScope(k)}
+          >
+            {label}
+          </Button>
+        ))}
+      </div>
+
+      <div className="mt-2 flex flex-wrap items-center gap-2">
         {(["all", "open", "completed"] as const).map((s) => (
           <Button
             key={s}
+            size="sm"
             variant={status === s ? "default" : "outline"}
+            className="min-h-10"
             onClick={() => setStatus(s)}
           >
             {s === "all" ? "All statuses" : s === "open" ? "Open" : "Completed"}
@@ -136,6 +163,8 @@ export function InterventionsClient() {
               clients?.find((c) => c.id === it.clientId)?.name ?? "Client";
             const duration =
               it.durationMinutes != null ? `${it.durationMinutes} min` : "—";
+            const overdue = isInterventionOverdue(it);
+            const tState = normalizeTimerRunState(it);
             return (
               <div
                 key={it.id}
@@ -146,12 +175,35 @@ export function InterventionsClient() {
                   className="min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
                 >
                   <div className="truncate text-base font-semibold">{clientName}</div>
-                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                    <span className="rounded-full border bg-background px-2 py-0.5">
-                      {it.type}
-                    </span>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                    <Badge
+                      className={
+                        (it.workCategory ?? "intervention") === "activity"
+                          ? "border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-900/50 dark:bg-violet-950/40 dark:text-violet-200"
+                          : "border-muted-foreground/25 bg-muted/50 text-foreground"
+                      }
+                    >
+                      {(it.workCategory ?? "intervention") === "activity" ? "Activity" : "Intervention"}
+                    </Badge>
+                    {overdue ? (
+                      <span className="rounded-full bg-destructive/15 px-2 py-0.5 font-medium text-destructive">
+                        Overdue
+                      </span>
+                    ) : null}
+                    {tState === "running" ? (
+                      <span className="inline-flex items-center gap-1 rounded-full border bg-background px-2 py-0.5 font-mono text-[11px]">
+                        <Timer className="h-3 w-3" />
+                        {formatElapsedHms(getTimerElapsedSeconds(it))}
+                      </span>
+                    ) : null}
+                    <span className="rounded-full border bg-background px-2 py-0.5">{it.type}</span>
                     <span>{formatTime(it.startAt)}</span>
                     <span>{duration}</span>
+                    {it.dueAt && it.status !== "completed" ? (
+                      <span className={overdue ? "text-destructive" : ""}>
+                        <DueCountdown intervention={it} />
+                      </span>
+                    ) : null}
                   </div>
                   {it.notes ? (
                     <div className="mt-2 line-clamp-2 text-sm text-muted-foreground">
@@ -181,13 +233,12 @@ export function InterventionsClient() {
 
           {(interventions ?? []).length === 0 ? (
             <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-              No interventions yet.
+              No interventions in this view.
             </div>
           ) : null}
         </div>
       </div>
 
-      {/* Floating action button (tablet-friendly) */}
       <div className="pointer-events-none fixed bottom-6 right-6 z-40">
         <Button
           className="pointer-events-auto shadow-lg"
@@ -199,11 +250,7 @@ export function InterventionsClient() {
         </Button>
       </div>
 
-      <InterventionFormDialog
-        open={open}
-        onOpenChange={setOpen}
-        mode="new"
-      />
+      <InterventionFormDialog open={open} onOpenChange={setOpen} mode="new" />
 
       <Dialog
         open={Boolean(deleteTarget)}
@@ -280,4 +327,3 @@ export function InterventionsClient() {
     </div>
   );
 }
-

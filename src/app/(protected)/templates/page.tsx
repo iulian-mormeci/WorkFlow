@@ -7,7 +7,8 @@ export default function TemplatesPage() {
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Templates</h1>
         <p className="text-sm text-muted-foreground">
-          Save recurring interventions and create them in one tap.
+          Full template library: job type, field vs office activity, default client, checklist, spare parts,
+          and one-tap &quot;Create from template&quot;.
         </p>
       </header>
 

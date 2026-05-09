@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
+  Bell,
   Clock3,
   ListChecks,
   NotebookPen,
@@ -12,7 +13,17 @@ import {
   TimerReset,
   Users
 } from "lucide-react";
-import { db, type Intervention, type SparePart } from "@/lib/db/workflow-db";
+import { DynamicChecklistEditor, type ChecklistRow } from "@/components/checklist/dynamic-checklist-editor";
+import { InterventionLocationFields } from "@/components/interventions/intervention-location-fields";
+import { JOB_TYPE_PRESETS } from "@/lib/interventions/job-types";
+import {
+  db,
+  type Intervention,
+  type InterventionGeoStop,
+  type ReminderPreset,
+  type SparePart,
+  type WorkCategory
+} from "@/lib/db/workflow-db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,23 +47,19 @@ type Props = {
   onSaved?: (id: string) => void;
   initial?: Partial<{
     clientName: string;
-    type: Intervention["type"];
+    defaultClientId?: string | null;
+    type: string;
+    workCategory?: WorkCategory;
+    isOfficeActivity?: boolean;
     km: number;
     notes: string;
-    checklist: ChecklistItem[];
+    checklist: ChecklistRow[];
     sparePartsUsed: { sparePartId: string; qty: number }[];
+    defaultDurationMinutes?: number;
   }>;
 };
 
 type SparePartLine = { sparePartId: string; qty: string };
-type ChecklistItem = { id: string; label: string; done: boolean };
-
-const checklistTemplate: ChecklistItem[] = [
-  { id: "power", label: "Power / cables checked", done: false },
-  { id: "printer", label: "Printer test", done: false },
-  { id: "network", label: "Network connection verified", done: false },
-  { id: "closing", label: "Closing notes shared with client", done: false }
-];
 
 function toLocalDateTimeInputValue(d: Date) {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -105,14 +112,24 @@ export function InterventionFormDialog(props: Props) {
   }, [mode, interventionId]);
 
   const [clientName, setClientName] = useState("");
-  const [type, setType] = useState<Intervention["type"]>("maintenance");
+  const [type, setType] = useState("maintenance");
+  const [workCategory, setWorkCategory] = useState<WorkCategory>("intervention");
+  const [isOfficeActivity, setIsOfficeActivity] = useState(false);
   const [startAtLocal, setStartAtLocal] = useState("");
   const [endAtLocal, setEndAtLocal] = useState("");
   const [km, setKm] = useState("");
   const [notes, setNotes] = useState("");
   const [durationOverride, setDurationOverride] = useState("");
-  const [checklist, setChecklist] = useState<ChecklistItem[]>(checklistTemplate);
+  const [checklist, setChecklist] = useState<ChecklistRow[]>([]);
   const [partsUsed, setPartsUsed] = useState<SparePartLine[]>([]);
+  const [dueAtLocal, setDueAtLocal] = useState("");
+  const [remindersEnabled, setRemindersEnabled] = useState(false);
+  const [reminderPreset, setReminderPreset] = useState<ReminderPreset>("2h");
+  const [reminderCustomAtLocal, setReminderCustomAtLocal] = useState("");
+  const [reminderEmailTo, setReminderEmailTo] = useState("");
+  const [startLocation, setStartLocation] = useState<InterventionGeoStop | undefined>();
+  const [endLocation, setEndLocation] = useState<InterventionGeoStop | undefined>();
+  const [locationKmAuto, setLocationKmAuto] = useState<number | undefined>();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -138,18 +155,30 @@ export function InterventionFormDialog(props: Props) {
       const now = new Date();
       setClientName(initial?.clientName ?? "");
       setType(initial?.type ?? "maintenance");
+      setWorkCategory(initial?.workCategory ?? "intervention");
+      setIsOfficeActivity(initial?.isOfficeActivity ?? false);
       setStartAtLocal(toLocalDateTimeInputValue(now));
       setEndAtLocal("");
       setKm(initial?.km != null ? String(initial.km) : "");
       setNotes(initial?.notes ?? "");
-      setDurationOverride("");
-      setChecklist(initial?.checklist ?? checklistTemplate);
+      setDurationOverride(
+        initial?.defaultDurationMinutes != null ? String(initial.defaultDurationMinutes) : ""
+      );
+      setChecklist(initial?.checklist?.length ? [...initial.checklist] : []);
       setPartsUsed(
         (initial?.sparePartsUsed ?? []).map((x) => ({
           sparePartId: x.sparePartId,
           qty: String(x.qty)
         }))
       );
+      setDueAtLocal("");
+      setRemindersEnabled(false);
+      setReminderPreset("2h");
+      setReminderCustomAtLocal("");
+      setReminderEmailTo("");
+      setStartLocation(undefined);
+      setEndLocation(undefined);
+      setLocationKmAuto(undefined);
       return;
     }
 
@@ -160,19 +189,33 @@ export function InterventionFormDialog(props: Props) {
 
       const client = clients?.find((c) => c.id === existing.clientId);
       setClientName(client?.name ?? "");
-      setType(existing.type);
+      setType(existing.type ?? "maintenance");
+      setWorkCategory(existing.workCategory ?? "intervention");
+      setIsOfficeActivity(existing.isOfficeActivity ?? false);
       setStartAtLocal(toLocalDateTimeInputValue(start));
       setEndAtLocal(end ? toLocalDateTimeInputValue(end) : "");
       setKm(existing.km != null ? String(existing.km) : "");
       setNotes(existing.notes ?? "");
       setDurationOverride(existing.durationMinutes != null ? String(existing.durationMinutes) : "");
-      setChecklist(existing.checklist ?? checklistTemplate);
+      setChecklist(existing.checklist?.length ? [...existing.checklist] : []);
       setPartsUsed(
         (existing.sparePartsUsed ?? []).map((x) => ({
           sparePartId: x.sparePartId,
           qty: String(x.qty)
         }))
       );
+      setDueAtLocal(existing.dueAt ? toLocalDateTimeInputValue(new Date(existing.dueAt)) : "");
+      setRemindersEnabled(Boolean(existing.remindersEnabled));
+      setReminderPreset(existing.reminderPreset ?? "2h");
+      setReminderCustomAtLocal(
+        existing.reminderCustomAt
+          ? toLocalDateTimeInputValue(new Date(existing.reminderCustomAt))
+          : ""
+      );
+      setReminderEmailTo(existing.reminderEmailTo ?? "");
+      setStartLocation(existing.startLocation);
+      setEndLocation(existing.endLocation);
+      setLocationKmAuto(existing.locationKmAuto);
     }
   }, [
     open,
@@ -181,11 +224,33 @@ export function InterventionFormDialog(props: Props) {
     clients,
     initial?.clientName,
     initial?.type,
+    initial?.workCategory,
+    initial?.isOfficeActivity,
     initial?.km,
     initial?.notes,
     initial?.checklist,
-    initial?.sparePartsUsed
+    initial?.sparePartsUsed,
+    initial?.defaultDurationMinutes
   ]);
+
+  useEffect(() => {
+    if (!open || mode !== "new") return;
+    const cid = initial?.defaultClientId;
+    if (!cid) return;
+    let cancelled = false;
+    (async () => {
+      const cl = await db.clients.get(cid);
+      if (cancelled || !cl) return;
+      setClientName(cl.name);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, mode, initial?.defaultClientId]);
+
+  useEffect(() => {
+    if (workCategory === "intervention") setIsOfficeActivity(false);
+  }, [workCategory]);
 
   function setNow(which: "start" | "end") {
     const now = new Date();
@@ -206,13 +271,17 @@ export function InterventionFormDialog(props: Props) {
     setPartsUsed((s) => s.map((x, i) => (i === idx ? { ...x, ...patch } : x)));
   }
 
-  function toggleChecklist(id: string) {
-    setChecklist((s) => s.map((x) => (x.id === id ? { ...x, done: !x.done } : x)));
-  }
-
   async function save() {
     setError(null);
     if (!canSave) return;
+    if (mode === "edit" && (!interventionId || !existing)) {
+      toast({
+        title: "Still loading",
+        description: "Wait for the intervention to load, then try again.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     setSaving(true);
     try {
@@ -231,27 +300,87 @@ export function InterventionFormDialog(props: Props) {
           ? [...existing.photoIds]
           : undefined;
 
-      const payload: Intervention = {
-        id: mode === "edit" && interventionId ? interventionId : crypto.randomUUID(),
-        clientId,
-        type,
-        status: endIso ? "completed" : "open",
-        startAt: startIso,
-        endAt: endIso,
-        durationMinutes,
-        km: km ? Number(km) : undefined,
-        notes: notes.trim() || undefined,
-        checklist,
-        sparePartsUsed: sparePartsUsed.length ? sparePartsUsed : undefined,
-        photoIds: existingPhotoIds,
-        createdAt: existing?.createdAt ?? nowIso,
-        updatedAt: nowIso
-      };
+      const dueIso = dueAtLocal ? new Date(dueAtLocal).toISOString() : undefined;
+      const reminderCustomIso =
+        remindersEnabled && reminderPreset === "custom" && reminderCustomAtLocal
+          ? new Date(reminderCustomAtLocal).toISOString()
+          : undefined;
+      const nextReminderEmail = remindersEnabled ? reminderEmailTo.trim() || undefined : undefined;
+      const nextPreset = remindersEnabled ? reminderPreset : undefined;
 
-      if (mode === "edit" && interventionId) {
+      const reminderConfigChanged =
+        mode === "edit" &&
+        existing &&
+        (dueIso !== existing.dueAt ||
+          remindersEnabled !== !!existing.remindersEnabled ||
+          (nextPreset ?? null) !== (existing.reminderPreset ?? null) ||
+          (reminderCustomIso ?? null) !== (existing.reminderCustomAt ?? null) ||
+          (nextReminderEmail ?? "") !== (existing.reminderEmailTo ?? ""));
+
+      let savedId = "";
+      if (mode === "edit" && interventionId && existing) {
+        const payload: Intervention = {
+          ...existing,
+          clientId,
+          type: type.trim() || "maintenance",
+          workCategory,
+          isOfficeActivity: workCategory === "activity" ? isOfficeActivity : false,
+          status: endIso ? "completed" : existing.status ?? "open",
+          startAt: startIso,
+          endAt: endIso,
+          durationMinutes,
+          km: km ? Number(km) : undefined,
+          notes: notes.trim() || undefined,
+          checklist: checklist.length ? checklist : undefined,
+          sparePartsUsed: sparePartsUsed.length ? sparePartsUsed : undefined,
+          photoIds: existingPhotoIds ?? existing.photoIds,
+          dueAt: dueIso,
+          remindersEnabled,
+          reminderPreset: nextPreset,
+          reminderCustomAt:
+            remindersEnabled && reminderPreset === "custom" ? reminderCustomIso : undefined,
+          reminderEmailTo: nextReminderEmail,
+          reminderLastFireAt: reminderConfigChanged ? undefined : existing.reminderLastFireAt,
+          startLocation,
+          endLocation,
+          locationKmAuto,
+          updatedAt: nowIso
+        };
         await db.interventions.put(payload);
+        savedId = payload.id;
       } else {
+        const payload: Intervention = {
+          id: crypto.randomUUID(),
+          clientId,
+          type: type.trim() || "maintenance",
+          workCategory,
+          isOfficeActivity: workCategory === "activity" ? isOfficeActivity : false,
+          status: endIso ? "completed" : "open",
+          startAt: startIso,
+          endAt: endIso,
+          durationMinutes,
+          timerRunState: "idle",
+          timerAccumulatedSeconds: 0,
+          timerStartedAt: undefined,
+          km: km ? Number(km) : undefined,
+          notes: notes.trim() || undefined,
+          checklist: checklist.length ? checklist : undefined,
+          sparePartsUsed: sparePartsUsed.length ? sparePartsUsed : undefined,
+          photoIds: existingPhotoIds,
+          dueAt: dueIso,
+          remindersEnabled,
+          reminderPreset: nextPreset,
+          reminderCustomAt:
+            remindersEnabled && reminderPreset === "custom" ? reminderCustomIso : undefined,
+          reminderEmailTo: nextReminderEmail,
+          startLocation,
+          endLocation,
+          locationKmAuto,
+          createdAt: nowIso,
+          updatedAt: nowIso
+        };
         await db.interventions.add(payload);
+        savedId = payload.id;
       }
 
       // Auto-create stock OUT movements for spare parts used (first usable version)
@@ -263,14 +392,14 @@ export function InterventionFormDialog(props: Props) {
             type: "out",
             qty: line.qty,
             reason: "Used in intervention",
-            interventionId: payload.id,
+            interventionId: savedId,
             createdAt: nowIso
           });
         }
       }
 
       onOpenChange(false);
-      onSaved?.(payload.id);
+      onSaved?.(savedId);
       toast({
         title: mode === "new" ? "Intervention saved" : "Intervention updated",
         description: "Saved locally (offline-first)."
@@ -328,21 +457,65 @@ export function InterventionFormDialog(props: Props) {
             </div>
           </div>
 
-          {/* Type */}
+          {/* Intervention vs activity */}
           <div className="grid gap-2">
-            <Label>Type</Label>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {(["maintenance", "repair", "install", "other"] as const).map((t) => (
-                <Button
-                  key={t}
-                  variant={type === t ? "default" : "outline"}
-                  onClick={() => setType(t)}
-                  type="button"
-                >
-                  {t}
-                </Button>
-              ))}
+            <Label>Record as</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setWorkCategory("intervention")}
+                className={`rounded-2xl border-2 p-4 text-left transition ${
+                  workCategory === "intervention"
+                    ? "border-primary bg-primary/5"
+                    : "border-muted bg-muted/30 hover:bg-muted/50"
+                }`}
+              >
+                <div className="text-sm font-semibold">Intervention</div>
+                <div className="mt-1 text-xs text-muted-foreground">Field visit at a client.</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setWorkCategory("activity")}
+                className={`rounded-2xl border-2 p-4 text-left transition ${
+                  workCategory === "activity"
+                    ? "border-primary bg-primary/5"
+                    : "border-muted bg-muted/30 hover:bg-muted/50"
+                }`}
+              >
+                <div className="text-sm font-semibold">Activity</div>
+                <div className="mt-1 text-xs text-muted-foreground">Office or remote work.</div>
+              </button>
             </div>
+          </div>
+
+          {workCategory === "activity" ? (
+            <div className="flex items-center gap-3 rounded-xl border bg-muted/40 px-4 py-3">
+              <Checkbox
+                id="iv-office"
+                checked={isOfficeActivity}
+                onCheckedChange={(v) => setIsOfficeActivity(v === true)}
+              />
+              <Label htmlFor="iv-office" className="cursor-pointer text-sm font-normal leading-snug">
+                On-site office (unchecked = remote)
+              </Label>
+            </div>
+          ) : null}
+
+          {/* Job type (free text) */}
+          <div className="grid gap-2">
+            <Label>Job type</Label>
+            <Input
+              value={type}
+              onChange={(e) => setType(e.target.value)}
+              placeholder="e.g. maintenance, Site visit…"
+              list="intervention-job-type-presets"
+              className="text-base"
+            />
+            <datalist id="intervention-job-type-presets">
+              {JOB_TYPE_PRESETS.map((p) => (
+                <option key={p} value={p} />
+              ))}
+            </datalist>
           </div>
 
           {/* Time */}
@@ -393,11 +566,119 @@ export function InterventionFormDialog(props: Props) {
             </div>
           </div>
 
+          <div className="grid gap-2 rounded-2xl border bg-muted/30 p-4">
+            <Label className="flex items-center gap-2 text-base font-semibold">
+              <Clock3 className="h-4 w-4" />
+              Must complete by
+            </Label>
+            <Input
+              type="datetime-local"
+              value={dueAtLocal}
+              onChange={(e) => setDueAtLocal(e.target.value)}
+              className="text-base"
+            />
+            <p className="text-xs text-muted-foreground">
+              Used for countdown, overdue status, and reminder scheduling.
+            </p>
+          </div>
+
+          <div className="grid gap-4 rounded-2xl border p-4">
+            <div className="flex items-center gap-3">
+              <Checkbox
+                id="rem-on"
+                checked={remindersEnabled}
+                onCheckedChange={(v) => setRemindersEnabled(v === true)}
+              />
+              <Label htmlFor="rem-on" className="flex cursor-pointer items-center gap-2 text-base font-semibold">
+                <Bell className="h-4 w-4" />
+                Reminders (push + email when app can send)
+              </Label>
+            </div>
+            {remindersEnabled ? (
+              <div className="grid gap-4 pl-1">
+                <div className="grid gap-2">
+                  <Label className="text-sm">When to remind (before due)</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {(
+                      [
+                        ["1d", "1 day"],
+                        ["2h", "2 hours"],
+                        ["30m", "30 min"],
+                        ["custom", "Custom"]
+                      ] as const
+                    ).map(([p, label]) => (
+                      <Button
+                        key={p}
+                        type="button"
+                        size="lg"
+                        variant={reminderPreset === p ? "default" : "outline"}
+                        className="min-h-11"
+                        onClick={() => setReminderPreset(p)}
+                      >
+                        {label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                {reminderPreset === "custom" ? (
+                  <div className="grid gap-2">
+                    <Label>Custom reminder time</Label>
+                    <Input
+                      type="datetime-local"
+                      value={reminderCustomAtLocal}
+                      onChange={(e) => setReminderCustomAtLocal(e.target.value)}
+                      className="text-base"
+                    />
+                  </div>
+                ) : null}
+                <div className="grid gap-2">
+                  <Label>Email for this visit (optional)</Label>
+                  <Input
+                    value={reminderEmailTo}
+                    onChange={(e) => setReminderEmailTo(e.target.value)}
+                    placeholder="Defaults from Settings if empty"
+                    inputMode="email"
+                    className="text-base"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Browser notifications work while the app is open; email uses your server (Resend) when online.
+                    WhatsApp delivery is planned for a later release.
+                  </p>
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          <InterventionLocationFields
+            start={startLocation}
+            end={endLocation}
+            autoKm={locationKmAuto}
+            onChangeStart={setStartLocation}
+            onChangeEnd={setEndLocation}
+            onAutoKm={setLocationKmAuto}
+          />
+
           {/* KM + Notes */}
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="grid gap-2">
-              <Label>KM</Label>
+              <div className="flex flex-wrap items-end justify-between gap-2">
+                <Label>KM (manual)</Label>
+                {locationKmAuto != null ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() => setKm(String(locationKmAuto))}
+                  >
+                    Use auto ({locationKmAuto} km)
+                  </Button>
+                ) : null}
+              </div>
               <Input inputMode="numeric" value={km} onChange={(e) => setKm(e.target.value)} placeholder="0" />
+              {locationKmAuto != null ? (
+                <p className="text-xs text-muted-foreground">Auto from route ≈ {locationKmAuto} km</p>
+              ) : null}
             </div>
             <div className="grid gap-2">
               <Label className="flex items-center gap-2">
@@ -469,23 +750,12 @@ export function InterventionFormDialog(props: Props) {
             )}
           </div>
 
-          {/* Checklist */}
           <div className="grid gap-2">
             <Label className="flex items-center gap-2">
               <Icon icon={ListChecks} />
               Checklist
             </Label>
-            <div className="grid gap-2 rounded-2xl border p-4">
-              {checklist.map((item) => (
-                <div key={item.id} className="flex items-start gap-3">
-                  <Checkbox
-                    checked={item.done}
-                    onCheckedChange={() => toggleChecklist(item.id)}
-                  />
-                  <div className="text-sm">{item.label}</div>
-                </div>
-              ))}
-            </div>
+            <DynamicChecklistEditor value={checklist} onChange={setChecklist} />
           </div>
 
           <div className="flex items-center justify-end gap-2 pt-1">

@@ -47,7 +47,9 @@ export function DashboardRecent() {
                     {clientById.get(it.clientId) ?? "Client"}
                   </div>
                   <div className="mt-0.5 text-xs text-muted-foreground">
-                    {fmt(it.startAt)} • {it.type}
+                    {fmt(it.startAt)} •{" "}
+                    {(it.workCategory ?? "intervention") === "activity" ? "Activity · " : ""}
+                    {it.type}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
