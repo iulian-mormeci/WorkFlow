@@ -18,7 +18,15 @@ function isPublicPath(pathname: string) {
 }
 
 export async function middleware(req: NextRequest) {
-  const res = NextResponse.next();
+  // IMPORTANT (Supabase SSR): when refreshing cookies in middleware, we must
+  // update BOTH the response cookies and the in-memory request cookies,
+  // otherwise downstream auth checks in the same request can see stale cookies.
+  // This follows Supabase's recommended Next.js middleware pattern.
+  const res = NextResponse.next({
+    request: {
+      headers: req.headers
+    }
+  });
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -33,17 +41,19 @@ export async function middleware(req: NextRequest) {
       },
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value, options }) => {
+          // Keep request cookies in sync for this middleware invocation.
+          try {
+            req.cookies.set(name, value);
+          } catch {
+            // ignore (some runtimes may not allow mutating request cookies)
+          }
           res.cookies.set(name, value, options);
         });
       }
     }
   });
 
-  // Refresh session if needed (best practice).
-  // IMPORTANT: In middleware, `setAll()` only mutates the *response* cookies.
-  // If a refresh happens, a subsequent `getSession()` call would still read the
-  // stale request cookies and can incorrectly appear unauthenticated.
-  // So we gate on `getUser()` directly (Supabase returns the user after refresh).
+  // Refresh session if needed (best practice). This will also update cookies.
   const {
     data: { user }
   } = await supabase.auth.getUser();
