@@ -2,20 +2,21 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function POST(req: NextRequest) {
-  const supaUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!supaUrl || !anonKey) return NextResponse.json({ ok: false, error: "Supabase not configured" }, { status: 500 });
+  if (!url || !anonKey) {
+    return NextResponse.json({ ok: false, error: "Supabase not configured" }, { status: 500 });
+  }
 
   const body = await req.json().catch(() => null);
-  const access_token = body?.access_token;
-  const refresh_token = body?.refresh_token;
-
-  if (!access_token || !refresh_token) {
-    return NextResponse.json({ ok: false, error: "Missing tokens" }, { status: 400 });
+  const email = body?.email;
+  const password = body?.password;
+  if (!email || !password) {
+    return NextResponse.json({ ok: false, error: "Missing credentials" }, { status: 400 });
   }
 
   const res = NextResponse.json({ ok: true });
-  const supabase = createServerClient(supaUrl, anonKey, {
+  const supabase = createServerClient(url, anonKey, {
     cookies: {
       getAll() {
         return req.cookies.getAll();
@@ -28,8 +29,7 @@ export async function POST(req: NextRequest) {
     }
   });
 
-  // This will set the Supabase auth cookies on the response via @supabase/ssr.
-  const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 400 });
 
   return res;

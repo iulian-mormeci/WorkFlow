@@ -7,6 +7,7 @@ function isPublicPath(pathname: string) {
     pathname.startsWith("/login") ||
     pathname.startsWith("/register") ||
     pathname.startsWith("/auth/callback") ||
+    pathname.startsWith("/auth/password") ||
     pathname.startsWith("/auth/session") ||
     pathname.startsWith("/auth/logout") ||
     pathname.startsWith("/_next/") ||
@@ -39,13 +40,15 @@ export async function middleware(req: NextRequest) {
   });
 
   // Refresh session if needed (best practice).
-  // Use getUser() to trigger refresh logic. Then use getSession() as the auth gate.
-  await supabase.auth.getUser();
+  // IMPORTANT: In middleware, `setAll()` only mutates the *response* cookies.
+  // If a refresh happens, a subsequent `getSession()` call would still read the
+  // stale request cookies and can incorrectly appear unauthenticated.
+  // So we gate on `getUser()` directly (Supabase returns the user after refresh).
   const {
-    data: { session }
-  } = await supabase.auth.getSession();
+    data: { user }
+  } = await supabase.auth.getUser();
 
-  if (session || isPublicPath(req.nextUrl.pathname)) return res;
+  if (user || isPublicPath(req.nextUrl.pathname)) return res;
 
   const redirectUrl = req.nextUrl.clone();
   redirectUrl.pathname = "/login";

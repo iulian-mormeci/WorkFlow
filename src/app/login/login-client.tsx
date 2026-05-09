@@ -30,39 +30,23 @@ export function LoginClient() {
       data: { subscription }
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      // Ensure SSR/middleware can see the session (cookie-based) after password login.
-      // OAuth already goes through /auth/callback which sets cookies server-side.
-      if (session?.user && session.access_token && session.refresh_token) {
-        fetch("/auth/session", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            access_token: session.access_token,
-            refresh_token: session.refresh_token
-          })
-        }).finally(() => {
-          router.replace(nextPath);
-        });
-      }
     });
     return () => subscription.unsubscribe();
-  }, [router, supabase, setSession, nextPath]);
+  }, [supabase, setSession]);
 
   async function signInEmailPassword(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!supabase) {
-      setError("Supabase env vars are missing. Configure .env.local first.");
-      return;
-    }
     setLoading(true);
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password
+      // Do password login server-side to set SSR cookies (prevents redirect loops).
+      const res = await fetch("/auth/password", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email, password })
       });
-      if (signInError) throw signInError;
-      // onAuthStateChange will handle cookie sync + redirect
+      if (!res.ok) throw new Error(await res.text());
+      router.replace(nextPath);
     } catch (err: any) {
       setError(err?.message ?? "Login failed");
     } finally {

@@ -1,4 +1,3 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { OnlineIndicator } from "@/components/offline/online-indicator";
 import { GlobalSearch } from "@/components/search/global-search";
@@ -10,14 +9,10 @@ export default async function ProtectedLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createSupabaseServerClient();
   // Auth protection is enforced by `src/middleware.ts`.
-  // We keep this layout server-rendered for fast navigation and only use Supabase
-  // here to optionally display the user's email when available.
-  const user =
-    supabase
-      ? (await supabase.auth.getUser()).data.user
-      : null;
+  // IMPORTANT: avoid doing an SSR refresh flow in Server Components (they cannot
+  // persist refreshed cookies). We keep this layout fast and stable.
+  const userEmail = undefined;
 
   const nav: readonly SidebarNavItem[] = [
     { href: "/dashboard", label: "Home", iconName: "home" },
@@ -44,7 +39,7 @@ export default async function ProtectedLayout({
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <OnlineIndicator />
                 <span className="truncate">
-                  {user?.email ? `Signed in as ${user.email}` : "Signed in"}
+                  {userEmail ? `Signed in as ${userEmail}` : "Signed in"}
                 </span>
               </div>
             </div>
