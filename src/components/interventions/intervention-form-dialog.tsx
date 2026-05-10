@@ -588,7 +588,17 @@ export function InterventionFormDialog(props: Props) {
               <Checkbox
                 id="rem-on"
                 checked={remindersEnabled}
-                onCheckedChange={(v) => setRemindersEnabled(v === true)}
+                onCheckedChange={(v) => {
+                  const on = v === true;
+                  setRemindersEnabled(on);
+                  if (
+                    on &&
+                    typeof Notification !== "undefined" &&
+                    Notification.permission === "default"
+                  ) {
+                    void Notification.requestPermission().catch(() => {});
+                  }
+                }}
               />
               <Label htmlFor="rem-on" className="flex cursor-pointer items-center gap-2 text-base font-semibold">
                 <Bell className="h-4 w-4" />
