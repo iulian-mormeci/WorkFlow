@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Crosshair, MapPin, Route } from "lucide-react";
 import type { InterventionGeoStop } from "@/lib/db/workflow-db";
 import { haversineKm } from "@/lib/geo/haversine-km";
-import { interventionStaticMapUrl } from "@/lib/geo/static-map-url";
+import { InterventionRouteMapPreview } from "@/components/interventions/intervention-route-map-preview";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -68,12 +68,24 @@ function LocationBlock({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Label className="text-base font-semibold">{label}</Label>
         <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" size="sm" className="min-h-10" onClick={onUseCurrent}>
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            className="min-h-12 touch-manipulation px-4 text-base"
+            onClick={onUseCurrent}
+          >
             <Crosshair className="h-4 w-4" />
             Current location
           </Button>
           {value ? (
-            <Button type="button" variant="ghost" size="sm" onClick={onClear}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="lg"
+              className="min-h-12 touch-manipulation px-4 text-base"
+              onClick={onClear}
+            >
               Clear
             </Button>
           ) : null}
@@ -83,16 +95,16 @@ function LocationBlock({
         value={q}
         onChange={(e) => setQ(e.target.value)}
         placeholder="Search address…"
-        className="text-base"
+        className="min-h-12 text-base touch-manipulation"
         aria-busy={loading}
       />
       {hits.length > 0 ? (
-        <ul className="max-h-40 overflow-auto rounded-xl border bg-background text-sm">
+        <ul className="max-h-56 overflow-auto rounded-xl border bg-background text-base">
           {hits.map((h, i) => (
             <li key={`${h.lat}-${h.lng}-${i}`}>
               <button
                 type="button"
-                className="w-full px-3 py-2.5 text-left hover:bg-muted"
+                className="min-h-14 w-full touch-manipulation px-4 py-3.5 text-left leading-snug hover:bg-muted active:bg-muted/80"
                 onClick={() => {
                   onPick(h);
                   setQ("");
@@ -123,7 +135,6 @@ function LocationBlock({
 }
 
 export function InterventionLocationFields({ start, end, autoKm, onChangeStart, onChangeEnd, onAutoKm }: Props) {
-  const mapSrc = useMemo(() => interventionStaticMapUrl(start, end), [start, end]);
   const lastKmKey = useRef("");
 
   async function fillCurrentGeolocation(which: "start" | "end") {
@@ -225,18 +236,22 @@ export function InterventionLocationFields({ start, end, autoKm, onChangeStart, 
               {autoKm != null ? `${autoKm} km` : "—"}
             </div>
           </div>
-          <Button type="button" variant="outline" size="sm" onClick={() => void computeKm()}>
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            className="min-h-12 touch-manipulation px-5 text-base"
+            onClick={() => void computeKm()}
+          >
             Recalculate
           </Button>
         </div>
       ) : null}
 
-      {mapSrc ? (
-        <div className="overflow-hidden rounded-2xl border">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={mapSrc} alt="Route map preview" className="h-auto w-full bg-muted" loading="lazy" />
-        </div>
-      ) : null}
+      <div className="space-y-2">
+        <div className="text-sm font-semibold text-foreground">Route map</div>
+        <InterventionRouteMapPreview start={start} end={end} variant="comfortable" />
+      </div>
     </div>
   );
 }

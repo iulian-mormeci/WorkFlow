@@ -54,7 +54,7 @@ import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { performInterventionCloudSyncDelete } from "@/lib/sync/cloud-delete";
 import { scheduleWorkflowSync } from "@/lib/sync/sync-engine";
-import { interventionStaticMapUrl } from "@/lib/geo/static-map-url";
+import { InterventionRouteMapPreview } from "@/components/interventions/intervention-route-map-preview";
 import {
   coerceInterventionWorkflowStatus,
   formatElapsedHms,
@@ -329,17 +329,13 @@ export function InterventionEditClient({ id }: { id: string }) {
                   </div>
                 ) : null}
               </div>
-              {interventionStaticMapUrl(intervention.startLocation, intervention.endLocation) ? (
-                <div className="mt-2 overflow-hidden rounded-xl border">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={interventionStaticMapUrl(intervention.startLocation, intervention.endLocation)!}
-                    alt="Map"
-                    className="w-full"
-                    loading="lazy"
-                  />
-                </div>
-              ) : null}
+              <div className="mt-4">
+                <InterventionRouteMapPreview
+                  start={intervention.startLocation}
+                  end={intervention.endLocation}
+                  variant="compact"
+                />
+              </div>
             </CardHeader>
           </Card>
         ) : (
