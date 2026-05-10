@@ -15,7 +15,13 @@ import {
 } from "lucide-react";
 import { DynamicChecklistEditor, type ChecklistRow } from "@/components/checklist/dynamic-checklist-editor";
 import { InterventionLocationFields } from "@/components/interventions/intervention-location-fields";
-import { RouteStopsEditor } from "@/components/interventions/route-stops-editor";
+import { OpenRouteInNavigatorButton } from "@/components/interventions/open-route-in-navigator-button";
+import { RouteStopsEditor, buildRoundTripStops } from "@/components/interventions/route-stops-editor";
+import type { RouteStopDraft } from "@/lib/routes/route-stops";
+import { upsertRouteStop } from "@/lib/routes/route-stops";
+import { routeStopDraftsToMapStops } from "@/lib/navigation/multi-stop-maps";
+import { totalKmFromRouteStops } from "@/lib/routes/route-distance";
+import { syncWorkflowNow } from "@/lib/sync/sync-engine";
 import { JOB_TYPE_PRESETS } from "@/lib/interventions/job-types";
 import { preservedWorkflowStatus } from "@/lib/interventions/intervention-helpers";
 import {
@@ -132,6 +138,8 @@ export function InterventionFormDialog(props: Props) {
   const [startLocation, setStartLocation] = useState<InterventionGeoStop | undefined>();
   const [endLocation, setEndLocation] = useState<InterventionGeoStop | undefined>();
   const [locationKmAuto, setLocationKmAuto] = useState<number | undefined>();
+  const [draftStops, setDraftStops] = useState<RouteStopDraft[]>([]);
+  const [postSaveNavDrafts, setPostSaveNavDrafts] = useState<RouteStopDraft[] | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -148,6 +156,12 @@ export function InterventionFormDialog(props: Props) {
   const canSave = useMemo(() => {
     return clientName.trim().length > 1 && Boolean(startAtLocal);
   }, [clientName, startAtLocal]);
+
+  const roundTripAirKm = useMemo(() => totalKmFromRouteStops(draftStops), [draftStops]);
+
+  useEffect(() => {
+    if (!open) setPostSaveNavDrafts(null);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -181,6 +195,8 @@ export function InterventionFormDialog(props: Props) {
       setStartLocation(undefined);
       setEndLocation(undefined);
       setLocationKmAuto(undefined);
+      setDraftStops([]);
+      setPostSaveNavDrafts(null);
       return;
     }
 
@@ -385,6 +401,17 @@ export function InterventionFormDialog(props: Props) {
         };
         await db.interventions.add(payload);
         savedId = payload.id;
+
+        // Online-first routing: if user prepared draft stops in the create flow, persist them to Supabase.
+        // Best-effort (still works if Supabase not configured / offline).
+        if (draftStops.length) {
+          try {
+            syncWorkflowNow(); // push the intervention row so FK resolves quickly
+            await Promise.all(draftStops.map((s) => upsertRouteStop(payload.id, s)));
+          } catch {
+            /* ignore */
+          }
+        }
       }
 
       // Auto-create stock OUT movements for spare parts used (first usable version)
@@ -402,11 +429,21 @@ export function InterventionFormDialog(props: Props) {
         }
       }
 
+      if (mode === "new" && draftStops.length >= 2) {
+        setPostSaveNavDrafts(draftStops.map((s) => ({ ...s })));
+        onSaved?.(savedId);
+        toast({
+          title: "Intervento salvato",
+          description: "Salvato in locale. Puoi aprire il navigatore qui sotto."
+        });
+        return;
+      }
+
       onOpenChange(false);
       onSaved?.(savedId);
       toast({
-        title: mode === "new" ? "Intervention saved" : "Intervention updated",
-        description: "Saved locally (offline-first)."
+        title: mode === "new" ? "Intervento salvato" : "Intervento aggiornato",
+        description: "Salvato in locale (prima offline)."
       });
     } catch (e: any) {
       setError(e?.message ?? "Failed to save intervention");
@@ -425,6 +462,31 @@ export function InterventionFormDialog(props: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85dvh] overflow-auto">
+        {postSaveNavDrafts ? (
+          <>
+            <DialogHeader>
+              <DialogTitle>Percorso pronto</DialogTitle>
+              <DialogDescription>
+                Salvato in locale. Apri il navigatore (preferisce Mappe su iPad) con tutte le fermate.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="mt-6 space-y-4">
+              <OpenRouteInNavigatorButton stops={routeStopDraftsToMapStops(postSaveNavDrafts)} />
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-14 w-full touch-manipulation text-base"
+                onClick={() => {
+                  setPostSaveNavDrafts(null);
+                  onOpenChange(false);
+                }}
+              >
+                Chiudi
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
         <DialogHeader>
           <DialogTitle>{mode === "new" ? "New Intervention" : "Edit Intervention"}</DialogTitle>
           <DialogDescription>
@@ -666,14 +728,95 @@ export function InterventionFormDialog(props: Props) {
           {mode === "edit" && interventionId ? (
             <RouteStopsEditor interventionId={interventionId} />
           ) : (
-            <InterventionLocationFields
-              start={startLocation}
-              end={endLocation}
-              autoKm={locationKmAuto}
-              onChangeStart={setStartLocation}
-              onChangeEnd={setEndLocation}
-              onAutoKm={setLocationKmAuto}
-            />
+            <div className="grid gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-muted/20 p-4">
+                <div className="min-w-0">
+                  <div className="text-base font-semibold">Andata e ritorno</div>
+                  <div className="mt-0.5 text-xs text-muted-foreground">
+                    Partenza → Ufficio (impostazioni) → Partenza. Perfetto per visite rapide sul campo.
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  size="lg"
+                  className="min-h-14 min-w-[11rem] touch-manipulation px-5 text-base font-semibold"
+                  onClick={async () => {
+                    const officeAddress =
+                      typeof window !== "undefined"
+                        ? (localStorage.getItem("workflow:officeAddress") ?? "").trim()
+                        : "";
+
+                    let start: { address?: string; lat?: number; lng?: number } | undefined;
+                    try {
+                      if (navigator.geolocation) {
+                        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+                          navigator.geolocation.getCurrentPosition(resolve, reject, {
+                            enableHighAccuracy: true,
+                            timeout: 10_000,
+                            maximumAge: 60_000
+                          });
+                        });
+                        const lat = pos.coords.latitude;
+                        const lng = pos.coords.longitude;
+                        let addr = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+                        try {
+                          const res = await fetch(`/api/geocode?lat=${lat}&lon=${lng}`);
+                          const arr = (await res.json()) as { address?: string }[];
+                          if (arr?.[0]?.address) addr = String(arr[0].address);
+                        } catch {
+                          /* ignore */
+                        }
+                        start = { address: addr, lat, lng };
+                      }
+                    } catch {
+                      start = undefined;
+                    }
+
+                    let office: { address?: string; lat?: number; lng?: number } | undefined;
+                    if (officeAddress) {
+                      office = { address: officeAddress };
+                      try {
+                        const res = await fetch(`/api/geocode?q=${encodeURIComponent(officeAddress)}`);
+                        const arr = (await res.json()) as { address: string; lat: number; lng: number }[];
+                        if (arr?.[0]) {
+                          office = { address: arr[0].address, lat: arr[0].lat, lng: arr[0].lng };
+                        }
+                      } catch {
+                        /* ignore */
+                      }
+                    } else {
+                      office = { address: "Office" };
+                    }
+
+                    setDraftStops(buildRoundTripStops({ start, office }));
+                  }}
+                >
+                  Round Trip
+                </Button>
+              </div>
+
+              {draftStops.length >= 2 && roundTripAirKm > 0 ? (
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border bg-primary/5 px-4 py-3 sm:px-5">
+                  <span className="text-sm text-muted-foreground">Totale percorso (aria, stima)</span>
+                  <span className="text-xl font-bold tabular-nums tracking-tight">
+                    {roundTripAirKm.toFixed(1)} km
+                  </span>
+                </div>
+              ) : null}
+
+              {draftStops.length ? (
+                <RouteStopsEditor mode="draft" draftStops={draftStops} onDraftStopsChange={setDraftStops} />
+              ) : (
+                <InterventionLocationFields
+                  start={startLocation}
+                  end={endLocation}
+                  autoKm={locationKmAuto}
+                  onChangeStart={setStartLocation}
+                  onChangeEnd={setEndLocation}
+                  onAutoKm={setLocationKmAuto}
+                />
+              )}
+            </div>
           )}
 
           {/* KM + Notes */}
@@ -776,16 +919,28 @@ export function InterventionFormDialog(props: Props) {
             <DynamicChecklistEditor value={checklist} onChange={setChecklist} />
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-1">
-            <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
+          <div className="flex flex-wrap items-center justify-end gap-2 pt-2 sm:gap-3">
+            <Button
+              variant="outline"
+              type="button"
+              className="min-h-12 min-w-[5.5rem] touch-manipulation"
+              onClick={() => onOpenChange(false)}
+            >
               Cancel
             </Button>
-            <Button disabled={!canSave || saving} type="button" onClick={save}>
+            <Button
+              disabled={!canSave || saving}
+              type="button"
+              className="min-h-12 min-w-[8rem] touch-manipulation"
+              onClick={save}
+            >
               <Save className="h-4 w-4" />
               {saving ? "Saving…" : "Save"}
             </Button>
           </div>
         </div>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

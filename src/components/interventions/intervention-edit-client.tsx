@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   CheckCircle2,
@@ -39,6 +39,7 @@ import { QuickNoteFab } from "@/components/notes/quick-note-fab";
 import { DueCountdown } from "@/components/interventions/due-countdown";
 import { InterventionStatusBadge } from "@/components/interventions/intervention-status-badge";
 import { InterventionTimerPanel } from "@/components/interventions/intervention-timer-panel";
+import { OpenRouteInNavigatorButton } from "@/components/interventions/open-route-in-navigator-button";
 import { RouteStopsEditor } from "@/components/interventions/route-stops-editor";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -63,6 +64,59 @@ import {
   isInterventionCompleted,
   normalizeTimerRunState
 } from "@/lib/interventions/intervention-helpers";
+import {
+  interventionEndpointsToMapStops,
+  routeStopDraftsToMapStops
+} from "@/lib/navigation/multi-stop-maps";
+import {
+  listRouteStops,
+  subscribeRouteStops,
+  type RouteStopDraft
+} from "@/lib/routes/route-stops";
+import type { Intervention } from "@/lib/db/workflow-db";
+
+function OpenInterventionRouteNavigator({
+  interventionId,
+  intervention
+}: {
+  interventionId: string;
+  intervention: Intervention;
+}) {
+  const [cloudStops, setCloudStops] = useState<RouteStopDraft[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      const list = await listRouteStops(interventionId);
+      if (!cancelled) setCloudStops(list);
+    }
+    void load();
+    const unsub = subscribeRouteStops(interventionId, () => {
+      void load();
+    });
+    return () => {
+      cancelled = true;
+      unsub();
+    };
+  }, [interventionId]);
+
+  const mapStops = useMemo(() => {
+    if (cloudStops.length >= 2) return routeStopDraftsToMapStops(cloudStops);
+    return interventionEndpointsToMapStops(intervention);
+  }, [cloudStops, intervention]);
+
+  if (mapStops.length < 2) return null;
+
+  return (
+    <div className="border-b border-primary/15 bg-gradient-to-b from-primary/5 to-transparent px-5 py-5 md:px-6">
+      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Navigazione</p>
+      <OpenRouteInNavigatorButton stops={mapStops} />
+      <p className="mt-2 text-xs text-muted-foreground">
+        Su iPad si apre Mappe con tutte le fermate; su altri dispositivi si usa Google Maps se Mappe non conviene.
+      </p>
+    </div>
+  );
+}
 
 export function InterventionEditClient({ id }: { id: string }) {
   const liveEpoch = useWorkflowLiveEpoch();
@@ -354,6 +408,7 @@ export function InterventionEditClient({ id }: { id: string }) {
             <IconBubble icon={MapPin} />
           </div>
         </CardHeader>
+        <OpenInterventionRouteNavigator interventionId={intervention.id} intervention={intervention} />
         <div className="px-5 pb-5 md:px-6 md:pb-6">
           <RouteStopsEditor interventionId={intervention.id} />
         </div>

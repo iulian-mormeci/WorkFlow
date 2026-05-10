@@ -71,6 +71,52 @@ export function SettingsClient() {
   });
   const [supportEmail, setSupportEmail] = useState<string>(() => getSupportEmailTo());
   const [reminderEmail, setReminderEmail] = useState<string>(() => getReminderDefaultEmail());
+  const [officeAddress, setOfficeAddress] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem("workflow:officeAddress") ?? "";
+  });
+
+  useEffect(() => {
+    if (!supabase) return;
+    let cancelled = false;
+    void (async () => {
+      const {
+        data: { user }
+      } = await supabase.auth.getUser();
+      if (cancelled || !user) return;
+      const meta = user.user_metadata?.office_address;
+      const fromCloud = typeof meta === "string" ? meta.trim() : "";
+      let local = "";
+      try {
+        local = (localStorage.getItem("workflow:officeAddress") ?? "").trim();
+      } catch {
+        /* ignore */
+      }
+      if (fromCloud && !local) {
+        setOfficeAddress(fromCloud);
+        try {
+          localStorage.setItem("workflow:officeAddress", fromCloud);
+        } catch {
+          /* ignore */
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [supabase]);
+
+  const persistOfficeToCloud = async (value: string) => {
+    if (!supabase) return;
+    const trimmed = value.trim();
+    try {
+      await supabase.auth.updateUser({
+        data: { office_address: trimmed || undefined }
+      });
+    } catch {
+      /* offline or auth error — local copy still works */
+    }
+  };
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
@@ -158,6 +204,29 @@ export function SettingsClient() {
             >
               Request browser notification permission
             </Button>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-2">
+            <div className="text-sm font-medium">Indirizzo Ufficio predefinito</div>
+            <Input
+              value={officeAddress}
+              onChange={(e) => {
+                const v = e.target.value;
+                setOfficeAddress(v);
+                try {
+                  localStorage.setItem("workflow:officeAddress", v);
+                } catch {
+                  /* ignore */
+                }
+              }}
+              onBlur={() => void persistOfficeToCloud(officeAddress)}
+              placeholder="es. Via Roma 10, Milano"
+              className="min-h-12 touch-manipulation text-base"
+            />
+            <div className="text-xs text-muted-foreground">
+              Usato dal pulsante Andata e ritorno (Partenza → Ufficio → Partenza) in creazione intervento. Sincronizzato
+              sul profilo utente quando sei online.
+            </div>
           </div>
         </CardHeader>
       </Card>

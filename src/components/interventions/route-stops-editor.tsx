@@ -45,6 +45,44 @@ function toGeoStop(s: RouteStopDraft): InterventionGeoStop | null {
   };
 }
 
+export function buildRoundTripStops(args: {
+  start?: { address?: string; lat?: number; lng?: number };
+  office?: { address?: string; lat?: number; lng?: number };
+}): RouteStopDraft[] {
+  const base = Date.now();
+  const startId = crypto.randomUUID();
+  const officeId = crypto.randomUUID();
+  const endId = crypto.randomUUID();
+  const start = args.start ?? {};
+  const office = args.office ?? {};
+  return [
+    {
+      id: startId,
+      sortIndex: 10,
+      label: "Start",
+      address: start.address,
+      lat: start.lat,
+      lng: start.lng
+    },
+    {
+      id: officeId,
+      sortIndex: 20,
+      label: "Office",
+      address: office.address,
+      lat: office.lat,
+      lng: office.lng
+    },
+    {
+      id: endId,
+      sortIndex: 30,
+      label: "End",
+      address: start.address,
+      lat: start.lat,
+      lng: start.lng
+    }
+  ].map((s, idx) => ({ ...s, sortIndex: (idx + 1) * 10 + (base % 3) * 0 })); // keep stable indices
+}
+
 function SortableStopRow({
   stop,
   onChange,
@@ -184,10 +222,16 @@ function SortableStopRow({
 
 export function RouteStopsEditor({
   interventionId,
-  className
+  className,
+  mode = "supabase",
+  draftStops,
+  onDraftStopsChange
 }: {
-  interventionId: string;
+  interventionId?: string;
   className?: string;
+  mode?: "supabase" | "draft";
+  draftStops?: RouteStopDraft[];
+  onDraftStopsChange?: (next: RouteStopDraft[]) => void;
 }) {
   const [stops, setStops] = useState<RouteStopDraft[]>([]);
   const [busy, setBusy] = useState(false);
@@ -199,17 +243,33 @@ export function RouteStopsEditor({
   );
 
   async function refresh() {
+    if (mode !== "supabase" || !interventionId) return;
     const rows = await listRouteStops(interventionId);
     rows.sort((a, b) => a.sortIndex - b.sortIndex);
     setStops(rows);
   }
 
   useEffect(() => {
+    if (mode === "draft") {
+      setStops(draftStops ?? []);
+      return;
+    }
+    if (!interventionId) return;
     void refresh();
     const stop = subscribeRouteStops(interventionId, () => void refresh());
     return () => stop();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [interventionId]);
+  }, [interventionId, mode]);
+
+  useEffect(() => {
+    if (mode !== "draft") return;
+    setStops(draftStops ?? []);
+  }, [draftStops, mode]);
+
+  function setStopsBoth(next: RouteStopDraft[]) {
+    setStops(next);
+    if (mode === "draft") onDraftStopsChange?.(next);
+  }
 
   function nextSortIndex(): number {
     const max = stops.reduce((m, s) => Math.max(m, s.sortIndex ?? 0), 0);
@@ -222,8 +282,9 @@ export function RouteStopsEditor({
       sortIndex: nextSortIndex(),
       label: `Stop ${stops.length + 1}`
     };
-    setStops((prev) => [...prev, s]);
-    await upsertRouteStop(interventionId, s);
+    const next = [...stops, s];
+    setStopsBoth(next);
+    if (mode === "supabase" && interventionId) await upsertRouteStop(interventionId, s);
   }
 
   async function roundTrip() {
@@ -238,8 +299,9 @@ export function RouteStopsEditor({
       lat: first.lat,
       lng: first.lng
     };
-    setStops((prev) => [...prev, s]);
-    await upsertRouteStop(interventionId, s);
+    const next = [...stops, s];
+    setStopsBoth(next);
+    if (mode === "supabase" && interventionId) await upsertRouteStop(interventionId, s);
   }
 
   async function fillCurrent(stopId: string) {
@@ -271,14 +333,14 @@ export function RouteStopsEditor({
 
   async function updateStop(id: string, patch: Partial<RouteStopDraft>) {
     const next = stops.map((s) => (s.id === id ? { ...s, ...patch } : s));
-    setStops(next);
+    setStopsBoth(next);
     const row = next.find((s) => s.id === id);
-    if (row) await upsertRouteStop(interventionId, row);
+    if (row && mode === "supabase" && interventionId) await upsertRouteStop(interventionId, row);
   }
 
   async function removeStop(id: string) {
-    setStops((prev) => prev.filter((s) => s.id !== id));
-    await deleteRouteStop(id);
+    setStopsBoth(stops.filter((s) => s.id !== id));
+    if (mode === "supabase") await deleteRouteStop(id);
   }
 
   async function onDragEnd(ev: DragEndEvent) {
@@ -292,9 +354,11 @@ export function RouteStopsEditor({
       ...s,
       sortIndex: (idx + 1) * 10
     }));
-    setStops(moved);
+    setStopsBoth(moved);
     // persist sort indexes
-    await Promise.all(moved.map((s) => upsertRouteStop(interventionId, s)));
+    if (mode === "supabase" && interventionId) {
+      await Promise.all(moved.map((s) => upsertRouteStop(interventionId, s)));
+    }
   }
 
   const geoStops = useMemo(
