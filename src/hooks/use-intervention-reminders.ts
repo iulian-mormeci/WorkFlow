@@ -116,6 +116,20 @@ export async function checkAndFireReminders(): Promise<CheckAndFireRemindersResu
       const scheduledMs = getReminderScheduledFireMs(iv);
       const decision = getInterventionReminderDecision(iv, nowMs);
       const base = reminderLogPayload(iv, nowMs, scheduledMs);
+
+      console.info("[wf-reminders] tier pre_due", {
+        id: iv.id,
+        eligible: decision.tierLog.preDue.eligible,
+        summary: decision.tierLog.preDue.summary,
+        checks: decision.tierLog.preDue.checks
+      });
+      console.info("[wf-reminders] tier due", {
+        id: iv.id,
+        eligible: decision.tierLog.due.eligible,
+        summary: decision.tierLog.due.summary,
+        checks: decision.tierLog.due.checks
+      });
+
       if (decision.fire) {
         const fireAtIso =
           decision.ackAtMs != null ? reminderAckAtIso(decision.ackAtMs) : base.fireAt;
@@ -146,6 +160,7 @@ export async function checkAndFireReminders(): Promise<CheckAndFireRemindersResu
 
     fired += 1;
     const ackIso = reminderAckAtIso(decision.ackAtMs);
+
     console.info(`[wf-reminders] shouldFire = true | reason: ${decision.reason}`, {
       id: iv.id,
       fireAt: ackIso,
@@ -219,10 +234,14 @@ export async function checkAndFireReminders(): Promise<CheckAndFireRemindersResu
         updatedAt: checkedAtIso
       });
       anyAcked = true;
-      console.info("[wf-reminders] acked after successful delivery", {
+      console.info("[wf-reminders] acked after successful delivery (tier timestamp only)", {
         id: iv.id,
         tier: decision.tier,
-        reminderLastFireAt: ackIso
+        reminderLastFireAt: ackIso,
+        note:
+          decision.tier === "pre_due"
+            ? "stored instant = scheduled (pre-due); due tier still uses lastFire < dueAt on next poll"
+            : "stored instant = dueAt (due/overdue); pre-due tier uses lastFire < scheduled on next poll"
       });
     } else {
       notAckedNoDelivery += 1;
