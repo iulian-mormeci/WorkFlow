@@ -112,18 +112,26 @@ export async function checkAndFireReminders(): Promise<CheckAndFireRemindersResu
   );
   if (configuredRows.length === 0) {
     console.info("[wf-reminders] no interventions with reminders + due date (open)");
-    console.info(
-      "[wf-reminders] reminder snapshot (first 10)",
-      list.slice(0, 10).map((i) => ({
-        id: i.id,
-        status: i.status,
-        dueAt: i.dueAt ?? null,
-        remindersEnabled: Boolean(i.remindersEnabled),
-        reminderPreset: i.reminderPreset ?? null,
-        reminderCustomAt: i.reminderCustomAt ?? null,
-        reminderEmailTo: i.reminderEmailTo ?? null
-      }))
-    );
+    console.info("[wf-reminders] reminder snapshot (all)", {
+      total: list.length,
+      rows: list.map((i) => {
+        const completed = isInterventionCompleted(i);
+        const enabled = Boolean(i.remindersEnabled);
+        const hasDue = Boolean(i.dueAt);
+        return {
+          id: i.id,
+          status: i.status ?? null,
+          enabled,
+          hasDue,
+          completed,
+          configured: enabled && hasDue && !completed,
+          dueAt: i.dueAt ?? null,
+          reminderPreset: i.reminderPreset ?? null,
+          reminderCustomAt: i.reminderCustomAt ?? null,
+          reminderEmailTo: i.reminderEmailTo ?? null
+        };
+      })
+    });
   } else {
     for (const iv of configuredRows) {
       const scheduledMs = getReminderScheduledFireMs(iv);

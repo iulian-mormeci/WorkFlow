@@ -338,6 +338,25 @@ export function InterventionFormDialog(props: Props) {
         nextReminderEmail,
         nextPreset
       });
+      console.info(
+        "[InterventionFormDialog] saving reminder fields (stringified)",
+        JSON.stringify(
+          {
+            mode,
+            dueAtLocal,
+            dueIso,
+            remindersEnabled,
+            reminderPreset,
+            reminderCustomAtLocal,
+            reminderCustomIso,
+            reminderEmailTo,
+            nextReminderEmail,
+            nextPreset
+          },
+          null,
+          2
+        )
+      );
 
       if (remindersEnabled && !dueIso) {
         toast({
@@ -508,6 +527,16 @@ export function InterventionFormDialog(props: Props) {
           reminderCustomAt: row?.reminderCustomAt,
           reminderEmailTo: row?.reminderEmailTo
         });
+        console.info(
+          "[InterventionFormDialog] saved row (types)",
+          {
+            dueAtType: typeof row?.dueAt,
+            remindersEnabledType: typeof row?.remindersEnabled,
+            reminderPresetType: typeof row?.reminderPreset,
+            reminderCustomAtType: typeof row?.reminderCustomAt,
+            reminderEmailToType: typeof row?.reminderEmailTo
+          }
+        );
       } catch {
         /* ignore */
       }
