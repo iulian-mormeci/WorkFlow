@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   Bell,
@@ -15,11 +16,9 @@ import {
 } from "lucide-react";
 import { DynamicChecklistEditor, type ChecklistRow } from "@/components/checklist/dynamic-checklist-editor";
 import { InterventionLocationFields } from "@/components/interventions/intervention-location-fields";
-import { OpenRouteInNavigatorButton } from "@/components/interventions/open-route-in-navigator-button";
 import { RouteStopsEditor, buildRoundTripStops } from "@/components/interventions/route-stops-editor";
 import type { RouteStopDraft } from "@/lib/routes/route-stops";
 import { upsertRouteStop } from "@/lib/routes/route-stops";
-import { routeStopDraftsToMapStops } from "@/lib/navigation/multi-stop-maps";
 import { totalKmFromRouteStops } from "@/lib/routes/route-distance";
 import { scheduleWorkflowSync, syncWorkflowNow } from "@/lib/sync/sync-engine";
 import { JOB_TYPE_PRESETS } from "@/lib/interventions/job-types";
@@ -139,10 +138,10 @@ export function InterventionFormDialog(props: Props) {
   const [endLocation, setEndLocation] = useState<InterventionGeoStop | undefined>();
   const [locationKmAuto, setLocationKmAuto] = useState<number | undefined>();
   const [draftStops, setDraftStops] = useState<RouteStopDraft[]>([]);
-  const [postSaveNavDrafts, setPostSaveNavDrafts] = useState<RouteStopDraft[] | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const router = useRouter();
 
   const durationMinutes = useMemo(
     () => {
@@ -158,10 +157,6 @@ export function InterventionFormDialog(props: Props) {
   }, [clientName, startAtLocal]);
 
   const roundTripAirKm = useMemo(() => totalKmFromRouteStops(draftStops), [draftStops]);
-
-  useEffect(() => {
-    if (!open) setPostSaveNavDrafts(null);
-  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -196,7 +191,6 @@ export function InterventionFormDialog(props: Props) {
       setEndLocation(undefined);
       setLocationKmAuto(undefined);
       setDraftStops([]);
-      setPostSaveNavDrafts(null);
       return;
     }
 
@@ -488,35 +482,17 @@ export function InterventionFormDialog(props: Props) {
         }
       }
 
-      if (mode === "new" && draftStops.length >= 2) {
-        setPostSaveNavDrafts(draftStops.map((s) => ({ ...s })));
-        onSaved?.(savedId);
-        toast({
-          title: "Intervento salvato",
-          description: "Salvato in locale. Puoi aprire il navigatore qui sotto."
-        });
-        try {
-          const row = await db.interventions.get(savedId);
-          console.info("[InterventionFormDialog] saved row (new, post-save nav)", {
-            id: savedId,
-            dueAt: row?.dueAt,
-            remindersEnabled: row?.remindersEnabled,
-            reminderPreset: row?.reminderPreset,
-            reminderCustomAt: row?.reminderCustomAt,
-            reminderEmailTo: row?.reminderEmailTo
-          });
-        } catch {
-          /* ignore */
-        }
-        return;
-      }
-
       onOpenChange(false);
       onSaved?.(savedId);
       toast({
         title: mode === "new" ? "Intervento salvato" : "Intervento aggiornato",
-        description: "Salvato in locale (prima offline)."
+        description: mode === "new" ? "Apro i dettagli…" : "Salvato in locale (prima offline)."
       });
+
+      if (mode === "new") {
+        router.push(`/interventions/${savedId}`);
+        router.refresh();
+      }
       try {
         const row = await db.interventions.get(savedId);
         console.info("[InterventionFormDialog] saved row", {
@@ -557,31 +533,6 @@ export function InterventionFormDialog(props: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85dvh] overflow-auto">
-        {postSaveNavDrafts ? (
-          <>
-            <DialogHeader>
-              <DialogTitle>Percorso pronto</DialogTitle>
-              <DialogDescription>
-                Salvato in locale. Apri il navigatore (preferisce Mappe su iPad) con tutte le fermate.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="mt-6 space-y-4">
-              <OpenRouteInNavigatorButton stops={routeStopDraftsToMapStops(postSaveNavDrafts)} />
-              <Button
-                type="button"
-                variant="outline"
-                className="min-h-14 w-full touch-manipulation text-base"
-                onClick={() => {
-                  setPostSaveNavDrafts(null);
-                  onOpenChange(false);
-                }}
-              >
-                Chiudi
-              </Button>
-            </div>
-          </>
-        ) : (
-          <>
         <DialogHeader>
           <DialogTitle>{mode === "new" ? "New Intervention" : "Edit Intervention"}</DialogTitle>
           <DialogDescription>
@@ -1034,8 +985,6 @@ export function InterventionFormDialog(props: Props) {
             </Button>
           </div>
         </div>
-          </>
-        )}
       </DialogContent>
     </Dialog>
   );
