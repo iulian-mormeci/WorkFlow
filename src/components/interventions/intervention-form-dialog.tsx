@@ -21,7 +21,7 @@ import type { RouteStopDraft } from "@/lib/routes/route-stops";
 import { upsertRouteStop } from "@/lib/routes/route-stops";
 import { routeStopDraftsToMapStops } from "@/lib/navigation/multi-stop-maps";
 import { totalKmFromRouteStops } from "@/lib/routes/route-distance";
-import { syncWorkflowNow } from "@/lib/sync/sync-engine";
+import { scheduleWorkflowSync, syncWorkflowNow } from "@/lib/sync/sync-engine";
 import { JOB_TYPE_PRESETS } from "@/lib/interventions/job-types";
 import { preservedWorkflowStatus } from "@/lib/interventions/intervention-helpers";
 import {
@@ -398,6 +398,7 @@ export function InterventionFormDialog(props: Props) {
         });
         await db.interventions.put(payload);
         savedId = payload.id;
+        scheduleWorkflowSync();
       } else {
         const payload: Intervention = {
           id: crypto.randomUUID(),
@@ -439,6 +440,7 @@ export function InterventionFormDialog(props: Props) {
         });
         await db.interventions.add(payload);
         savedId = payload.id;
+        scheduleWorkflowSync();
 
         // Online-first routing: if user prepared draft stops in the create flow, persist them to Supabase.
         // Best-effort (still works if Supabase not configured / offline).

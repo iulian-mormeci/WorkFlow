@@ -85,7 +85,12 @@ export function subscribeRouteStops(
   const supabase = createSupabaseBrowserClient();
   if (!supabase) return () => {};
 
-  const channel = supabase.channel(`wf_intervention_stops:${interventionId}`);
+  // Supabase caches channels by name; reusing the same name across mounts can trigger:
+  // "cannot add `postgres_changes` callbacks ... after `subscribe()`".
+  // Use a unique name per subscription.
+  const channel = supabase.channel(
+    `wf_intervention_stops:${interventionId}:${crypto.randomUUID()}`
+  );
   channel.on(
     "postgres_changes",
     {
