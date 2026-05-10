@@ -8,7 +8,7 @@ import {
   db
 } from "@/lib/db/workflow-db";
 import { scheduleWorkflowSync } from "@/lib/sync/sync-engine";
-import { deleteClientRemote } from "@/lib/sync/cloud-delete";
+import { performClientCloudSyncDelete } from "@/lib/sync/cloud-delete";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { clientTypeLabel } from "@/lib/clients/client-labels";
 import { Button } from "@/components/ui/button";
@@ -170,32 +170,31 @@ export function ClientFormDialog(props: Props) {
         });
         return;
       }
-      const now = new Date().toISOString();
-      const tickets = await db.tickets.filter((t) => t.clientId === clientId).toArray();
-      for (const t of tickets) {
-        await db.tickets.where("id").equals(t.id).modify((row) => {
-          delete row.clientId;
-          row.updatedAt = now;
-        });
-      }
-      const templates = await db.templates.filter((t) => t.defaultClientId === clientId).toArray();
-      for (const t of templates) {
-        await db.templates.where("id").equals(t.id).modify((row) => {
-          delete row.defaultClientId;
-          row.updatedAt = now;
-        });
-      }
-      if (tickets.length || templates.length) scheduleWorkflowSync();
       const supabase = createSupabaseBrowserClient();
       const {
         data: { user }
       } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
-      if (supabase && user && typeof navigator !== "undefined" && navigator.onLine) {
-        await deleteClientRemote(supabase, user.id, clientId);
+      const result = await performClientCloudSyncDelete({
+        clientId,
+        supabase: supabase ?? null,
+        userId: user?.id ?? null
+      });
+      if (!result.ok) {
+        toast({
+          title: "Delete failed",
+          description: result.message,
+          variant: "destructive"
+        });
+        return;
       }
-      await db.clients.delete(clientId);
       scheduleWorkflowSync();
-      toast({ title: "Client deleted" });
+      toast({
+        title: result.mode === "queued" ? "Client removed (offline)" : "Client deleted",
+        description:
+          result.mode === "queued"
+            ? "Will be removed from the cloud on the next sync."
+            : "Removed on this device and in the cloud."
+      });
       onOpenChange(false);
       onSaved?.();
     } catch (e: unknown) {

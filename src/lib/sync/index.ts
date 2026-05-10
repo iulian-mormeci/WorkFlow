@@ -22,7 +22,11 @@ export {
   deleteVoiceAttachmentRemote,
   deleteTemplateRemote,
   deleteClientRemote,
-  type InterventionCloudDeleteResult
+  performClientCloudSyncDelete,
+  flushPendingClientDeletes,
+  getPendingClientPullSkipContext,
+  type InterventionCloudDeleteResult,
+  type ClientCloudDeleteResult
 } from "./cloud-delete";
 export { pushSyncFailure, useSyncFailureQueue } from "./sync-failure-queue";
 export { syncAuditLog } from "./sync-audit";

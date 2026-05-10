@@ -5,8 +5,11 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { purgeInterventionLocallyById } from "@/lib/interventions/delete-intervention";
+import { purgeClientLocallyById } from "@/lib/clients/purge-client-locally";
 import {
+  flushPendingClientDeletes,
   flushPendingInterventionDeletes,
+  getPendingClientPullSkipContext,
   getPendingInterventionPullSkipContext
 } from "@/lib/sync/cloud-delete";
 import { pushSyncFailure, useSyncFailureQueue } from "@/lib/sync/sync-failure-queue";
@@ -868,14 +871,30 @@ async function pushOutbox(supabase: SupabaseClient, userId: string) {
 
 async function pullClients(supabase: SupabaseClient, userId: string) {
   const rows = await pullPaged(supabase, "wf_clients", userId, "updated_at");
+  const pend = getPendingClientPullSkipContext();
+  const serverIds = new Set<string>();
   let n = 0;
   for (const r of rows) {
+    const id = String(r.id);
+    serverIds.add(id);
+    if (pend.clientIds.has(id)) continue;
     const remoteU = iso(r.updated_at);
-    const local = await db.clients.get(String(r.id));
+    const local = await db.clients.get(id);
     if (local && shouldSkipRemoteMerge(remoteU, local)) continue;
     await db.clients.put(clientFromRow(r));
     n += 1;
   }
+
+  // Tombstone sync: rows deleted on another device never appear in `rows`.
+  const locals = await db.clients.toArray();
+  for (const local of locals) {
+    if (serverIds.has(local.id)) continue;
+    if (pend.clientIds.has(local.id)) continue;
+    if (!local.syncedAt) continue;
+    console.info("[sync] pull: purging client absent on server (remote delete)", local.id);
+    await purgeClientLocallyById(local.id);
+  }
+
   return n;
 }
 
@@ -1178,6 +1197,7 @@ export async function runFullSync(
     syncMutationDepth += 1;
     try {
       await flushPendingInterventionDeletes(supabase, user.id);
+      await flushPendingClientDeletes(supabase, user.id);
       syncAuditLog("full_sync_start", { userId: user.id });
 
       // Push FK-safe order
@@ -1203,6 +1223,7 @@ export async function runFullSync(
       result.pulled.supportEmailOutbox = await pullOutbox(supabase, user.id);
 
       await flushPendingInterventionDeletes(supabase, user.id);
+      await flushPendingClientDeletes(supabase, user.id);
 
       result.ok = result.errors.length === 0;
 
@@ -1318,6 +1339,7 @@ export async function runForceFullWorkflowSync(): Promise<SyncResult | null> {
   } = await c.auth.getUser();
   if (user) {
     await flushPendingInterventionDeletes(c, user.id);
+    await flushPendingClientDeletes(c, user.id);
   }
   const r = await runFullSync(c);
   useSyncUiStore.getState().bumpLiveQueryEpoch();
@@ -1355,7 +1377,8 @@ export async function applyRealtimePostgresChange(
       }
       switch (table) {
         case "wf_clients":
-          await db.clients.delete(id);
+          await purgeClientLocallyById(id);
+          console.info("[sync] realtime: remote client delete applied", id);
           break;
         case "wf_spare_parts":
           await db.spareParts.delete(id);
@@ -1395,7 +1418,9 @@ export async function applyRealtimePostgresChange(
 
     switch (table) {
       case "wf_clients": {
-        const local = await db.clients.get(String(row.id));
+        const id = String(row.id);
+        if (getPendingClientPullSkipContext().clientIds.has(id)) return;
+        const local = await db.clients.get(id);
         if (local && shouldSkipRemoteMerge(remoteU, local)) return;
         await db.clients.put(clientFromRow(row));
         break;

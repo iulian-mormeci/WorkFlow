@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   deleteInterventionWithRelations
 } from "@/lib/interventions/delete-intervention";
+import { purgeClientLocallyById } from "@/lib/clients/purge-client-locally";
 import { db } from "@/lib/db/workflow-db";
 import {
   STORAGE_BUCKET,
@@ -11,6 +12,7 @@ import { pushSyncFailure } from "@/lib/sync/sync-failure-queue";
 import { syncAuditLog } from "@/lib/sync/sync-audit";
 
 const PENDING_INTERVENTION_DELETES_KEY = "workflow:pendingInterventionDeletes:v1";
+const PENDING_CLIENT_DELETES_KEY = "workflow:pendingClientDeletes:v1";
 
 export type InterventionDeleteSnapshot = {
   interventionId: string;
@@ -143,6 +145,123 @@ export function dequeuePendingInterventionDelete(interventionId: string): void {
     (x) => x.interventionId !== interventionId
   );
   savePendingInterventionDeletes(cur);
+}
+
+// —— Pending client deletes (mirror intervention cloud-delete queue) ——————
+
+function loadPendingClientDeletes(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(PENDING_CLIENT_DELETES_KEY);
+    if (!raw) return [];
+    const v = JSON.parse(raw) as unknown;
+    return Array.isArray(v) ? (v as string[]).filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function savePendingClientDeletes(ids: string[]) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(PENDING_CLIENT_DELETES_KEY, JSON.stringify(ids.slice(0, 80)));
+  } catch (e) {
+    syncAuditLog("pending_client_delete_save_failed", {
+      message: e instanceof Error ? e.message : String(e)
+    });
+    throw e;
+  }
+}
+
+export function enqueuePendingClientDelete(clientId: string): void {
+  const cur = loadPendingClientDeletes().filter((x) => x !== clientId);
+  savePendingClientDeletes([clientId, ...cur]);
+  syncAuditLog("pending_client_delete_enqueued", { clientId });
+}
+
+export function dequeuePendingClientDelete(clientId: string): void {
+  const cur = loadPendingClientDeletes().filter((x) => x !== clientId);
+  savePendingClientDeletes(cur);
+}
+
+/** Skip pull upserts for clients we are still trying to delete from the cloud. */
+export function getPendingClientPullSkipContext(): { clientIds: Set<string> } {
+  return { clientIds: new Set(loadPendingClientDeletes()) };
+}
+
+export async function flushPendingClientDeletes(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<void> {
+  const ids = loadPendingClientDeletes();
+  if (!ids.length) return;
+  const remaining: string[] = [];
+  for (const clientId of ids) {
+    try {
+      await deleteClientRemote(supabase, userId, clientId);
+      dequeuePendingClientDelete(clientId);
+      await purgeClientLocallyById(clientId);
+      syncAuditLog("pending_client_delete_flushed", { clientId });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      syncAuditLog("pending_client_delete_flush_failed", { clientId, message: msg });
+      remaining.push(clientId);
+    }
+  }
+  savePendingClientDeletes(remaining);
+}
+
+export type ClientCloudDeleteResult =
+  | { ok: true; mode: "cloud" | "queued" }
+  | { ok: false; message: string };
+
+/**
+ * Enqueue cloud delete first, then:
+ * - Online: delete on Supabase, purge locally, dequeue on success.
+ * - Offline: purge locally; queue is flushed on next sync (like interventions).
+ */
+export async function performClientCloudSyncDelete(params: {
+  clientId: string;
+  supabase: SupabaseClient | null;
+  userId: string | null;
+}): Promise<ClientCloudDeleteResult> {
+  enqueuePendingClientDelete(params.clientId);
+
+  const client = params.supabase;
+  let resolvedUserId = params.userId;
+  if (client && !resolvedUserId) {
+    const { data } = await client.auth.getSession();
+    resolvedUserId = data.session?.user?.id ?? null;
+  }
+
+  const online = typeof navigator !== "undefined" && navigator.onLine === true;
+  const canRemote = Boolean(online && client && resolvedUserId);
+
+  if (canRemote) {
+    try {
+      await deleteClientRemote(client!, resolvedUserId!, params.clientId);
+      await purgeClientLocallyById(params.clientId);
+      dequeuePendingClientDelete(params.clientId);
+      syncAuditLog("client_delete_complete_cloud", { clientId: params.clientId });
+      return { ok: true, mode: "cloud" };
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      pushSyncFailure({
+        kind: "delete",
+        title: "Client cloud delete failed",
+        detail: message
+      });
+      syncAuditLog("client_delete_remote_failed_keep_queue", {
+        clientId: params.clientId,
+        message
+      });
+      return { ok: false, message };
+    }
+  }
+
+  await purgeClientLocallyById(params.clientId);
+  syncAuditLog("client_delete_local_queued_cloud", { clientId: params.clientId });
+  return { ok: true, mode: "queued" };
 }
 
 async function deleteByIdsInChunks(

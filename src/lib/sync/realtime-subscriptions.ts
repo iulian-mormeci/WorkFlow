@@ -60,6 +60,12 @@ export function startWorkflowRealtime(
         user_id: (payload.old as Record<string, unknown> | null)?.user_id
       });
     }
+    if (ev === "DELETE" && table === "wf_clients") {
+      console.info("[realtime] wf_clients DELETE event", {
+        id: (payload.old as Record<string, unknown> | null)?.id,
+        user_id: (payload.old as Record<string, unknown> | null)?.user_id
+      });
+    }
     if ((ev === "UPDATE" || ev === "INSERT") && table === "wf_interventions") {
       const n = payload.new as Record<string, unknown> | null;
       if (n) {
