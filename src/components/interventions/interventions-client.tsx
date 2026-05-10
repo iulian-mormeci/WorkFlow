@@ -62,6 +62,12 @@ export function InterventionsClient() {
     label: string;
   } | null>(null);
   const [listDeleting, setListDeleting] = useState(false);
+  /** Null until mount so “today” / overdue filters match SSR + first client paint. */
+  const [clock, setClock] = useState<number | null>(null);
+
+  useEffect(() => {
+    setClock(Date.now());
+  }, []);
 
   const clients = useLiveQuery(async () => {
     return await db.clients.orderBy("name").toArray();
@@ -69,18 +75,21 @@ export function InterventionsClient() {
 
   const interventions = useLiveQuery(async () => {
     const all = await db.interventions.orderBy("startAt").reverse().toArray();
-    const now = Date.now();
-    const todayStart = startOfDay(new Date()).getTime();
 
     let list = all;
-    if (scope === "today") {
-      list = list.filter((it) => new Date(it.startAt).getTime() >= todayStart);
-    } else if (scope === "overdue") {
-      list = list.filter(
-        (it) =>
-          !isInterventionCompleted(it) && it.dueAt && new Date(it.dueAt).getTime() < now
-      );
-    } else if (scope === "interventions") {
+    if (clock != null) {
+      const now = clock;
+      const todayStart = startOfDay(new Date(now)).getTime();
+      if (scope === "today") {
+        list = list.filter((it) => new Date(it.startAt).getTime() >= todayStart);
+      } else if (scope === "overdue") {
+        list = list.filter(
+          (it) =>
+            !isInterventionCompleted(it) && it.dueAt && new Date(it.dueAt).getTime() < now
+        );
+      }
+    }
+    if (scope === "interventions") {
       list = list.filter((it) => (it.workCategory ?? "intervention") === "intervention");
     } else if (scope === "activities") {
       list = list.filter((it) => (it.workCategory ?? "intervention") === "activity");
@@ -109,7 +118,7 @@ export function InterventionsClient() {
         dueBit.includes(query)
       );
     });
-  }, [q, scope, status, clients, liveEpoch]);
+  }, [q, scope, status, clients, liveEpoch, clock]);
 
   useEffect(() => {
     // Mobile FAB uses /interventions?new=1
@@ -178,8 +187,14 @@ export function InterventionsClient() {
               clients?.find((c) => c.id === it.clientId)?.name ?? "Client";
             const duration =
               it.durationMinutes != null ? `${it.durationMinutes} min` : "—";
-            const overdue = isInterventionOverdue(it);
+            const overdue = clock != null && isInterventionOverdue(it, clock);
             const tState = normalizeTimerRunState(it);
+            const timerNow =
+              clock != null
+                ? Date.now()
+                : it.timerStartedAt
+                  ? new Date(it.timerStartedAt).getTime()
+                  : 0;
             return (
               <div
                 key={it.id}
@@ -208,11 +223,11 @@ export function InterventionsClient() {
                     {tState === "running" ? (
                       <span className="inline-flex items-center gap-1 rounded-full border bg-background px-2 py-0.5 font-mono text-[11px]">
                         <Timer className="h-3 w-3" />
-                        {formatElapsedHms(getTimerElapsedSeconds(it))}
+                        {formatElapsedHms(getTimerElapsedSeconds(it, timerNow))}
                       </span>
                     ) : null}
                     <span className="rounded-full border bg-background px-2 py-0.5">{it.type}</span>
-                    <span>{formatTime(it.startAt)}</span>
+                    <span suppressHydrationWarning>{formatTime(it.startAt)}</span>
                     <span>{duration}</span>
                     {it.dueAt && !isInterventionCompleted(it) ? (
                       <span className={overdue ? "text-destructive" : ""}>

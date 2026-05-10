@@ -15,8 +15,9 @@ import {
 } from "@/lib/sync/sync-engine";
 
 /**
- * Registers Dexie → debounced sync, runs full sync on startup (when signed in),
- * starts Supabase Realtime, and listens for `online` + auth session changes.
+ * Client-only bootstrap for cloud sync: wires the Supabase singleton into `sync-engine`,
+ * registers Dexie hooks, runs an initial full sync when a session exists, and attaches
+ * Realtime + online/offline listeners. Renders nothing—mount once under the root layout.
  */
 export function WorkflowSyncRunner() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);

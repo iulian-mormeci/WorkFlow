@@ -15,14 +15,25 @@ export function DueCountdown({
   intervention: Pick<Intervention, "dueAt" | "status">;
   className?: string;
 }) {
-  const [now, setNow] = useState(() => Date.now());
+  /** Null until after mount so SSR + first client paint match (avoid hydration #418). */
+  const [now, setNow] = useState<number | null>(null);
 
   useEffect(() => {
-    const t = window.setInterval(() => setNow(Date.now()), 30000);
+    const bump = () => setNow(Date.now());
+    bump();
+    const t = window.setInterval(bump, 30000);
     return () => window.clearInterval(t);
   }, []);
 
   if (!intervention.dueAt || isInterventionCompleted(intervention)) return null;
+
+  if (now == null) {
+    return (
+      <span className={className ?? "text-muted-foreground"} aria-hidden="true">
+        —
+      </span>
+    );
+  }
 
   const overdue = isInterventionOverdue(intervention as Intervention, now);
   const label = formatDueCountdown(intervention as Intervention, now);

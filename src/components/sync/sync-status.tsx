@@ -12,9 +12,9 @@ import {
 import { useSyncUiStore } from "@/stores/sync-ui";
 import { cn } from "@/lib/utils";
 
-function formatRelative(ms: number | null) {
-  if (ms == null) return null;
-  const s = Math.floor((Date.now() - ms) / 1000);
+function formatRelative(ms: number | null, now: number | null) {
+  if (ms == null || now == null) return null;
+  const s = Math.floor((now - ms) / 1000);
   if (s < 10) return "just now";
   if (s < 60) return `${s}s ago`;
   if (s < 3600) return `${Math.floor(s / 60)} min ago`;
@@ -29,15 +29,17 @@ export function SyncStatus() {
   const lastSyncError = useSyncUiStore((s) => s.lastSyncError);
   const dirtyCount = useSyncUiStore((s) => s.dirtyCount);
   const [tick, setTick] = useState(0);
+  /** Null until mount so relative “ago” strings match SSR + first client paint. */
+  const [nowMs, setNowMs] = useState<number | null>(null);
   const [manualBusy, setManualBusy] = useState(false);
 
   useEffect(() => {
     void refreshPendingDirtyCount();
-  }, []);
-
-  useEffect(() => {
+    const bump = () => setNowMs(Date.now());
+    bump();
     const id = window.setInterval(() => {
       setTick((t) => t + 1);
+      bump();
       void refreshPendingDirtyCount();
     }, 30_000);
     return () => window.clearInterval(id);
@@ -72,8 +74,8 @@ export function SyncStatus() {
         subtitle: "Finishing queued changes…"
       };
     }
-    const rtAgo = formatRelative(lastRealtimeAt);
-    if (lastRealtimeAt && Date.now() - lastRealtimeAt < 12_000) {
+    const rtAgo = formatRelative(lastRealtimeAt, nowMs);
+    if (lastRealtimeAt && nowMs != null && nowMs - lastRealtimeAt < 12_000) {
       return {
         icon: Cloud,
         tone: "emerald" as const,
@@ -89,7 +91,7 @@ export function SyncStatus() {
         subtitle: `Last cloud update ${rtAgo}`
       };
     }
-    const syncAgo = formatRelative(lastSuccessfulSyncAt);
+    const syncAgo = formatRelative(lastSuccessfulSyncAt, nowMs);
     if (syncAgo && lastSuccessfulSyncAt) {
       return {
         icon: Cloud,
@@ -104,7 +106,7 @@ export function SyncStatus() {
       title: "Ready",
       subtitle: "Signed in — sync runs in the background"
     };
-  }, [online, phase, lastRealtimeAt, lastSuccessfulSyncAt, dirtyCount, tick]);
+  }, [online, phase, lastRealtimeAt, lastSuccessfulSyncAt, dirtyCount, tick, nowMs]);
 
   const Icon = headline.icon;
   const spin = phase === "syncing";

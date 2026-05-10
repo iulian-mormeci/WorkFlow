@@ -1,7 +1,14 @@
+/**
+ * Next.js edge middleware: Supabase session refresh + route protection.
+ *
+ * Public routes skip auth. Elsewhere we call `getUser()` so JWT refresh runs on every
+ * navigation. If the user is missing but a session cookie exists (e.g. flaky network),
+ * we still allow the shell—WorkFlow is offline-first and the client can retry auth.
+ */
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-/** True if request carries any Supabase browser session cookie (names vary by SDK/version). */
+/** Whether the request carries a Supabase auth cookie (chunked names included). */
 function hasSupabaseSessionCookie(req: NextRequest) {
   return req.cookies.getAll().some((c) => {
     const n = c.name;
@@ -34,6 +41,7 @@ function isPublicPath(pathname: string) {
   );
 }
 
+/** Runs on matched routes: refreshes auth cookies, redirects anonymous users to `/login`. */
 export async function middleware(req: NextRequest) {
   // IMPORTANT (Supabase SSR): when refreshing cookies in middleware, we must
   // update BOTH the response cookies and the in-memory request cookies,
@@ -98,6 +106,7 @@ export async function middleware(req: NextRequest) {
   return redirectRes;
 }
 
+/** Exclude Next image/static from the edge bundle; everything else gets auth headers. */
 export const config = {
   matcher: ["/((?!_next/static|_next/image).*)"]
 };

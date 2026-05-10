@@ -1,3 +1,10 @@
+/**
+ * Lightweight UI + cache-bust state for sync and realtime.
+ *
+ * Dexie’s `useLiveQuery` won’t see remote writes unless something in React deps changes;
+ * `liveQueryEpoch` is the blunt instrument we bump after successful sync or debounced
+ * realtime traffic so list screens stay honest without subscribing every row.
+ */
 import { create } from "zustand";
 
 export type SyncPhase = "idle" | "syncing" | "offline_pending";
@@ -25,6 +32,7 @@ type SyncUiState = {
 
 let realtimeEpochTimer: number | null = null;
 
+/** Global store; safe to import from client components and sync helpers. */
 export const useSyncUiStore = create<SyncUiState>((set, get) => ({
   phase: "idle",
   lastRealtimeAt: null,

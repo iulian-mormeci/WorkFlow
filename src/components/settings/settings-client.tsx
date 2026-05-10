@@ -65,16 +65,19 @@ export function SettingsClient() {
   useEffect(() => {
     hydrateFailures();
   }, [hydrateFailures]);
-  const [techName, setTechName] = useState<string>(() => {
-    if (typeof window === "undefined") return "";
-    return localStorage.getItem("workflow:techName") ?? "";
-  });
+  const [techName, setTechName] = useState("");
   const [supportEmail, setSupportEmail] = useState<string>(() => getSupportEmailTo());
   const [reminderEmail, setReminderEmail] = useState<string>(() => getReminderDefaultEmail());
-  const [officeAddress, setOfficeAddress] = useState<string>(() => {
-    if (typeof window === "undefined") return "";
-    return localStorage.getItem("workflow:officeAddress") ?? "";
-  });
+  const [officeAddress, setOfficeAddress] = useState("");
+
+  useEffect(() => {
+    try {
+      setTechName(localStorage.getItem("workflow:techName") ?? "");
+      setOfficeAddress(localStorage.getItem("workflow:officeAddress") ?? "");
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   useEffect(() => {
     if (!supabase) return;

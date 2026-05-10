@@ -12,6 +12,10 @@ type SupabaseContextValue = {
 
 const SupabaseContext = createContext<SupabaseContextValue | null>(null);
 
+/**
+ * Provides a memoised browser Supabase client plus optional session mirror for children.
+ * Session state is intentionally minimal—middleware owns truth for SSR-protected routes.
+ */
 export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [session, setSession] = useState<Session | null>(null);
@@ -25,6 +29,7 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** @throws if called outside `SupabaseProvider` */
 export function useSupabase() {
   const ctx = useContext(SupabaseContext);
   if (!ctx) throw new Error("useSupabase must be used within SupabaseProvider");

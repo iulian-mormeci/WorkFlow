@@ -1,3 +1,8 @@
+/**
+ * Authenticated app chrome: sidebar (md+), mobile shell, global search, sync status.
+ * Actual auth enforcement is in `middleware.ts`—this layout avoids cookie-mutating
+ * Supabase calls so we don’t fight the SSR cookie model.
+ */
 import { OnlineIndicator } from "@/components/offline/online-indicator";
 import { SidebarSignOut } from "@/components/auth/sidebar-sign-out";
 import { SyncStatus } from "@/components/sync/sync-status";
@@ -18,8 +23,7 @@ export default async function ProtectedLayout({
   children: React.ReactNode;
 }) {
   // Auth protection is enforced by `src/middleware.ts`.
-  // IMPORTANT: avoid doing an SSR refresh flow in Server Components (they cannot
-  // persist refreshed cookies). We keep this layout fast and stable.
+  // No `getUser()` here: refreshing JWTs belongs in middleware / route handlers.
   const userEmail = undefined;
 
   return (

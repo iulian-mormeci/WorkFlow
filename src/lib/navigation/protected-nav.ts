@@ -1,6 +1,9 @@
 import type { SidebarNavItem } from "@/components/layout/sidebar-nav";
 
-/** Single source of truth for protected app navigation (sidebar + mobile menu). */
+/**
+ * Sidebar and mobile drawer items in display order.
+ * Keep labels short—mobile uses the same metadata with tighter horizontal space.
+ */
 export const PROTECTED_NAV_ITEMS = [
   { href: "/dashboard", label: "Home", iconName: "home" },
   { href: "/interventions", label: "Interventions", iconName: "interventions" },

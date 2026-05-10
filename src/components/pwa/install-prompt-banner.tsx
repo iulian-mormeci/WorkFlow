@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Download } from "lucide-react";
 import { usePwaInstallPrompt } from "@/hooks/use-pwa-install-prompt";
 import { Button } from "@/components/ui/button";
@@ -9,10 +9,17 @@ import { useToast } from "@/hooks/use-toast";
 export function InstallPromptBanner() {
   const { toast } = useToast();
   const { canInstall, promptInstall } = usePwaInstallPrompt();
-  const [dismissed, setDismissed] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem("workflow:installBannerDismissed") === "1";
-  });
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("workflow:installBannerDismissed") === "1") {
+        setDismissed(true);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   const onDismiss = useCallback(() => {
     localStorage.setItem("workflow:installBannerDismissed", "1");

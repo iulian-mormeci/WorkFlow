@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { AlarmClock, AlertTriangle, Timer } from "lucide-react";
 import { db } from "@/lib/db/workflow-db";
@@ -28,10 +29,23 @@ export function DashboardAttention() {
   const liveEpoch = useWorkflowLiveEpoch();
   const tick = useSecondTicker(1000);
   void tick;
+  /** After mount, time-based lists and live timers use real clock (avoids SSR/client drift #418). */
+  const [mounted, setMounted] = useState(false);
+  const [clock, setClock] = useState<number | null>(null);
+
+  useEffect(() => {
+    setClock(Date.now());
+    setMounted(true);
+  }, []);
+
   const clients = useLiveQuery(async () => db.clients.toArray(), [liveEpoch]);
   const data = useLiveQuery(async () => {
     const all = await db.interventions.toArray();
-    const now = Date.now();
+    const running = all.filter((i) => normalizeTimerRunState(i) === "running").slice(0, 8);
+    if (clock == null) {
+      return { overdue: [] as typeof all, upcoming: [] as typeof all, running };
+    }
+    const now = clock;
     const week = now + 7 * 86400000;
 
     const overdue = all.filter(
@@ -48,10 +62,8 @@ export function DashboardAttention() {
       .sort((a, b) => new Date(a.dueAt!).getTime() - new Date(b.dueAt!).getTime())
       .slice(0, 8);
 
-    const running = all.filter((i) => normalizeTimerRunState(i) === "running").slice(0, 8);
-
     return { overdue, upcoming, running };
-  }, [liveEpoch]);
+  }, [liveEpoch, clock]);
 
   const nameOf = (id: string) => clients?.find((c) => c.id === id)?.name ?? "Client";
 
@@ -134,7 +146,16 @@ export function DashboardAttention() {
               >
                 <span className="min-w-0 truncate font-semibold">{nameOf(i.clientId)}</span>
                 <span className="shrink-0 font-mono text-xs tabular-nums">
-                  {formatElapsedHms(getTimerElapsedSeconds(i))}
+                  {formatElapsedHms(
+                    getTimerElapsedSeconds(
+                      i,
+                      mounted
+                        ? Date.now()
+                        : i.timerStartedAt
+                          ? new Date(i.timerStartedAt).getTime()
+                          : 0
+                    )
+                  )}
                 </span>
               </Link>
             ))

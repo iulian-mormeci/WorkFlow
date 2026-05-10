@@ -1,6 +1,11 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+/**
+ * Supabase client for Server Components, Route Handlers, and `generateMetadata`.
+ * Returns `null` when env is missing so `next build` can still prerender.
+ * Cookie writes from RSC are best-effort only—JWT refresh belongs in middleware.
+ */
 export async function createSupabaseServerClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;

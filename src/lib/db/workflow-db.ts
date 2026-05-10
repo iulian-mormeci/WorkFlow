@@ -1,3 +1,10 @@
+/**
+ * IndexedDB schema and types for WorkFlow’s offline-first layer.
+ *
+ * Dexie holds the working copy of clients, interventions, attachments, etc.
+ * The sync engine (`lib/sync/sync-engine.ts`) reconciles this store with Supabase;
+ * version bumps here must stay in sync with migration expectations on the server.
+ */
 import Dexie, { type Table } from "dexie";
 
 export type Id = string;
@@ -193,6 +200,7 @@ export type InterventionTemplate = {
   updatedAt: string;
 } & SyncMeta;
 
+/** Dexie database: one logical DB name (`workflow`) with versioned stores. */
 export class WorkFlowDB extends Dexie {
   clients!: Table<Client, Id>;
   interventions!: Table<Intervention, Id>;
@@ -465,5 +473,6 @@ export class WorkFlowDB extends Dexie {
   }
 }
 
+/** Singleton app DB — import this rather than instantiating `WorkFlowDB` again. */
 export const db = new WorkFlowDB();
 

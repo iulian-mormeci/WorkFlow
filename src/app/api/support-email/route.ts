@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 
+/**
+ * Accepts `multipart/form-data` from the client (PDF + metadata) and sends via Resend.
+ * Requires `RESEND_API_KEY` and a verified `WORKFLOW_SUPPORT_EMAIL_FROM` domain in production.
+ */
 export async function POST(req: Request) {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.WORKFLOW_SUPPORT_EMAIL_FROM;

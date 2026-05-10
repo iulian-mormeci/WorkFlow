@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db/workflow-db";
 import { AttachmentImage } from "@/components/attachments/attachment-image";
@@ -12,12 +13,19 @@ export function InterventionPdfView({ id }: { id: string }) {
   }, [intervention?.clientId]);
   const spareParts = useLiveQuery(async () => db.spareParts.toArray(), []);
 
+  const [techName, setTechName] = useState("Technician Name");
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem("workflow:techName");
+      if (v) setTechName(v);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   if (!intervention) return null;
 
   const partById = new Map(spareParts?.map((p) => [p.id, p]) ?? []);
-  const techName =
-    (typeof window !== "undefined" && localStorage.getItem("workflow:techName")) ||
-    "Technician Name";
 
   return (
     <div
@@ -38,7 +46,7 @@ export function InterventionPdfView({ id }: { id: string }) {
           </div>
           <div className="mt-3 text-[12px] text-gray-600">Intervention report</div>
         </div>
-        <div className="text-right text-[12px] text-gray-700">
+        <div className="text-right text-[12px] text-gray-700" suppressHydrationWarning>
           <div className="font-semibold text-gray-900">
             {new Date(intervention.startAt).toLocaleDateString()}
           </div>
@@ -84,7 +92,7 @@ export function InterventionPdfView({ id }: { id: string }) {
             </div>
             <div>
               <div className="text-[10px] font-semibold text-gray-600">Due</div>
-              <div className="mt-0.5 font-semibold">
+              <div className="mt-0.5 font-semibold" suppressHydrationWarning>
                 {intervention.dueAt ? new Date(intervention.dueAt).toLocaleString() : "—"}
               </div>
             </div>

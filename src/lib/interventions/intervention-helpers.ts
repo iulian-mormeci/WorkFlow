@@ -1,9 +1,15 @@
+/**
+ * Pure helpers for intervention workflow, timers, and due-date UX.
+ * Keep these deterministic: UI that depends on `Date.now()` should pass `now` explicitly
+ * so SSR and hydration don’t disagree by a few milliseconds.
+ */
 import type {
   Intervention,
   InterventionWorkflowStatus,
   TimerRunState
 } from "@/lib/db/workflow-db";
 
+/** Completed interventions never count as overdue and hide countdowns. */
 export function isInterventionCompleted(i: Pick<Intervention, "status">): boolean {
   return i.status === "completed";
 }
@@ -22,11 +28,13 @@ export function preservedWorkflowStatus(existing: Intervention | undefined): Int
   return coerceInterventionWorkflowStatus(existing.status);
 }
 
+/** True if `dueAt` is in the past and the visit isn’t completed. */
 export function isInterventionOverdue(i: Intervention, now = Date.now()): boolean {
   if (isInterventionCompleted(i) || !i.dueAt) return false;
   return new Date(i.dueAt).getTime() < now;
 }
 
+/** Derives timer UI state from explicit fields or legacy `timerStartedAt` presence. */
 export function normalizeTimerRunState(i: Intervention): TimerRunState {
   if (i.timerRunState) return i.timerRunState;
   if (i.timerStartedAt) return "running";
@@ -44,6 +52,7 @@ export function getTimerElapsedSeconds(i: Intervention, now = Date.now()): numbe
   return acc + seg;
 }
 
+/** `H:MM:SS` for long runs, `M:SS` under an hour—fits tight dashboard rows. */
 export function formatElapsedHms(totalSeconds: number): string {
   const s = Math.max(0, Math.floor(totalSeconds));
   const h = Math.floor(s / 3600);
@@ -59,6 +68,7 @@ export function msUntilDue(i: Intervention, now = Date.now()): number | null {
   return new Date(i.dueAt).getTime() - now;
 }
 
+/** Human-readable time-to-deadline; `null` if no due date or already completed. */
 export function formatDueCountdown(i: Intervention, now = Date.now()): string | null {
   const ms = msUntilDue(i, now);
   if (ms == null) return null;

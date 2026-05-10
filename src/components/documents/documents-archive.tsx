@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { FileScan, FileText, Plus, Search, Send } from "lucide-react";
 import { db } from "@/lib/db/workflow-db";
@@ -42,7 +42,19 @@ export function DocumentsArchive() {
     return all.filter((d) => d.title.toLowerCase().includes(query));
   }, [q, liveEpoch]);
 
-  const canSend = typeof navigator !== "undefined" ? navigator.onLine : false;
+  /** false on SSR + first paint; real status after mount (matches server HTML). */
+  const [online, setOnline] = useState(false);
+  useEffect(() => {
+    const sync = () => setOnline(navigator.onLine);
+    sync();
+    window.addEventListener("online", sync);
+    window.addEventListener("offline", sync);
+    return () => {
+      window.removeEventListener("online", sync);
+      window.removeEventListener("offline", sync);
+    };
+  }, []);
+  const canSend = online;
 
   return (
     <div className="space-y-4">

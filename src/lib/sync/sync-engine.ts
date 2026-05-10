@@ -1,7 +1,10 @@
 /**
- * WorkFlow cloud sync: Dexie ↔ Supabase + realtime hooks (Sections 1–3).
- * - Push / pull with merge: skip remote row only if local is newer **and** still dirty vs last sync.
- * - Attachments: Storage path `{userId}/{attachmentId}-{safeName}` with XHR upload + retries on push.
+ * WorkFlow cloud sync: Dexie ↔ Supabase + Realtime.
+ *
+ * Push/pull merge is last-writer-wins aware of `syncedAt` / dirty flags so we don’t
+ * clobber unsaved local edits. Attachments upload to Storage with retry/backoff; deletes
+ * are staged and flushed when online. Most entry points are `runFullSync`, `scheduleWorkflowSync`,
+ * and the Dexie `table.hook` registrations from `registerWorkflowDexieSyncHooks`.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { purgeInterventionLocallyById } from "@/lib/interventions/delete-intervention";
