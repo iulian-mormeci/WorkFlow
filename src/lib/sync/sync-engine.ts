@@ -236,6 +236,15 @@ function interventionGeoFromJson(
   return { lat, lng, address: String(o.address ?? "") };
 }
 
+function parseInterventionWorkflowStatus(
+  v: unknown
+): Intervention["status"] | undefined {
+  if (v == null || v === "") return undefined;
+  const s = String(v);
+  if (s === "open" || s === "in_progress" || s === "completed") return s;
+  return "open";
+}
+
 function interventionToRow(i: Intervention, userId: string) {
   return {
     id: i.id,
@@ -245,7 +254,7 @@ function interventionToRow(i: Intervention, userId: string) {
     type: i.type,
     work_category: i.workCategory ?? "intervention",
     is_office_activity: i.isOfficeActivity ?? false,
-    status: i.status ?? null,
+    status: i.status ?? "open",
     start_at: i.startAt,
     end_at: i.endAt ?? null,
     duration_minutes: i.durationMinutes ?? null,
@@ -291,7 +300,7 @@ function interventionFromRow(r: Record<string, unknown>): Intervention {
     type: String(r.type ?? "maintenance"),
     workCategory,
     isOfficeActivity: Boolean(r.is_office_activity),
-    status: (r.status as Intervention["status"]) ?? undefined,
+    status: parseInterventionWorkflowStatus(r.status),
     startAt: iso(r.start_at),
     endAt: r.end_at ? iso(r.end_at) : undefined,
     durationMinutes:

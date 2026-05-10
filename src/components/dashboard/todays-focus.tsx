@@ -11,6 +11,7 @@ import { endOfDay, startOfDay } from "@/lib/dates";
 import {
   formatElapsedHms,
   getTimerElapsedSeconds,
+  isInterventionCompleted,
   normalizeTimerRunState
 } from "@/lib/interventions/intervention-helpers";
 import { IconBubble } from "@/components/ui/icon";
@@ -32,12 +33,7 @@ export function TodaysFocus() {
       .where("startAt")
       .between(todayStart, todayEnd, true, true)
       .toArray();
-    return list
-      .filter((i) => {
-        const ts = normalizeTimerRunState(i);
-        if (ts === "running" || ts === "paused") return true;
-        return i.status !== "completed";
-      })
+    return list.filter((i) => !isInterventionCompleted(i))
       .sort(
         (a, b) =>
           (normalizeTimerRunState(b) === "running" ? 1 : 0) -
@@ -77,7 +73,7 @@ export function TodaysFocus() {
                     {fmtTime(it.startAt)} •{" "}
                     {(it.workCategory ?? "intervention") === "activity" ? "Activity · " : ""}
                     {it.type}
-                    {it.dueAt && it.status !== "completed" ? (
+                    {it.dueAt && !isInterventionCompleted(it) ? (
                       <>
                         {" "}
                         · <DueCountdown intervention={it} />

@@ -10,6 +10,7 @@ import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
 import {
   formatElapsedHms,
   getTimerElapsedSeconds,
+  isInterventionCompleted,
   normalizeTimerRunState
 } from "@/lib/interventions/intervention-helpers";
 
@@ -31,12 +32,12 @@ export function DashboardAttention() {
     const week = now + 7 * 86400000;
 
     const overdue = all.filter(
-      (i) => i.status !== "completed" && i.dueAt && new Date(i.dueAt).getTime() < now
+      (i) => !isInterventionCompleted(i) && i.dueAt && new Date(i.dueAt).getTime() < now
     );
     const upcoming = all
       .filter(
         (i) =>
-          i.status !== "completed" &&
+          !isInterventionCompleted(i) &&
           i.dueAt &&
           new Date(i.dueAt).getTime() >= now &&
           new Date(i.dueAt).getTime() <= week

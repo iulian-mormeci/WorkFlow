@@ -5,6 +5,7 @@ import { db } from "@/lib/db/workflow-db";
 import { getSupportEmailTo } from "@/lib/support-email/config";
 import { getReminderDefaultEmail } from "@/lib/reminders/config";
 import { reminderAckIso, shouldFireReminder } from "@/lib/reminders/reminder-utils";
+import { isInterventionCompleted } from "@/lib/interventions/intervention-helpers";
 
 function effectiveReminderEmail(intervention: {
   reminderEmailTo?: string;
@@ -39,7 +40,9 @@ export function useInterventionReminders(enabled = true) {
       busy.current = true;
       try {
         const list = await db.interventions.toArray();
-        const dueSoon = list.some((i) => i.remindersEnabled && i.dueAt && i.status !== "completed");
+        const dueSoon = list.some(
+          (i) => i.remindersEnabled && i.dueAt && !isInterventionCompleted(i)
+        );
         if (dueSoon) await maybeNotifyPermission();
 
         const nowIso = new Date().toISOString();

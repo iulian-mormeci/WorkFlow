@@ -16,6 +16,7 @@ import {
 import { DynamicChecklistEditor, type ChecklistRow } from "@/components/checklist/dynamic-checklist-editor";
 import { InterventionLocationFields } from "@/components/interventions/intervention-location-fields";
 import { JOB_TYPE_PRESETS } from "@/lib/interventions/job-types";
+import { preservedWorkflowStatus } from "@/lib/interventions/intervention-helpers";
 import {
   db,
   type Intervention,
@@ -325,7 +326,7 @@ export function InterventionFormDialog(props: Props) {
           type: type.trim() || "maintenance",
           workCategory,
           isOfficeActivity: workCategory === "activity" ? isOfficeActivity : false,
-          status: endIso ? "completed" : existing.status ?? "open",
+          status: preservedWorkflowStatus(existing),
           startAt: startIso,
           endAt: endIso,
           durationMinutes,
@@ -355,7 +356,7 @@ export function InterventionFormDialog(props: Props) {
           type: type.trim() || "maintenance",
           workCategory,
           isOfficeActivity: workCategory === "activity" ? isOfficeActivity : false,
-          status: endIso ? "completed" : "open",
+          status: "open",
           startAt: startIso,
           endAt: endIso,
           durationMinutes,

@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 import type { Intervention } from "@/lib/db/workflow-db";
-import { formatDueCountdown, isInterventionOverdue } from "@/lib/interventions/intervention-helpers";
+import {
+  formatDueCountdown,
+  isInterventionCompleted,
+  isInterventionOverdue
+} from "@/lib/interventions/intervention-helpers";
 
 export function DueCountdown({
   intervention,
@@ -18,7 +22,7 @@ export function DueCountdown({
     return () => window.clearInterval(t);
   }, []);
 
-  if (!intervention.dueAt || intervention.status === "completed") return null;
+  if (!intervention.dueAt || isInterventionCompleted(intervention)) return null;
 
   const overdue = isInterventionOverdue(intervention as Intervention, now);
   const label = formatDueCountdown(intervention as Intervention, now);

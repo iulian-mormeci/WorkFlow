@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   formatElapsedHms,
   getTimerElapsedSeconds,
+  isInterventionCompleted,
   normalizeTimerRunState
 } from "@/lib/interventions/intervention-helpers";
 
@@ -23,6 +24,7 @@ export function InterventionTimerPanel({ interventionId }: { interventionId: str
   }, []);
 
   if (!iv) return null;
+  if (isInterventionCompleted(iv)) return null;
 
   const state = normalizeTimerRunState(iv);
   void tick;
@@ -47,7 +49,7 @@ export function InterventionTimerPanel({ interventionId }: { interventionId: str
       </div>
       <p className="mt-1 text-xs text-muted-foreground">
         {state === "running"
-          ? "Running — pause to freeze, stop to save total time."
+          ? "Running — pause to freeze, stop to complete visit and save duration."
           : state === "paused"
             ? "Paused — resume continues counting."
             : "Idle — start when you begin work."}
@@ -61,7 +63,8 @@ export function InterventionTimerPanel({ interventionId }: { interventionId: str
               await persist({
                 timerRunState: "running",
                 timerStartedAt: new Date().toISOString(),
-                timerAccumulatedSeconds: Math.max(0, Math.floor(iv.timerAccumulatedSeconds ?? 0))
+                timerAccumulatedSeconds: Math.max(0, Math.floor(iv.timerAccumulatedSeconds ?? 0)),
+                status: "in_progress"
               });
               toast({ title: "Timer started" });
             }}
@@ -81,7 +84,8 @@ export function InterventionTimerPanel({ interventionId }: { interventionId: str
                 await persist({
                   timerRunState: "paused",
                   timerStartedAt: undefined,
-                  timerAccumulatedSeconds: acc
+                  timerAccumulatedSeconds: acc,
+                  status: "in_progress"
                 });
                 toast({ title: "Paused", description: "Timer frozen at current total." });
               }}
@@ -91,23 +95,26 @@ export function InterventionTimerPanel({ interventionId }: { interventionId: str
             </Button>
             <Button
               type="button"
-              variant="outline"
+              variant="default"
               onClick={async () => {
                 const acc = getTimerElapsedSeconds(iv);
+                const endIso = new Date().toISOString();
                 await persist({
                   timerRunState: "idle",
                   timerStartedAt: undefined,
                   timerAccumulatedSeconds: acc,
-                  durationMinutes: Math.max(1, Math.round(acc / 60))
+                  durationMinutes: Math.max(1, Math.round(acc / 60)),
+                  status: "completed",
+                  endAt: endIso
                 });
                 toast({
-                  title: "Timer stopped",
-                  description: `Total ${formatElapsedHms(acc)} saved to duration.`
+                  title: "Visit completed",
+                  description: `Duration saved: ${formatElapsedHms(acc)}`
                 });
               }}
             >
               <Square className="h-4 w-4" />
-              Stop
+              Stop & complete
             </Button>
           </>
         ) : null}
@@ -119,7 +126,8 @@ export function InterventionTimerPanel({ interventionId }: { interventionId: str
               onClick={async () => {
                 await persist({
                   timerRunState: "running",
-                  timerStartedAt: new Date().toISOString()
+                  timerStartedAt: new Date().toISOString(),
+                  status: "in_progress"
                 });
                 toast({ title: "Resumed" });
               }}
@@ -129,20 +137,26 @@ export function InterventionTimerPanel({ interventionId }: { interventionId: str
             </Button>
             <Button
               type="button"
-              variant="outline"
+              variant="default"
               onClick={async () => {
                 const acc = Math.max(0, Math.floor(iv.timerAccumulatedSeconds ?? 0));
+                const endIso = new Date().toISOString();
                 await persist({
                   timerRunState: "idle",
                   timerStartedAt: undefined,
                   timerAccumulatedSeconds: acc,
-                  durationMinutes: Math.max(1, Math.round(acc / 60))
+                  durationMinutes: Math.max(1, Math.round(acc / 60)),
+                  status: "completed",
+                  endAt: endIso
                 });
-                toast({ title: "Timer stopped", description: "Duration updated from tracked time." });
+                toast({
+                  title: "Visit completed",
+                  description: `Duration saved from tracked time.`
+                });
               }}
             >
               <Square className="h-4 w-4" />
-              Stop
+              Stop & complete
             </Button>
           </>
         ) : null}

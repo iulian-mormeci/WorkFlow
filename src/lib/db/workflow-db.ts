@@ -9,6 +9,9 @@ export type TimerRunState = "idle" | "running" | "paused";
 
 export type ReminderPreset = "1d" | "2h" | "30m" | "custom";
 
+/** User-controlled lifecycle (overdue is derived in UI from dueAt, not stored). */
+export type InterventionWorkflowStatus = "open" | "in_progress" | "completed";
+
 /** Start or end stop for route / KM. */
 export type InterventionGeoStop = {
   address: string;
@@ -46,7 +49,7 @@ export type Intervention = {
   workCategory: WorkCategory;
   /** When workCategory is activity: true = on-site office, false = remote/other. */
   isOfficeActivity?: boolean;
-  status?: "open" | "completed";
+  status?: InterventionWorkflowStatus;
   startAt: string; // ISO
   endAt?: string; // ISO
   durationMinutes?: number;
@@ -369,6 +372,36 @@ export class WorkFlowDB extends Dexie {
               row.timerRunState = row.timerStartedAt ? "running" : "idle";
             }
             if (row.remindersEnabled == null) row.remindersEnabled = false;
+          });
+      });
+
+    this.version(14)
+      .stores({
+        clients: "&id, name, updatedAt, syncedAt",
+        interventions:
+          "&id, clientId, startAt, updatedAt, status, createdBy, timerStartedAt, workCategory, dueAt, timerRunState, syncedAt",
+        spareParts: "&id, sku, name, updatedAt, syncedAt",
+        stockMovements: "&id, sparePartId, createdAt, interventionId, syncedAt",
+        tickets:
+          "&id, status, priority, reminderAt, dueAt, updatedAt, clientId, interventionId, syncedAt",
+        attachments: "&id, kind, createdAt, mime, syncedAt",
+        documents: "&id, interventionId, createdAt, title, syncedAt",
+        supportEmailOutbox:
+          "&id, status, to, createdAt, updatedAt, documentId, interventionId, syncedAt",
+        templates: "&id, name, updatedAt, workCategory, syncedAt"
+      })
+      .upgrade(async (tx) => {
+        await tx
+          .table("interventions")
+          .toCollection()
+          .modify((row: Record<string, unknown>) => {
+            const s = row.status;
+            if (s != null && s !== "open" && s !== "in_progress" && s !== "completed") {
+              row.status = "open";
+            }
+            if ((row.status === "open" || row.status == null) && row.timerRunState === "running") {
+              row.status = "in_progress";
+            }
           });
       });
   }

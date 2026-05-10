@@ -3,15 +3,19 @@
 import { Badge } from "@/components/ui/badge";
 import type { Intervention } from "@/lib/db/workflow-db";
 import {
+  coerceInterventionWorkflowStatus,
+  isInterventionCompleted,
   isInterventionOverdue,
   normalizeTimerRunState
 } from "@/lib/interventions/intervention-helpers";
 
 export function InterventionStatusBadge({ intervention }: { intervention: Intervention }) {
+  const stored = coerceInterventionWorkflowStatus(intervention.status);
+  const completed = isInterventionCompleted(intervention);
   const overdue = isInterventionOverdue(intervention);
-  const timerState = normalizeTimerRunState(intervention);
+  const timer = normalizeTimerRunState(intervention);
 
-  if (intervention.status === "completed") {
+  if (completed) {
     return (
       <Badge className="border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-200">
         Completed
@@ -25,17 +29,10 @@ export function InterventionStatusBadge({ intervention }: { intervention: Interv
       </Badge>
     );
   }
-  if (timerState === "running") {
+  if (stored === "in_progress" || timer === "running" || timer === "paused") {
     return (
       <Badge className="border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900/40 dark:bg-blue-950/40 dark:text-blue-200">
-        Timer running
-      </Badge>
-    );
-  }
-  if (timerState === "paused") {
-    return (
-      <Badge className="border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900/40 dark:bg-sky-950/40 dark:text-sky-100">
-        Timer paused
+        In progress
       </Badge>
     );
   }

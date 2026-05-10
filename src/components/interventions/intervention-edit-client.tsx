@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
+  CheckCircle2,
   ChevronLeft,
   FileDown,
   FileImage,
@@ -55,8 +56,10 @@ import { performInterventionCloudSyncDelete } from "@/lib/sync/cloud-delete";
 import { scheduleWorkflowSync } from "@/lib/sync/sync-engine";
 import { interventionStaticMapUrl } from "@/lib/geo/static-map-url";
 import {
+  coerceInterventionWorkflowStatus,
   formatElapsedHms,
   getTimerElapsedSeconds,
+  isInterventionCompleted,
   normalizeTimerRunState
 } from "@/lib/interventions/intervention-helpers";
 
@@ -78,6 +81,7 @@ export function InterventionEditClient({ id }: { id: string }) {
   const [sendDocId, setSendDocId] = useState<string | null>(null);
   const [templateOpen, setTemplateOpen] = useState(false);
   const [templateName, setTemplateName] = useState("");
+  const [markingComplete, setMarkingComplete] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
   const [, setClock] = useState(0);
@@ -170,6 +174,48 @@ export function InterventionEditClient({ id }: { id: string }) {
             <Pencil className="h-4 w-4" />
             Edit
           </Button>
+          {!isInterventionCompleted(intervention) ? (
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={markingComplete}
+              onClick={async () => {
+                setMarkingComplete(true);
+                try {
+                  const nowIso = new Date().toISOString();
+                  const acc = getTimerElapsedSeconds(intervention);
+                  await db.interventions.update(intervention.id, {
+                    status: "completed",
+                    endAt: nowIso,
+                    timerRunState: "idle",
+                    timerStartedAt: undefined,
+                    timerAccumulatedSeconds: acc,
+                    ...(acc > 0 ? { durationMinutes: Math.max(1, Math.round(acc / 60)) } : {}),
+                    updatedAt: nowIso
+                  });
+                  scheduleWorkflowSync();
+                  toast({
+                    title: "Marked complete",
+                    description:
+                      acc > 0
+                        ? "Visit closed and duration saved from the timer."
+                        : "Visit closed."
+                  });
+                } catch (e: unknown) {
+                  toast({
+                    title: "Could not update",
+                    description: e instanceof Error ? e.message : "Unknown error",
+                    variant: "destructive"
+                  });
+                } finally {
+                  setMarkingComplete(false);
+                }
+              }}
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              Mark complete
+            </Button>
+          ) : null}
           <Button
             type="button"
             onClick={() => {
@@ -220,7 +266,8 @@ export function InterventionEditClient({ id }: { id: string }) {
         <div>
           <div className="text-xs text-muted-foreground">Duration</div>
           <div className="font-semibold">
-            {normalizeTimerRunState(intervention) === "running" ||
+            {coerceInterventionWorkflowStatus(intervention.status) === "in_progress" ||
+            normalizeTimerRunState(intervention) === "running" ||
             normalizeTimerRunState(intervention) === "paused" ? (
               <span className="font-mono">
                 Timer {normalizeTimerRunState(intervention)} ·{" "}
@@ -246,7 +293,13 @@ export function InterventionEditClient({ id }: { id: string }) {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <InterventionTimerPanel interventionId={intervention.id} />
+        {!isInterventionCompleted(intervention) ? (
+          <InterventionTimerPanel interventionId={intervention.id} />
+        ) : (
+          <div className="rounded-2xl border bg-muted/40 px-4 py-6 text-sm text-muted-foreground">
+            This visit is completed. Use Edit to adjust details; the timer is closed.
+          </div>
+        )}
         {intervention.startLocation || intervention.endLocation ? (
           <Card className="rounded-2xl">
             <CardHeader className="space-y-2">

@@ -1,4 +1,5 @@
 import type { Intervention, ReminderPreset } from "@/lib/db/workflow-db";
+import { isInterventionCompleted } from "@/lib/interventions/intervention-helpers";
 
 function presetOffsetMs(preset: ReminderPreset): number | null {
   if (preset === "1d") return 86400000;
@@ -9,7 +10,7 @@ function presetOffsetMs(preset: ReminderPreset): number | null {
 
 /** Absolute instant when the reminder should fire (once), or null if disabled / invalid. */
 export function getReminderFireAt(i: Intervention): Date | null {
-  if (!i.remindersEnabled || !i.dueAt || i.status === "completed") return null;
+  if (!i.remindersEnabled || !i.dueAt || isInterventionCompleted(i)) return null;
   const due = new Date(i.dueAt).getTime();
   if (!Number.isFinite(due)) return null;
 

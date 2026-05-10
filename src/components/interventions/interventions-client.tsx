@@ -26,6 +26,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   formatElapsedHms,
   getTimerElapsedSeconds,
+  isInterventionCompleted,
   isInterventionOverdue,
   normalizeTimerRunState
 } from "@/lib/interventions/intervention-helpers";
@@ -72,7 +73,7 @@ export function InterventionsClient() {
     } else if (scope === "overdue") {
       list = list.filter(
         (it) =>
-          it.status !== "completed" && it.dueAt && new Date(it.dueAt).getTime() < now
+          !isInterventionCompleted(it) && it.dueAt && new Date(it.dueAt).getTime() < now
       );
     } else if (scope === "interventions") {
       list = list.filter((it) => (it.workCategory ?? "intervention") === "intervention");
@@ -81,7 +82,11 @@ export function InterventionsClient() {
     }
 
     const withStatus =
-      status === "all" ? list : list.filter((it) => (it.status ?? "open") === status);
+      status === "all"
+        ? list
+        : status === "completed"
+          ? list.filter((it) => isInterventionCompleted(it))
+          : list.filter((it) => !isInterventionCompleted(it));
 
     const query = q.trim().toLowerCase();
     if (!query) return withStatus;
@@ -199,7 +204,7 @@ export function InterventionsClient() {
                     <span className="rounded-full border bg-background px-2 py-0.5">{it.type}</span>
                     <span>{formatTime(it.startAt)}</span>
                     <span>{duration}</span>
-                    {it.dueAt && it.status !== "completed" ? (
+                    {it.dueAt && !isInterventionCompleted(it) ? (
                       <span className={overdue ? "text-destructive" : ""}>
                         <DueCountdown intervention={it} />
                       </span>
