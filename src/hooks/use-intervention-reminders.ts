@@ -6,9 +6,10 @@ import type { Intervention } from "@/lib/db/workflow-db";
 import { getSupportEmailTo } from "@/lib/support-email/config";
 import { getReminderDefaultEmail } from "@/lib/reminders/config";
 import {
-  getReminderFireAt,
-  reminderAckIso,
-  shouldFireReminder
+  getInterventionReminderDecision,
+  getReminderScheduledFireMs,
+  parseReminderLastFireMs,
+  reminderAckAtIso
 } from "@/lib/reminders/reminder-utils";
 import { isInterventionCompleted } from "@/lib/interventions/intervention-helpers";
 import { scheduleWorkflowSync } from "@/lib/sync/sync-engine";
@@ -64,7 +65,8 @@ export type CheckAndFireRemindersResult = {
 /**
  * Loads interventions, optionally prompts for Notification permission when any
  * reminder is configured, then fires browser notifications / reminder emails and
- * acks `reminderLastFireAt` only when at least one channel succeeds.
+ * acks `reminderLastFireAt` only when at least one channel succeeds (using the ack
+ * instant from {@link getInterventionReminderDecision}).
  */
 export async function checkAndFireReminders(): Promise<CheckAndFireRemindersResult> {
   const checkedAtIso = new Date().toISOString();
@@ -92,13 +94,18 @@ export async function checkAndFireReminders(): Promise<CheckAndFireRemindersResu
     console.info("[wf-reminders] no interventions with reminders + due date (open)");
   } else {
     for (const iv of configuredRows) {
-      const fireAt = getReminderFireAt(iv);
-      const should = shouldFireReminder(iv, nowMs);
+      const decision = getInterventionReminderDecision(iv, nowMs);
+      const scheduledMs = getReminderScheduledFireMs(iv);
+      const lastParsed = parseReminderLastFireMs(iv.reminderLastFireAt);
       console.info("[wf-reminders] candidate", {
         id: iv.id,
-        fireAt: fireAt?.toISOString() ?? null,
-        shouldFire: should,
-        lastFire: iv.reminderLastFireAt ?? null
+        dueAt: iv.dueAt,
+        scheduledAt:
+          scheduledMs != null ? new Date(scheduledMs).toISOString() : null,
+        lastFire: iv.reminderLastFireAt ?? null,
+        lastFireMs: lastParsed,
+        shouldFire: decision.fire,
+        decisionReason: decision.reason
       });
     }
   }
@@ -108,10 +115,16 @@ export async function checkAndFireReminders(): Promise<CheckAndFireRemindersResu
   let anyAcked = false;
 
   for (const iv of list) {
-    if (!shouldFireReminder(iv, nowMs)) continue;
+    const decision = getInterventionReminderDecision(iv, nowMs);
+    if (!decision.fire || decision.ackAtMs == null) continue;
 
     fired += 1;
-    console.info("[wf-reminders] firing", { id: iv.id, clientId: iv.clientId });
+    console.info("[wf-reminders] firing", {
+      id: iv.id,
+      clientId: iv.clientId,
+      reason: decision.reason,
+      ackAtIso: reminderAckAtIso(decision.ackAtMs)
+    });
 
     const client = await db.clients.get(iv.clientId);
     const title = `Due: ${client?.name ?? "Client"}`;
@@ -173,11 +186,14 @@ export async function checkAndFireReminders(): Promise<CheckAndFireRemindersResu
 
     if (delivered) {
       await db.interventions.update(iv.id, {
-        reminderLastFireAt: reminderAckIso(iv),
+        reminderLastFireAt: reminderAckAtIso(decision.ackAtMs),
         updatedAt: checkedAtIso
       });
       anyAcked = true;
-      console.info("[wf-reminders] acked (delivery ok)", { id: iv.id });
+      console.info("[wf-reminders] acked (delivery ok)", {
+        id: iv.id,
+        reminderLastFireAt: reminderAckAtIso(decision.ackAtMs)
+      });
     } else {
       notAckedNoDelivery += 1;
       console.info(
