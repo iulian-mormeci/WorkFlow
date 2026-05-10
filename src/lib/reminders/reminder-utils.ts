@@ -34,7 +34,7 @@ export function parseReminderLastFireMs(v: unknown): number | null {
 
 /**
  * Millisecond instant for the "before due" reminder, or custom wall time, or null if not configured.
- * Never returns a time after `dueAt` (clamp) so we never wait past the visit deadline for a first ping.
+ * Clamped to never exceed `dueAt` so the pre-due tier never schedules after the visit deadline.
  */
 export function getReminderScheduledFireMs(i: Intervention): number | null {
   if (!i.remindersEnabled || !i.dueAt || isInterventionCompleted(i)) return null;
@@ -60,19 +60,24 @@ export function getReminderFireAt(i: Intervention): Date | null {
   return ms != null ? new Date(ms) : null;
 }
 
+export type ReminderDecisionTier = "pre_due" | "due";
+
 export type InterventionReminderDecision = {
   fire: boolean;
-  /** Human-readable; includes "shouldFire = true because …" when fire is true */
   reason: string;
-  /** Wall instant to persist on successful delivery (ties to this logical reminder) */
+  /** Instant to persist after a successful delivery for this tier */
   ackAtMs?: number;
+  tier?: ReminderDecisionTier;
 };
 
 /**
- * Two-tier reminders for open interventions:
- * 1) Pre-due: fire when now >= scheduled (offset before due, or custom) and last ack < that instant.
- * 2) Overdue: if due passed and pre-due was already acked, fire once more when last ack < dueAt.
- * If there is no valid schedule (e.g. custom missing), fire once at/after due when last < due.
+ * Two independent rules (single stored `reminderLastFireAt`, compared per tier with strict `<`):
+ *
+ * 1) Pre-due: `now >= scheduledFire` AND (`lastFire` is null OR `lastFire < scheduledFire`)
+ * 2) Due / overdue: `now >= dueAt` AND (`lastFire` is null OR `lastFire < dueAt`)
+ *
+ * If both match in the same tick, pre-due wins so we ack the scheduled instant first; the next poll
+ * can take the due tier because then `lastFire === scheduled` still satisfies `lastFire < dueAt`.
  */
 export function getInterventionReminderDecision(
   i: Intervention,
@@ -81,7 +86,8 @@ export function getInterventionReminderDecision(
   if (!i.remindersEnabled || !i.dueAt || isInterventionCompleted(i)) {
     return {
       fire: false,
-      reason: "shouldFire = false because reminders are off, there is no due date, or the visit is completed"
+      reason:
+        "shouldFire = false because reminders are off, there is no due date, or the visit is completed"
     };
   }
 
@@ -90,74 +96,67 @@ export function getInterventionReminderDecision(
     return { fire: false, reason: "shouldFire = false because dueAt does not parse to a valid time" };
   }
 
+  const lastMs = parseReminderLastFireMs(i.reminderLastFireAt);
   const scheduledMs = getReminderScheduledFireMs(i);
-  let lastMs = parseReminderLastFireMs(i.reminderLastFireAt);
-  // Ignore corrupt ack timestamps after the due instant on still-open jobs (stale sync / bad data).
-  if (lastMs != null && lastMs > dueMs) {
-    lastMs = null;
-  }
 
-  // No valid pre-due/custom schedule → single shot at due / overdue
-  if (scheduledMs == null) {
-    if (now < dueMs) {
-      return {
-        fire: false,
-        reason: `shouldFire = false because now is before due (${new Date(dueMs).toISOString()}) and there is no valid reminder schedule (set a preset or custom time)`
-      };
-    }
-    if (lastMs != null && lastMs >= dueMs) {
-      return {
-        fire: false,
-        reason: `shouldFire = false because already acked for due/overdue (lastFire >= due)`
-      };
-    }
+  const preDueEligible =
+    scheduledMs != null &&
+    now >= scheduledMs &&
+    (lastMs == null || lastMs < scheduledMs);
+
+  const overdueEligible = now >= dueMs && (lastMs == null || lastMs < dueMs);
+
+  if (preDueEligible && scheduledMs != null) {
     return {
       fire: true,
-      ackAtMs: dueMs,
-      reason: `shouldFire = true because now >= due (${new Date(dueMs).toISOString()}) and reminderLastFireAt is null or before due (no separate schedule)`
-    };
-  }
-
-  // Tier 1 — pre-due (scheduled instant)
-  if (now >= scheduledMs && (lastMs == null || lastMs < scheduledMs)) {
-    return {
-      fire: true,
+      tier: "pre_due",
       ackAtMs: scheduledMs,
-      reason: `shouldFire = true because now >= scheduled fire time (${new Date(scheduledMs).toISOString()}) and (reminderLastFireAt is null or < that instant)`
+      reason:
+        "pre-due: now >= scheduled fire time and lastFire < scheduled (or no lastFire)"
     };
   }
 
-  // Tier 2 — overdue nudge at due (after pre-due was acked)
-  if (
-    now >= dueMs &&
-    lastMs != null &&
-    lastMs >= scheduledMs &&
-    lastMs < dueMs
-  ) {
+  if (overdueEligible) {
     return {
       fire: true,
+      tier: "due",
       ackAtMs: dueMs,
-      reason: `shouldFire = true because the visit is due or overdue (due ${new Date(dueMs).toISOString()}), pre-due reminder was already acked, and last ack is still before due (overdue nudge)`
+      reason: "due/overdue: now >= dueAt and lastFire < dueAt (or no lastFire)"
     };
   }
 
-  if (now < scheduledMs) {
+  if (scheduledMs != null && now < scheduledMs) {
     return {
       fire: false,
-      reason: `shouldFire = false because now is before scheduled reminder (${new Date(scheduledMs).toISOString()})`
+      reason: `shouldFire = false because now is before scheduled fire time (${new Date(scheduledMs).toISOString()})`
+    };
+  }
+
+  if (now < dueMs) {
+    if (scheduledMs != null && lastMs != null && lastMs >= scheduledMs) {
+      return {
+        fire: false,
+        reason:
+          "shouldFire = false because pre-due tier is already acked (lastFire >= scheduled) and now is still before dueAt"
+      };
+    }
+    return {
+      fire: false,
+      reason: "shouldFire = false because now is before dueAt and pre-due rule does not apply"
     };
   }
 
   if (lastMs != null && lastMs >= dueMs) {
     return {
       fire: false,
-      reason: "shouldFire = false because due/overdue reminder was already acked (lastFire >= due)"
+      reason:
+        "shouldFire = false because lastFire >= dueAt (due/overdue tier already acked)"
     };
   }
 
   return {
     fire: false,
-    reason: `shouldFire = false because waiting after pre-due ack (scheduled was ${new Date(scheduledMs).toISOString()}, lastFire ${lastMs != null ? new Date(lastMs).toISOString() : "none"})`
+    reason: `shouldFire = false (unmatched: scheduled=${scheduledMs != null ? new Date(scheduledMs).toISOString() : "none"} due=${new Date(dueMs).toISOString()} last=${lastMs != null ? new Date(lastMs).toISOString() : "none"})`
   };
 }
 
@@ -170,7 +169,7 @@ export function reminderAckAtIso(ackAtMs: number): string {
   return new Date(ackAtMs).toISOString();
 }
 
-/** Legacy: ack instant for current schedule (no “now” context). Prefer reminderAckAtIso(decision.ackAtMs). */
+/** Legacy: default ack instant for schedule/due without a live decision. Prefer reminderAckAtIso(decision.ackAtMs). */
 export function reminderAckIso(i: Intervention): string {
   const ms = getReminderScheduledFireMs(i);
   if (ms != null) return reminderAckAtIso(ms);

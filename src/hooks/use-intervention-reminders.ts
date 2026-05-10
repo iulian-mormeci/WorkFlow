@@ -54,6 +54,25 @@ async function maybeNotifyPermissionIfDueSoon(list: Intervention[]): Promise<voi
   await maybeNotifyPermission();
 }
 
+function reminderLogPayload(
+  iv: Intervention,
+  nowMs: number,
+  scheduledMs: number | null
+): { id: string; fireAt: string | null; lastFire: string | null; now: string; tier?: string } {
+  const fireAt =
+    scheduledMs != null
+      ? new Date(scheduledMs).toISOString()
+      : iv.dueAt != null
+        ? new Date(iv.dueAt).toISOString()
+        : null;
+  return {
+    id: iv.id,
+    fireAt,
+    lastFire: iv.reminderLastFireAt ?? null,
+    now: new Date(nowMs).toISOString()
+  };
+}
+
 export type CheckAndFireRemindersResult = {
   checkedAtIso: string;
   scanned: number;
@@ -94,19 +113,26 @@ export async function checkAndFireReminders(): Promise<CheckAndFireRemindersResu
     console.info("[wf-reminders] no interventions with reminders + due date (open)");
   } else {
     for (const iv of configuredRows) {
-      const decision = getInterventionReminderDecision(iv, nowMs);
       const scheduledMs = getReminderScheduledFireMs(iv);
-      const lastParsed = parseReminderLastFireMs(iv.reminderLastFireAt);
-      console.info("[wf-reminders] candidate", {
-        id: iv.id,
-        dueAt: iv.dueAt,
-        scheduledAt:
-          scheduledMs != null ? new Date(scheduledMs).toISOString() : null,
-        lastFire: iv.reminderLastFireAt ?? null,
-        lastFireMs: lastParsed,
-        shouldFire: decision.fire,
-        decisionReason: decision.reason
-      });
+      const decision = getInterventionReminderDecision(iv, nowMs);
+      const base = reminderLogPayload(iv, nowMs, scheduledMs);
+      if (decision.fire) {
+        const fireAtIso =
+          decision.ackAtMs != null ? reminderAckAtIso(decision.ackAtMs) : base.fireAt;
+        console.info(`[wf-reminders] shouldFire = true | reason: ${decision.reason}`, {
+          id: base.id,
+          fireAt: fireAtIso,
+          lastFire: base.lastFire,
+          now: base.now,
+          tier: decision.tier
+        });
+      } else {
+        console.info(`[wf-reminders] shouldFire = false | reason: ${decision.reason}`, {
+          ...base,
+          dueAt: iv.dueAt,
+          lastFireMs: parseReminderLastFireMs(iv.reminderLastFireAt)
+        });
+      }
     }
   }
 
@@ -119,11 +145,14 @@ export async function checkAndFireReminders(): Promise<CheckAndFireRemindersResu
     if (!decision.fire || decision.ackAtMs == null) continue;
 
     fired += 1;
-    console.info("[wf-reminders] firing", {
+    const ackIso = reminderAckAtIso(decision.ackAtMs);
+    console.info(`[wf-reminders] shouldFire = true | reason: ${decision.reason}`, {
       id: iv.id,
-      clientId: iv.clientId,
-      reason: decision.reason,
-      ackAtIso: reminderAckAtIso(decision.ackAtMs)
+      fireAt: ackIso,
+      lastFire: iv.reminderLastFireAt ?? null,
+      now: new Date(nowMs).toISOString(),
+      tier: decision.tier,
+      clientId: iv.clientId
     });
 
     const client = await db.clients.get(iv.clientId);
@@ -186,13 +215,14 @@ export async function checkAndFireReminders(): Promise<CheckAndFireRemindersResu
 
     if (delivered) {
       await db.interventions.update(iv.id, {
-        reminderLastFireAt: reminderAckAtIso(decision.ackAtMs),
+        reminderLastFireAt: ackIso,
         updatedAt: checkedAtIso
       });
       anyAcked = true;
-      console.info("[wf-reminders] acked (delivery ok)", {
+      console.info("[wf-reminders] acked after successful delivery", {
         id: iv.id,
-        reminderLastFireAt: reminderAckAtIso(decision.ackAtMs)
+        tier: decision.tier,
+        reminderLastFireAt: ackIso
       });
     } else {
       notAckedNoDelivery += 1;
