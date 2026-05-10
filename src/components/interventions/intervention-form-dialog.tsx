@@ -342,6 +342,8 @@ export function InterventionFormDialog(props: Props) {
             remindersEnabled && reminderPreset === "custom" ? reminderCustomIso : undefined,
           reminderEmailTo: nextReminderEmail,
           reminderLastFireAt: reminderConfigChanged ? undefined : existing.reminderLastFireAt,
+          reminderPreDueAckAt: reminderConfigChanged ? undefined : existing.reminderPreDueAckAt,
+          reminderDueAckAt: reminderConfigChanged ? undefined : existing.reminderDueAckAt,
           startLocation,
           endLocation,
           locationKmAuto,

@@ -8,6 +8,7 @@ import { getReminderDefaultEmail } from "@/lib/reminders/config";
 import {
   getInterventionReminderDecision,
   getReminderScheduledFireMs,
+  interventionHasPreDueAck,
   parseReminderLastFireMs,
   reminderAckAtIso
 } from "@/lib/reminders/reminder-utils";
@@ -84,8 +85,8 @@ export type CheckAndFireRemindersResult = {
 /**
  * Loads interventions, optionally prompts for Notification permission when any
  * reminder is configured, then fires browser notifications / reminder emails and
- * acks `reminderLastFireAt` only when at least one channel succeeds (using the ack
- * instant from {@link getInterventionReminderDecision}).
+ * acks `reminderPreDueAckAt` or `reminderDueAckAt` (tier that fired) only after successful
+ * delivery, using the ack instant from {@link getInterventionReminderDecision}.
  */
 export async function checkAndFireReminders(): Promise<CheckAndFireRemindersResult> {
   const checkedAtIso = new Date().toISOString();
@@ -160,6 +161,17 @@ export async function checkAndFireReminders(): Promise<CheckAndFireRemindersResu
 
     fired += 1;
     const ackIso = reminderAckAtIso(decision.ackAtMs);
+    const schedForLog = getReminderScheduledFireMs(iv);
+    const dueMsForLog = iv.dueAt ? new Date(iv.dueAt).getTime() : NaN;
+    if (
+      decision.tier === "due" &&
+      Number.isFinite(dueMsForLog) &&
+      interventionHasPreDueAck(iv, schedForLog, dueMsForLog)
+    ) {
+      console.info("[wf-reminders] firing due/overdue tier even after pre-due ack", {
+        id: iv.id
+      });
+    }
 
     console.info(`[wf-reminders] shouldFire = true | reason: ${decision.reason}`, {
       id: iv.id,
@@ -230,18 +242,17 @@ export async function checkAndFireReminders(): Promise<CheckAndFireRemindersResu
 
     if (delivered) {
       await db.interventions.update(iv.id, {
-        reminderLastFireAt: ackIso,
+        ...(decision.tier === "pre_due"
+          ? { reminderPreDueAckAt: ackIso }
+          : { reminderDueAckAt: ackIso }),
         updatedAt: checkedAtIso
       });
       anyAcked = true;
-      console.info("[wf-reminders] acked after successful delivery (tier timestamp only)", {
+      console.info("[wf-reminders] acked after successful delivery (tier-specific column)", {
         id: iv.id,
         tier: decision.tier,
-        reminderLastFireAt: ackIso,
-        note:
-          decision.tier === "pre_due"
-            ? "stored instant = scheduled (pre-due); due tier still uses lastFire < dueAt on next poll"
-            : "stored instant = dueAt (due/overdue); pre-due tier uses lastFire < scheduled on next poll"
+        ackField: decision.tier === "pre_due" ? "reminderPreDueAckAt" : "reminderDueAckAt",
+        ackIso
       });
     } else {
       notAckedNoDelivery += 1;

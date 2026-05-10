@@ -266,7 +266,10 @@ function interventionToRow(i: Intervention, userId: string) {
     reminder_preset: i.reminderPreset ?? null,
     reminder_custom_at: i.reminderCustomAt ?? null,
     reminder_email_to: i.reminderEmailTo ?? null,
-    reminder_last_fire_at: i.reminderLastFireAt ?? null,
+    reminder_last_fire_at:
+      i.reminderDueAckAt ?? i.reminderPreDueAckAt ?? i.reminderLastFireAt ?? null,
+    reminder_pre_due_ack_at: i.reminderPreDueAckAt ?? null,
+    reminder_due_ack_at: i.reminderDueAckAt ?? null,
     start_location: interventionGeoToJson(i.startLocation),
     end_location: interventionGeoToJson(i.endLocation),
     location_km_auto: i.locationKmAuto ?? null,
@@ -323,6 +326,10 @@ function interventionFromRow(r: Record<string, unknown>): Intervention {
     reminderCustomAt: r.reminder_custom_at ? iso(r.reminder_custom_at) : undefined,
     reminderEmailTo: (r.reminder_email_to as string) ?? undefined,
     reminderLastFireAt: r.reminder_last_fire_at ? iso(r.reminder_last_fire_at) : undefined,
+    reminderPreDueAckAt: r.reminder_pre_due_ack_at
+      ? iso(r.reminder_pre_due_ack_at)
+      : undefined,
+    reminderDueAckAt: r.reminder_due_ack_at ? iso(r.reminder_due_ack_at) : undefined,
     startLocation: interventionGeoFromJson(r.start_location),
     endLocation: interventionGeoFromJson(r.end_location),
     locationKmAuto:

@@ -1,6 +1,10 @@
 import type { Intervention, ReminderPreset } from "@/lib/db/workflow-db";
 import { isInterventionCompleted } from "@/lib/interventions/intervention-helpers";
 
+const LEGACY_PRE_SLOP_MS = 120_000;
+/** Legacy single-column ack: treat as due-tier only if within this window of `dueAt`. */
+const LEGACY_DUE_WALL_MS = 5_000;
+
 function presetOffsetMs(preset: ReminderPreset): number | null {
   if (preset === "1d") return 86400000;
   if (preset === "2h") return 7200000;
@@ -15,7 +19,7 @@ export function normalizedReminderPreset(i: Intervention): ReminderPreset {
   return "2h";
 }
 
-/** Parse `reminderLastFireAt` from Dexie / JSON (string | Date | number ms). */
+/** Parse reminder ack timestamps from Dexie / JSON (string | Date | number ms). */
 export function parseReminderLastFireMs(v: unknown): number | null {
   if (v == null) return null;
   if (typeof v === "number" && Number.isFinite(v)) return v;
@@ -30,6 +34,39 @@ export function parseReminderLastFireMs(v: unknown): number | null {
     return Number.isFinite(t) ? t : null;
   }
   return null;
+}
+
+/**
+ * Explicit pre-due tier ack, or legacy `reminderLastFireAt` when it clearly refers to a pre-due
+ * delivery (before `dueAt`, on/near the scheduled instant).
+ */
+export function getResolvedPreDueAckMs(
+  i: Intervention,
+  scheduledMs: number | null,
+  dueMs: number
+): number | null {
+  const explicit = parseReminderLastFireMs(i.reminderPreDueAckAt);
+  if (explicit != null) return explicit;
+
+  const leg = parseReminderLastFireMs(i.reminderLastFireAt);
+  if (leg == null || scheduledMs == null) return null;
+  if (leg >= dueMs - LEGACY_DUE_WALL_MS) return null;
+  if (leg > scheduledMs + LEGACY_PRE_SLOP_MS) return null;
+  return leg;
+}
+
+/**
+ * Explicit due-tier ack, or legacy `reminderLastFireAt` when it refers to a due/overdue delivery
+ * (on/near `dueAt`). Does not use the pre-due column.
+ */
+export function getResolvedDueAckMs(i: Intervention, dueMs: number): number | null {
+  const explicit = parseReminderLastFireMs(i.reminderDueAckAt);
+  if (explicit != null) return explicit;
+
+  const leg = parseReminderLastFireMs(i.reminderLastFireAt);
+  if (leg == null) return null;
+  if (leg < dueMs - LEGACY_DUE_WALL_MS) return null;
+  return leg;
 }
 
 /**
@@ -62,7 +99,6 @@ export function getReminderFireAt(i: Intervention): Date | null {
 
 export type ReminderDecisionTier = "pre_due" | "due";
 
-/** Per-tier evaluation; tiers are independent (each compares `lastFire` only to its own threshold). */
 export type ReminderTierEval = {
   eligible: boolean;
   checks: Record<string, boolean | string | null>;
@@ -74,14 +110,13 @@ export type InterventionReminderDecision = {
   reason: string;
   ackAtMs?: number;
   tier?: ReminderDecisionTier;
-  /** Always set for debugging / hook logs */
   tierLog: { preDue: ReminderTierEval; due: ReminderTierEval };
 };
 
 function evalPreDueTier(
   scheduledMs: number | null,
   dueMs: number,
-  lastMs: number | null,
+  preAckMs: number | null,
   now: number
 ): ReminderTierEval {
   if (scheduledMs == null) {
@@ -108,68 +143,72 @@ function evalPreDueTier(
   }
 
   const nowGteScheduled = now >= scheduledMs;
-  const lastOk = lastMs == null || lastMs < scheduledMs;
-  const eligible = nowGteScheduled && lastOk;
+  const tierNotYetAcked = preAckMs == null || preAckMs < scheduledMs;
+  const eligible = nowGteScheduled && tierNotYetAcked;
 
   const checks: Record<string, boolean | string | null> = {
     hasScheduledInstant: true,
     scheduledIso: new Date(scheduledMs).toISOString(),
+    preDueAckIso: preAckMs != null ? new Date(preAckMs).toISOString() : null,
     nowGteScheduled: nowGteScheduled,
-    lastIsNullOrLtScheduled: lastOk,
-    lastIso: lastMs != null ? new Date(lastMs).toISOString() : null
+    tierNotYetAcked
   };
 
   let summary: string;
   if (!nowGteScheduled) {
     summary = `waiting (now < scheduled ${new Date(scheduledMs).toISOString()})`;
-  } else if (!lastOk) {
+  } else if (!tierNotYetAcked) {
     summary =
-      "not eligible: lastFire >= scheduled (pre-due already acked for this instant — due tier is evaluated separately)";
+      "not eligible: pre_due tier already acked (reminderPreDueAckAt / legacy pre ack >= scheduled)";
   } else {
-    summary = "eligible: now >= scheduled and (lastFire == null or lastFire < scheduled)";
+    summary =
+      "eligible: now >= scheduled and pre_due tier not acked for this instant (independent of due tier ack)";
   }
 
   return { eligible, checks, summary };
 }
 
-function evalDueTier(dueMs: number, lastMs: number | null, now: number): ReminderTierEval {
+function evalDueTier(
+  dueMs: number,
+  dueAckMs: number | null,
+  now: number,
+  usesSeparateDueAckField: boolean
+): ReminderTierEval {
   const nowGteDue = now >= dueMs;
-  const lastOk = lastMs == null || lastMs < dueMs;
-  const eligible = nowGteDue && lastOk;
+  const tierNotYetAcked = dueAckMs == null || dueAckMs < dueMs;
+  const eligible = nowGteDue && tierNotYetAcked;
 
   const checks: Record<string, boolean | string | null> = {
     dueIso: new Date(dueMs).toISOString(),
+    dueAckIso: dueAckMs != null ? new Date(dueAckMs).toISOString() : null,
     nowGteDue: nowGteDue,
-    lastIsNullOrLtDue: lastOk,
-    lastIso: lastMs != null ? new Date(lastMs).toISOString() : null
+    tierNotYetAcked,
+    usesSeparateDueAckField
   };
 
   let summary: string;
   if (!nowGteDue) {
     summary = `waiting (now < dueAt ${new Date(dueMs).toISOString()})`;
-  } else if (!lastOk) {
+  } else if (!tierNotYetAcked) {
     summary =
-      "not eligible: lastFire >= dueAt (due/overdue tier already acked for this instant)";
+      "not eligible: due tier already acked (reminderDueAckAt / legacy due ack >= dueAt)";
   } else {
-    summary = "eligible: now >= dueAt and (lastFire == null or lastFire < dueAt)";
+    summary =
+      "eligible: now >= dueAt and due tier not acked for this instant (independent of pre_due tier ack)";
   }
 
   return { eligible, checks, summary };
 }
 
-/**
- * Pre-due and due tiers are **independent**: each only compares `reminderLastFireAt` to its own
- * threshold (`< scheduled` vs `< dueAt`). Pre-due ack does not block due tier while `lastFire < dueAt`.
- *
- * If both tiers are eligible in one tick, **pre-due runs first** (ack = scheduled), then the next
- * poll can take **due** while `lastFire` is still `< dueAt`.
- *
- * When scheduled equals due (clamp edge), only the **due** tier applies.
- */
 function neutralTierEval(summary: string): ReminderTierEval {
   return { eligible: false, checks: { skipped: true }, summary };
 }
 
+/**
+ * Pre-due and due tiers use **separate ack timestamps** (`reminderPreDueAckAt`, `reminderDueAckAt`).
+ * A pre-due ack does **not** block the due tier. Legacy `reminderLastFireAt` is inferred only when
+ * the new columns are absent (see `getResolvedPreDueAckMs` / `getResolvedDueAckMs`).
+ */
 export function getInterventionReminderDecision(
   i: Intervention,
   now = Date.now()
@@ -194,11 +233,12 @@ export function getInterventionReminderDecision(
     };
   }
 
-  const lastMs = parseReminderLastFireMs(i.reminderLastFireAt);
   const scheduledMs = getReminderScheduledFireMs(i);
+  const preAckMs = getResolvedPreDueAckMs(i, scheduledMs, dueMs);
+  const dueAckMs = getResolvedDueAckMs(i, dueMs);
 
-  const preEval = evalPreDueTier(scheduledMs, dueMs, lastMs, now);
-  const dueEval = evalDueTier(dueMs, lastMs, now);
+  const preEval = evalPreDueTier(scheduledMs, dueMs, preAckMs, now);
+  const dueEval = evalDueTier(dueMs, dueAckMs, now, Boolean(i.reminderDueAckAt));
 
   if (preEval.eligible && scheduledMs != null) {
     return {
@@ -207,7 +247,7 @@ export function getInterventionReminderDecision(
       ackAtMs: scheduledMs,
       tierLog: { preDue: preEval, due: dueEval },
       reason:
-        "firing pre_due tier: now >= scheduled and (lastFire == null or lastFire < scheduled); ack will be scheduled instant only"
+        "firing pre_due tier: ack tracked on reminderPreDueAckAt only; does not affect due tier"
     };
   }
 
@@ -218,7 +258,7 @@ export function getInterventionReminderDecision(
       ackAtMs: dueMs,
       tierLog: { preDue: preEval, due: dueEval },
       reason:
-        "firing due tier: now >= dueAt and (lastFire == null or lastFire < dueAt); ack will be dueAt instant only (independent of pre-due ack)"
+        "firing due tier: ack tracked on reminderDueAckAt only; independent of pre_due tier ack"
     };
   }
 
@@ -233,7 +273,16 @@ export function shouldFireReminder(i: Intervention, now = Date.now()): boolean {
   return getInterventionReminderDecision(i, now).fire;
 }
 
-/** ISO timestamp to store after a successful delivery for the given ack instant. */
+/** True if a pre-due delivery has been recorded (explicit field or resolved legacy). */
+export function interventionHasPreDueAck(
+  i: Intervention,
+  scheduledMs: number | null,
+  dueMs: number
+): boolean {
+  return getResolvedPreDueAckMs(i, scheduledMs, dueMs) != null;
+}
+
+/** ISO timestamp to persist after a successful delivery for the given ack instant. */
 export function reminderAckAtIso(ackAtMs: number): string {
   return new Date(ackAtMs).toISOString();
 }

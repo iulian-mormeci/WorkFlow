@@ -65,8 +65,12 @@ export type Intervention = {
   /** When preset is `custom`, wall time to fire reminder (ISO). */
   reminderCustomAt?: string;
   reminderEmailTo?: string;
-  /** After a reminder fires once for the scheduled instant; cleared when due/preset changes in UI. */
+  /** @deprecated Prefer reminderPreDueAckAt / reminderDueAckAt. Optional legacy single ack. */
   reminderLastFireAt?: string;
+  /** Successful pre-due (scheduled) reminder delivery — ISO instant acked for that tier only. */
+  reminderPreDueAckAt?: string;
+  /** Successful due / overdue reminder delivery — ISO instant acked for that tier only. */
+  reminderDueAckAt?: string;
   startLocation?: InterventionGeoStop;
   endLocation?: InterventionGeoStop;
   /** Haversine or Google distance between start/end (read-only suggestion; user km may differ). */
@@ -404,6 +408,21 @@ export class WorkFlowDB extends Dexie {
             }
           });
       });
+
+    this.version(15).stores({
+      clients: "&id, name, updatedAt, syncedAt",
+      interventions:
+        "&id, clientId, startAt, updatedAt, status, createdBy, timerStartedAt, workCategory, dueAt, timerRunState, syncedAt",
+      spareParts: "&id, sku, name, updatedAt, syncedAt",
+      stockMovements: "&id, sparePartId, createdAt, interventionId, syncedAt",
+      tickets:
+        "&id, status, priority, reminderAt, dueAt, updatedAt, clientId, interventionId, syncedAt",
+      attachments: "&id, kind, createdAt, mime, syncedAt",
+      documents: "&id, interventionId, createdAt, title, syncedAt",
+      supportEmailOutbox:
+        "&id, status, to, createdAt, updatedAt, documentId, interventionId, syncedAt",
+      templates: "&id, name, updatedAt, workCategory, syncedAt"
+    });
   }
 }
 
