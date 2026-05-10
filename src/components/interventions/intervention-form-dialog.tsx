@@ -326,6 +326,28 @@ export function InterventionFormDialog(props: Props) {
       const nextReminderEmail = remindersEnabled ? reminderEmailTo.trim() || undefined : undefined;
       const nextPreset = remindersEnabled ? reminderPreset : undefined;
 
+      console.info("[InterventionFormDialog] saving reminder fields", {
+        mode,
+        dueAtLocal,
+        dueIso,
+        remindersEnabled,
+        reminderPreset,
+        reminderCustomAtLocal,
+        reminderCustomIso,
+        reminderEmailTo,
+        nextReminderEmail,
+        nextPreset
+      });
+
+      if (remindersEnabled && !dueIso) {
+        toast({
+          title: "Reminder needs a due date",
+          description: "Set “Must complete by” (due date) or turn reminders off.",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const reminderConfigChanged =
         mode === "edit" &&
         existing &&
@@ -366,6 +388,14 @@ export function InterventionFormDialog(props: Props) {
           locationKmAuto,
           updatedAt: nowIso
         };
+        console.info("[InterventionFormDialog] payload(edit)", {
+          id: payload.id,
+          dueAt: payload.dueAt,
+          remindersEnabled: payload.remindersEnabled,
+          reminderPreset: payload.reminderPreset,
+          reminderCustomAt: payload.reminderCustomAt,
+          reminderEmailTo: payload.reminderEmailTo
+        });
         await db.interventions.put(payload);
         savedId = payload.id;
       } else {
@@ -399,6 +429,14 @@ export function InterventionFormDialog(props: Props) {
           createdAt: nowIso,
           updatedAt: nowIso
         };
+        console.info("[InterventionFormDialog] payload(new)", {
+          id: payload.id,
+          dueAt: payload.dueAt,
+          remindersEnabled: payload.remindersEnabled,
+          reminderPreset: payload.reminderPreset,
+          reminderCustomAt: payload.reminderCustomAt,
+          reminderEmailTo: payload.reminderEmailTo
+        });
         await db.interventions.add(payload);
         savedId = payload.id;
 
@@ -436,6 +474,19 @@ export function InterventionFormDialog(props: Props) {
           title: "Intervento salvato",
           description: "Salvato in locale. Puoi aprire il navigatore qui sotto."
         });
+        try {
+          const row = await db.interventions.get(savedId);
+          console.info("[InterventionFormDialog] saved row (new, post-save nav)", {
+            id: savedId,
+            dueAt: row?.dueAt,
+            remindersEnabled: row?.remindersEnabled,
+            reminderPreset: row?.reminderPreset,
+            reminderCustomAt: row?.reminderCustomAt,
+            reminderEmailTo: row?.reminderEmailTo
+          });
+        } catch {
+          /* ignore */
+        }
         return;
       }
 
@@ -445,6 +496,19 @@ export function InterventionFormDialog(props: Props) {
         title: mode === "new" ? "Intervento salvato" : "Intervento aggiornato",
         description: "Salvato in locale (prima offline)."
       });
+      try {
+        const row = await db.interventions.get(savedId);
+        console.info("[InterventionFormDialog] saved row", {
+          id: savedId,
+          dueAt: row?.dueAt,
+          remindersEnabled: row?.remindersEnabled,
+          reminderPreset: row?.reminderPreset,
+          reminderCustomAt: row?.reminderCustomAt,
+          reminderEmailTo: row?.reminderEmailTo
+        });
+      } catch {
+        /* ignore */
+      }
     } catch (e: any) {
       setError(e?.message ?? "Failed to save intervention");
       toast({
