@@ -36,11 +36,25 @@ body {
 body {
   background: hsl(var(--background));
   color: hsl(var(--foreground));
+  /* Prevent horizontal scroll on phones (common with wide grids/iframes). */
+  overflow-x: hidden;
 }
 
 /* smoother taps/scroll on iPad */
 html {
   -webkit-text-size-adjust: 100%;
+}
+
+/* iPhone safe-area helpers (used by bottom nav / full-bleed sections). */
+:root {
+  --safe-bottom: env(safe-area-inset-bottom);
+  --safe-top: env(safe-area-inset-top);
+}
+
+/* Make tap targets reliably large on mobile (buttons/links that opt-in). */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
 }
 
 /* nicer focus + tap feedback */

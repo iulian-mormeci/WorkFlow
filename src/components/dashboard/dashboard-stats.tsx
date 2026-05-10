@@ -86,7 +86,7 @@ export function DashboardStats() {
               <CardDescription className="text-xs">{c.title}</CardDescription>
               <IconBubble icon={c.icon} />
             </div>
-            <CardTitle className="text-4xl tracking-tight">{c.value}</CardTitle>
+            <CardTitle className="text-3xl tracking-tight sm:text-4xl">{c.value}</CardTitle>
             <div className="text-xs text-muted-foreground">{c.hint}</div>
           </CardHeader>
         </Card>

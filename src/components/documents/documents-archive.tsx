@@ -50,7 +50,7 @@ export function DocumentsArchive() {
         <div className="text-sm text-muted-foreground">
           {docs?.length ?? 0} documents
         </div>
-        <Button size="lg" onClick={() => setScanOpen(true)}>
+        <Button size="lg" className="min-h-12 touch-manipulation" onClick={() => setScanOpen(true)}>
           <Plus className="h-5 w-5" />
           Scan document
         </Button>
@@ -61,7 +61,7 @@ export function DocumentsArchive() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search documents…"
-          className="pl-9"
+          className="min-h-12 pl-9 text-base"
         />
       </div>
 
@@ -72,7 +72,7 @@ export function DocumentsArchive() {
         </div>
         <div className="divide-y">
           {(docs ?? []).map((d) => (
-            <div key={d.id} className="flex items-center justify-between gap-3 px-4 py-4">
+            <div key={d.id} className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
                 <Link href={`/documents/${d.id}`} className="truncate text-base font-semibold underline-offset-4 hover:underline">
                   {d.title}
@@ -81,9 +81,10 @@ export function DocumentsArchive() {
                   {new Date(d.createdAt).toLocaleString()} • {d.pageCount} page{d.pageCount === 1 ? "" : "s"}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Button
                   variant="outline"
+                  className="min-h-11 touch-manipulation"
                   onClick={() =>
                     openPdf(d.attachmentId).catch((e) =>
                       toast({ title: "Open failed", description: String(e), variant: "destructive" })
@@ -96,6 +97,7 @@ export function DocumentsArchive() {
                 <Button
                   variant="outline"
                   disabled={!canSend}
+                  className="min-h-11 touch-manipulation"
                   onClick={() =>
                     sendToSupport(d.attachmentId, d.title)
                       .then(() => toast({ title: "Sent", description: "Emailed to support." }))

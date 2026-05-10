@@ -17,7 +17,7 @@ export function DashboardQuickActions() {
         <CardDescription>Fast entry optimized for field work.</CardDescription>
       </CardHeader>
 
-      <div className="px-5 pb-5">
+      <div className="px-4 pb-4 sm:px-5 sm:pb-5">
         <div className="grid gap-2">
           <Button size="lg" onClick={() => setOpen(true)}>
             <Plus className="h-5 w-5" />

@@ -437,13 +437,13 @@ export function RouteStopsEditor({
         )}
       </div>
 
-      <div className="rounded-2xl border bg-background px-5 py-4">
+      <div className="rounded-2xl border bg-background px-4 py-4 sm:px-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="text-xs text-muted-foreground">Total (straight-line fallback)</div>
             <div className="text-2xl font-semibold tabular-nums">{totalKm ? `${totalKm.toFixed(2)} km` : "—"}</div>
           </div>
-          <div className="text-xs text-muted-foreground">
+          <div className="text-xs text-muted-foreground sm:max-w-[18rem]">
             Driving KM per segment can be added next (Google Matrix / OSRM multi-leg).
           </div>
         </div>

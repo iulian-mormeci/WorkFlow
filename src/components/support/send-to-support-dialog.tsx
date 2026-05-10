@@ -37,18 +37,20 @@ export function SendToSupportDialog({
   const [title, setTitle] = useState("");
   const [attachmentId, setAttachmentId] = useState<string>("");
   const [to, setTo] = useState("");
-  const [note, setNote] = useState("");
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setTo(getSupportEmailTo());
-    setNote("");
+    setMessage("");
     (async () => {
       const d = await db.documents.get(doc);
       if (!d) return;
       setTitle(d.title);
       setAttachmentId(d.attachmentId);
+      setSubject(`Documento WorkFlow - ${d.title}`);
     })();
   }, [open, doc]);
 
@@ -58,15 +60,16 @@ export function SendToSupportDialog({
 
   async function sendDirect() {
     const email = to.trim();
-    console.info("[SendDocument] starting send to", email, { documentId, attachmentId, title });
+    console.info("[SendDocument] starting send to", email, { documentId, attachmentId, subject });
 
     const a = await db.attachments.get(attachmentId);
     if (!a) throw new Error("PDF attachment not found");
 
     const fd = new FormData();
     fd.append("to", email);
+    fd.append("subject", subject.trim() || `Documento WorkFlow - ${title.trim()}`);
     fd.append("title", title.trim());
-    if (note.trim()) fd.append("note", note.trim());
+    if (message.trim()) fd.append("message", message.trim());
     fd.append("file", new File([a.blob], a.name ?? "document.pdf", { type: "application/pdf" }));
 
     console.info("[SendDocument] POST /api/support-email (fetch start)");
@@ -87,8 +90,8 @@ export function SendToSupportDialog({
         await queueSupportEmail({
           id: outboxId,
           to: to.trim(),
-          title: title.trim(),
-          note: note.trim() || undefined,
+          title: subject.trim() || title.trim(),
+          note: message.trim() || undefined,
           documentId,
           attachmentId,
           interventionId: undefined,
@@ -138,13 +141,13 @@ export function SendToSupportDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle>Send to Support</DialogTitle>
+          <DialogTitle>Invia documento</DialogTitle>
           <DialogDescription>
-            Review details before sending. If you’re offline, we’ll queue it and send later.
+            Controlla i dettagli prima di inviare. Se sei offline, lo mettiamo in coda e lo inviamo appena torni online.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="mt-4 grid gap-3">
+        <div className="mt-4 grid gap-4">
           <div className="grid gap-2">
             <Label>To</Label>
             <Input
@@ -153,6 +156,7 @@ export function SendToSupportDialog({
               onBlur={() => setSupportEmailTo(to.trim())}
               placeholder="support@company.com"
               inputMode="email"
+              className="min-h-12 touch-manipulation text-base"
             />
             {interventionRef ? (
               <div className="text-xs text-muted-foreground">Intervention: {interventionRef}</div>
@@ -160,16 +164,26 @@ export function SendToSupportDialog({
           </div>
 
           <div className="grid gap-2">
-            <Label>Document</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+            <Label>Oggetto</Label>
+            <Input
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder={`Documento WorkFlow - ${title}`}
+              className="min-h-12 touch-manipulation text-base"
+            />
             <div className="text-xs text-muted-foreground">
-              PDF will be attached automatically.
+              Il PDF verrà allegato automaticamente.
             </div>
           </div>
 
           <div className="grid gap-2">
-            <Label>Message / note (optional)</Label>
-            <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Short context for support…" />
+            <Label>Messaggio personalizzato (opzionale)</Label>
+            <Textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Scrivi qui eventuali dettagli…"
+              className="min-h-28 text-base"
+            />
           </div>
 
           {!online ? (
@@ -180,10 +194,10 @@ export function SendToSupportDialog({
 
           <div className="mt-2 flex items-center justify-end gap-2">
             <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
-              Cancel
+              Annulla
             </Button>
             <Button disabled={!canSend || sending} type="button" onClick={sendOrQueue}>
-              {sending ? "Processing…" : online ? "Send" : "Queue"}
+              {sending ? "Invio…" : online ? "Invia" : "Metti in coda"}
             </Button>
           </div>
         </div>

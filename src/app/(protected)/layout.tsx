@@ -35,7 +35,12 @@ export default async function ProtectedLayout({
   ] as const;
 
   return (
-    <div className="min-h-dvh bg-background">
+    <div
+      className="min-h-dvh bg-background"
+      style={{
+        paddingTop: "env(safe-area-inset-top)"
+      }}
+    >
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 px-3 py-3 md:grid-cols-[300px_1fr] md:px-6 md:py-6">
         <aside className="hidden rounded-2xl border bg-background p-4 md:sticky md:top-6 md:block md:h-[calc(100dvh-3rem)] md:overflow-auto">
           <div className="flex items-center justify-between">
@@ -73,7 +78,7 @@ export default async function ProtectedLayout({
           </div>
         </aside>
 
-        <main className="rounded-2xl border bg-background p-4 pb-28 md:p-6 md:pb-6">
+        <main className="rounded-2xl border bg-background p-4 pb-32 md:p-6 md:pb-6">
           {/* Client: polls Dexie every 45s for due reminders (notifications + email). */}
           <InterventionRemindersProvider />
           {children}

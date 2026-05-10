@@ -10,9 +10,9 @@ import { TodaysQuickActions } from "@/components/dashboard/todays-quick-actions"
 
 export default function ProtectedDashboardPage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       <header className="space-y-1">
-        <h1 className="text-3xl font-semibold tracking-tight">Dashboard</h1>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Dashboard</h1>
         <p className="text-sm text-muted-foreground">
           Your daily overview, optimized for tablet field work.
         </p>

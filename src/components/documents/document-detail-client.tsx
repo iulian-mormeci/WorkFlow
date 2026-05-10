@@ -112,7 +112,7 @@ export function DocumentDetailClient({ id }: { id: string }) {
 
   return (
     <div className="space-y-5">
-      <header className="flex flex-wrap items-start justify-between gap-3">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
           <Link className="inline-flex items-center gap-2 text-sm underline" href="/documents">
             <ChevronLeft className="h-4 w-4" />
@@ -260,7 +260,10 @@ export function DocumentDetailClient({ id }: { id: string }) {
 
         <section className="rounded-2xl border bg-background p-3">
           {pdfUrl ? (
-            <div ref={viewerRef} className="h-[70dvh] overflow-hidden rounded-xl border bg-black">
+            <div
+              ref={viewerRef}
+              className="h-[60dvh] overflow-hidden rounded-xl border bg-black sm:h-[70dvh]"
+            >
               <iframe
                 title="PDF viewer"
                 src={`${pdfUrl}#page=${activePage}&zoom=page-width`}

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Plus, Search, Timer, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { db } from "@/lib/db/workflow-db";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -55,6 +56,7 @@ export function InterventionsClient() {
   const [scope, setScope] = useState<ListScope>("today");
   const [status, setStatus] = useState<StatusFilter>("all");
   const [open, setOpen] = useState(false);
+  const searchParams = useSearchParams();
   const [deleteTarget, setDeleteTarget] = useState<{
     id: string;
     label: string;
@@ -109,6 +111,11 @@ export function InterventionsClient() {
     });
   }, [q, scope, status, clients, liveEpoch]);
 
+  useEffect(() => {
+    // Mobile FAB uses /interventions?new=1
+    if (searchParams?.get("new") === "1") setOpen(true);
+  }, [searchParams]);
+
   return (
     <div className="relative">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -118,7 +125,7 @@ export function InterventionsClient() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search by client, type, notes, due…"
-            className="pl-9"
+            className="min-h-12 pl-9 text-base"
           />
         </div>
       </div>
@@ -136,7 +143,7 @@ export function InterventionsClient() {
           <Button
             key={k}
             variant={scope === k ? "default" : "outline"}
-            className="min-h-11"
+            className="min-h-11 touch-manipulation"
             onClick={() => setScope(k)}
           >
             {label}
@@ -150,7 +157,7 @@ export function InterventionsClient() {
             key={s}
             size="sm"
             variant={status === s ? "default" : "outline"}
-            className="min-h-10"
+            className="min-h-10 touch-manipulation"
             onClick={() => setStatus(s)}
           >
             {s === "all" ? "All statuses" : s === "open" ? "Open" : "Completed"}
@@ -159,10 +166,10 @@ export function InterventionsClient() {
       </div>
 
       <div className="mt-4 overflow-hidden rounded-2xl border">
-        <div className="grid grid-cols-[1fr_auto_auto] gap-3 border-b bg-muted px-4 py-3 text-sm font-medium">
+        <div className="grid grid-cols-[1fr_auto] gap-3 border-b bg-muted px-4 py-3 text-sm font-medium sm:grid-cols-[1fr_auto_auto]">
           <div>Intervention</div>
           <div className="text-right">KM</div>
-          <div className="w-11 shrink-0" aria-hidden />
+          <div className="hidden w-11 shrink-0 sm:block" aria-hidden />
         </div>
 
         <div className="divide-y">
@@ -176,7 +183,7 @@ export function InterventionsClient() {
             return (
               <div
                 key={it.id}
-                className="grid grid-cols-[1fr_auto_auto] items-center gap-3 px-4 py-4 hover:bg-muted/60"
+                className="grid grid-cols-[1fr_auto] items-center gap-3 px-4 py-4 hover:bg-muted/60 sm:grid-cols-[1fr_auto_auto]"
               >
                 <Link
                   href={`/interventions/${it.id}`}
@@ -226,7 +233,7 @@ export function InterventionsClient() {
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="shrink-0 text-destructive hover:text-destructive"
+                  className="hidden shrink-0 text-destructive hover:text-destructive sm:inline-flex"
                   aria-label={`Delete intervention for ${clientName}`}
                   onClick={(e) => {
                     e.preventDefault();
@@ -247,7 +254,7 @@ export function InterventionsClient() {
         </div>
       </div>
 
-      <div className="pointer-events-none fixed bottom-6 right-6 z-40">
+      <div className="pointer-events-none fixed bottom-6 right-6 z-40 hidden md:block">
         <Button
           className="pointer-events-auto shadow-lg"
           size="lg"

@@ -175,7 +175,7 @@ export function InterventionEditClient({ id }: { id: string }) {
 
   return (
     <div className="space-y-5">
-      <header className="flex items-start justify-between gap-4">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
             <Link className="inline-flex items-center gap-2 text-sm underline" href="/interventions">
@@ -197,7 +197,7 @@ export function InterventionEditClient({ id }: { id: string }) {
             ) : null}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <InterventionStatusBadge intervention={intervention} />
           <Button type="button" variant="outline" onClick={() => setPdfOpen(true)}>
             <FileDown className="h-4 w-4" />

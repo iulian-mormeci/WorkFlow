@@ -84,6 +84,14 @@ export function SettingsClient() {
         data: { user }
       } = await supabase.auth.getUser();
       if (cancelled || !user) return;
+      // Hydrate default support email from user metadata when local is empty.
+      const metaSupport = user.user_metadata?.support_email_to;
+      const cloudSupport = typeof metaSupport === "string" ? metaSupport.trim() : "";
+      const localSupport = getSupportEmailTo().trim();
+      if (cloudSupport && !localSupport) {
+        setSupportEmail(cloudSupport);
+        setSupportEmailTo(cloudSupport);
+      }
       const meta = user.user_metadata?.office_address;
       const fromCloud = typeof meta === "string" ? meta.trim() : "";
       let local = "";
@@ -118,6 +126,18 @@ export function SettingsClient() {
     }
   };
 
+  const persistSupportEmailToCloud = async (value: string) => {
+    if (!supabase) return;
+    const trimmed = value.trim();
+    try {
+      await supabase.auth.updateUser({
+        data: { support_email_to: trimmed || undefined }
+      });
+    } catch {
+      /* ignore */
+    }
+  };
+
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <div className="lg:col-span-2 text-xs text-muted-foreground">
@@ -149,11 +169,12 @@ export function SettingsClient() {
                 localStorage.setItem("workflow:techName", e.target.value);
               }}
               placeholder="e.g. Mario Rossi"
+              className="min-h-12 touch-manipulation text-base"
             />
           </div>
 
           <div className="mt-4 flex flex-col gap-2">
-            <div className="text-sm font-medium">Support email (Send to Support)</div>
+            <div className="text-sm font-medium">Email di supporto predefinita</div>
             <Input
               value={supportEmail}
               onChange={(e) => {
@@ -161,11 +182,13 @@ export function SettingsClient() {
                 setSupportEmail(v);
                 setSupportEmailTo(v);
               }}
+              onBlur={() => void persistSupportEmailToCloud(supportEmail)}
               placeholder="support@company.com"
               inputMode="email"
+              className="min-h-12 touch-manipulation text-base"
             />
             <div className="text-xs text-muted-foreground">
-              Used when sending scanned documents. Leave empty to disable sending.
+              Verrà pre-compilata nel campo “To:” quando invii un documento. Si sincronizza sul profilo quando sei online.
             </div>
           </div>
 
@@ -180,6 +203,7 @@ export function SettingsClient() {
               }}
               placeholder="you@company.com"
               inputMode="email"
+              className="min-h-12 touch-manipulation text-base"
             />
             <div className="text-xs text-muted-foreground">
               Used when an intervention enables reminders but leaves its own email blank. Requires Resend env on
@@ -189,7 +213,7 @@ export function SettingsClient() {
               type="button"
               variant="outline"
               size="sm"
-              className="w-fit"
+              className="w-fit min-h-11 touch-manipulation"
               onClick={async () => {
                 if (typeof Notification === "undefined") return;
                 const p = await Notification.requestPermission();

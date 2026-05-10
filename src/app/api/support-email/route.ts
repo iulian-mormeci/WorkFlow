@@ -15,8 +15,10 @@ export async function POST(req: Request) {
 
   const form = await req.formData();
   const to = String(form.get("to") ?? defaultTo ?? "").trim();
-  const title = String(form.get("title") ?? "WorkFlow Document");
-  const note = String(form.get("note") ?? "").trim();
+  const title = String(form.get("title") ?? "WorkFlow Document").trim();
+  const subjectRaw = String(form.get("subject") ?? "").trim();
+  const message = String(form.get("message") ?? "").trim();
+  const note = String(form.get("note") ?? "").trim(); // backwards compat
   const file = form.get("file");
   if (!(file instanceof File)) {
     return new NextResponse("Missing file", { status: 400 });
@@ -27,12 +29,29 @@ export async function POST(req: Request) {
 
   const bytes = Buffer.from(await file.arrayBuffer());
 
+  const subject = subjectRaw || `[WorkFlow] Documento - ${title || "Documento"}`;
+  const body =
+    [
+      "WorkFlow — Documento allegato",
+      "",
+      `Titolo: ${title || "—"}`,
+      `File: ${file.name}`,
+      message ? "" : null,
+      message ? "Messaggio:" : null,
+      message ? message : null,
+      !message && note ? "" : null,
+      !message && note ? "Nota:" : null,
+      !message && note ? note : null
+    ]
+      .filter((x) => x != null)
+      .join("\n") + "\n";
+
   const resend = new Resend(apiKey);
   await resend.emails.send({
     from,
     to,
-    subject: `[WorkFlow] ${title}`,
-    text: `WorkFlow document attached.\n\nTitle: ${title}\nFilename: ${file.name}\n${note ? `\nNote:\n${note}\n` : ""}`,
+    subject,
+    text: body,
     attachments: [
       {
         filename: file.name,
