@@ -56,34 +56,74 @@ export function SendToSupportDialog({
     return to.trim().includes("@") && title.trim().length > 0 && Boolean(attachmentId);
   }, [to, title, attachmentId]);
 
+  async function sendDirect() {
+    const email = to.trim();
+    console.info("[SendDocument] starting send to", email, { documentId, attachmentId, title });
+
+    const a = await db.attachments.get(attachmentId);
+    if (!a) throw new Error("PDF attachment not found");
+
+    const fd = new FormData();
+    fd.append("to", email);
+    fd.append("title", title.trim());
+    if (note.trim()) fd.append("note", note.trim());
+    fd.append("file", new File([a.blob], a.name ?? "document.pdf", { type: "application/pdf" }));
+
+    console.info("[SendDocument] POST /api/support-email (fetch start)");
+    const res = await fetch("/api/support-email", { method: "POST", body: fd });
+    console.info("[SendDocument] POST /api/support-email (fetch done)", { ok: res.ok, status: res.status });
+    if (!res.ok) throw new Error(await res.text());
+  }
+
   async function sendOrQueue() {
     if (!canSend) return;
     setSending(true);
     try {
       // Persist last-used recipient for next time (user can override per send).
       setSupportEmailTo(to.trim());
-      const outboxId = crypto.randomUUID();
-      await queueSupportEmail({
-        id: outboxId,
-        to: to.trim(),
-        title: title.trim(),
-        note: note.trim() || undefined,
-        documentId,
-        attachmentId,
-        interventionId: undefined,
-        lastError: undefined
-      });
-
       if (!online) {
+        console.info("[SendDocument] offline; queueing email", { to: to.trim(), documentId });
+        const outboxId = crypto.randomUUID();
+        await queueSupportEmail({
+          id: outboxId,
+          to: to.trim(),
+          title: title.trim(),
+          note: note.trim() || undefined,
+          documentId,
+          attachmentId,
+          interventionId: undefined,
+          lastError: undefined
+        });
         toast({ title: "Queued", description: "Will send automatically when online." });
         onOpenChange(false);
         return;
       }
 
-      await flushSupportEmailOutbox();
+      // Online: send immediately with direct fetch (strong debug visibility).
+      try {
+        await sendDirect();
+      } catch (e) {
+        console.error("[SendDocument] failed", e);
+        toast({
+          title: "Send failed",
+          description: e instanceof Error ? e.message : String(e),
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Also flush any queued items (best-effort).
+      try {
+        console.info("[SendDocument] flushing outbox…");
+        await flushSupportEmailOutbox();
+        console.info("[SendDocument] flush complete");
+      } catch (e) {
+        console.error("[SendDocument] flush failed", e);
+      }
       toast({ title: "Sent", description: "Document emailed to support." });
       onOpenChange(false);
     } catch (e: any) {
+      console.error("[SendDocument] failed", e);
       toast({
         title: "Send failed",
         description: e?.message ?? "Could not send",

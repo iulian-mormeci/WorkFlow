@@ -107,7 +107,8 @@ export function DocumentDetailClient({ id }: { id: string }) {
     );
   }
 
-  const canSend = typeof navigator !== "undefined" ? navigator.onLine : false;
+  // Allow opening the send dialog even when offline (it can queue).
+  const canOpenSend = true;
 
   return (
     <div className="space-y-5">
@@ -137,8 +138,11 @@ export function DocumentDetailClient({ id }: { id: string }) {
           </Button>
           <Button
             variant="outline"
-            disabled={!canSend}
-            onClick={() => setSendOpen(true)}
+            disabled={!canOpenSend}
+            onClick={() => {
+              console.info("[SendDocument] open send dialog", { documentId: doc.id });
+              setSendOpen(true);
+            }}
           >
             <Send className="h-4 w-4" />
             Send
