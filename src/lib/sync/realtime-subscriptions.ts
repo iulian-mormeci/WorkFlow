@@ -43,6 +43,18 @@ export function startWorkflowRealtime(
         user_id: (payload.old as Record<string, unknown> | null)?.user_id
       });
     }
+    if ((ev === "UPDATE" || ev === "INSERT") && table === "wf_interventions") {
+      const n = payload.new as Record<string, unknown> | null;
+      if (n) {
+        console.info("[realtime] wf_interventions change", {
+          id: n.id,
+          timer_run_state: n.timer_run_state,
+          timer_started_at: n.timer_started_at,
+          timer_accumulated_seconds: n.timer_accumulated_seconds,
+          updated_at: n.updated_at
+        });
+      }
+    }
 
     void applyRealtimePostgresChange(supabase, userId, {
       eventType: payload.eventType,

@@ -19,6 +19,7 @@ import { startOfDay } from "@/lib/dates";
 import { DueCountdown } from "@/components/interventions/due-countdown";
 import { InterventionFormDialog } from "@/components/interventions/intervention-form-dialog";
 import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
+import { useSecondTicker } from "@/hooks/use-second-ticker";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { performInterventionCloudSyncDelete } from "@/lib/sync/cloud-delete";
 import { scheduleWorkflowSync } from "@/lib/sync/sync-engine";
@@ -48,6 +49,8 @@ function formatTime(iso: string) {
 export function InterventionsClient() {
   const { toast } = useToast();
   const liveEpoch = useWorkflowLiveEpoch();
+  const tick = useSecondTicker(1000);
+  void tick;
   const [q, setQ] = useState("");
   const [scope, setScope] = useState<ListScope>("today");
   const [status, setStatus] = useState<StatusFilter>("all");

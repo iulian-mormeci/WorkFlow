@@ -7,6 +7,7 @@ import { db } from "@/lib/db/workflow-db";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DueCountdown } from "@/components/interventions/due-countdown";
 import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
+import { useSecondTicker } from "@/hooks/use-second-ticker";
 import {
   formatElapsedHms,
   getTimerElapsedSeconds,
@@ -25,6 +26,8 @@ function fmtShort(iso: string) {
 
 export function DashboardAttention() {
   const liveEpoch = useWorkflowLiveEpoch();
+  const tick = useSecondTicker(1000);
+  void tick;
   const clients = useLiveQuery(async () => db.clients.toArray(), [liveEpoch]);
   const data = useLiveQuery(async () => {
     const all = await db.interventions.toArray();

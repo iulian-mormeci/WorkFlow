@@ -6,6 +6,7 @@ import { Pause, Play, Square, Timer } from "lucide-react";
 import { db } from "@/lib/db/workflow-db";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { syncWorkflowNow } from "@/lib/sync/sync-engine";
 import {
   formatElapsedHms,
   getTimerElapsedSeconds,
@@ -66,6 +67,7 @@ export function InterventionTimerPanel({ interventionId }: { interventionId: str
                 timerAccumulatedSeconds: Math.max(0, Math.floor(iv.timerAccumulatedSeconds ?? 0)),
                 status: "in_progress"
               });
+              syncWorkflowNow();
               toast({ title: "Timer started" });
             }}
           >
@@ -87,6 +89,7 @@ export function InterventionTimerPanel({ interventionId }: { interventionId: str
                   timerAccumulatedSeconds: acc,
                   status: "in_progress"
                 });
+                syncWorkflowNow();
                 toast({ title: "Paused", description: "Timer frozen at current total." });
               }}
             >
@@ -107,6 +110,7 @@ export function InterventionTimerPanel({ interventionId }: { interventionId: str
                   status: "completed",
                   endAt: endIso
                 });
+                syncWorkflowNow();
                 toast({
                   title: "Visit completed",
                   description: `Duration saved: ${formatElapsedHms(acc)}`
@@ -129,6 +133,7 @@ export function InterventionTimerPanel({ interventionId }: { interventionId: str
                   timerStartedAt: new Date().toISOString(),
                   status: "in_progress"
                 });
+                syncWorkflowNow();
                 toast({ title: "Resumed" });
               }}
             >
@@ -149,6 +154,7 @@ export function InterventionTimerPanel({ interventionId }: { interventionId: str
                   status: "completed",
                   endAt: endIso
                 });
+                syncWorkflowNow();
                 toast({
                   title: "Visit completed",
                   description: `Duration saved from tracked time.`

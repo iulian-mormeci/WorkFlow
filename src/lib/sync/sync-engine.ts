@@ -1063,6 +1063,26 @@ export function scheduleWorkflowSync() {
   }, SYNC_DEBOUNCE_MS);
 }
 
+/**
+ * For realtime-feel interactions (timer start/pause/stop): push without waiting
+ * for the debounce window. Still offline-first: if offline, we just mark pending.
+ */
+export function syncWorkflowNow() {
+  if (typeof window === "undefined") return;
+  if (!navigator.onLine) {
+    useSyncUiStore.getState().setPhase("offline_pending");
+    void refreshPendingDirtyCount();
+    return;
+  }
+  if (syncMutationDepth > 0) return;
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+    debounceTimer = null;
+  }
+  const c = syncSupabase;
+  if (c) void runFullSync(c);
+}
+
 let hooksRegistered = false;
 
 export function registerWorkflowDexieSyncHooks() {

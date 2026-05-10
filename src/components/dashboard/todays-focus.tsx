@@ -8,6 +8,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import { DueCountdown } from "@/components/interventions/due-countdown";
 import { InterventionStatusBadge } from "@/components/interventions/intervention-status-badge";
 import { endOfDay, startOfDay } from "@/lib/dates";
+import { useSecondTicker } from "@/hooks/use-second-ticker";
 import {
   formatElapsedHms,
   getTimerElapsedSeconds,
@@ -23,6 +24,8 @@ function fmtTime(iso: string) {
 
 export function TodaysFocus() {
   const liveEpoch = useWorkflowLiveEpoch();
+  const tick = useSecondTicker(1000);
+  void tick;
   const now = new Date();
   const todayStart = startOfDay(now).toISOString();
   const todayEnd = endOfDay(now).toISOString();
