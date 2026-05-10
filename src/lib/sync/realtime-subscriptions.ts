@@ -15,6 +15,9 @@ const TABLES = [
 
 export type WorkflowRealtimeStop = () => void;
 
+let activeUserId: string | null = null;
+let activeStop: WorkflowRealtimeStop | null = null;
+
 /**
  * One Realtime channel with multiple `postgres_changes` listeners (efficient vs N channels).
  *
@@ -25,6 +28,20 @@ export function startWorkflowRealtime(
   supabase: SupabaseClient,
   userId: string
 ): WorkflowRealtimeStop {
+  // Guard: if called multiple times (e.g. layout remounts), do not re-register callbacks
+  // on an already-subscribed channel (Supabase will throw).
+  if (activeUserId === userId && activeStop) return activeStop;
+
+  if (activeStop) {
+    try {
+      activeStop();
+    } catch {
+      /* ignore */
+    }
+    activeStop = null;
+    activeUserId = null;
+  }
+
   const channel = supabase.channel(`workflow-db:${userId}`);
 
   const handler = (payload: {
@@ -83,7 +100,12 @@ export function startWorkflowRealtime(
     }
   });
 
-  return () => {
+  const stop = () => {
     void supabase.removeChannel(channel);
   };
+
+  activeUserId = userId;
+  activeStop = stop;
+
+  return stop;
 }
