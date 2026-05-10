@@ -39,6 +39,7 @@ import { QuickNoteFab } from "@/components/notes/quick-note-fab";
 import { DueCountdown } from "@/components/interventions/due-countdown";
 import { InterventionStatusBadge } from "@/components/interventions/intervention-status-badge";
 import { InterventionTimerPanel } from "@/components/interventions/intervention-timer-panel";
+import { RouteStopsEditor } from "@/components/interventions/route-stops-editor";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { IconBubble } from "@/components/ui/icon";
@@ -342,6 +343,21 @@ export function InterventionEditClient({ id }: { id: string }) {
           <div className="hidden lg:block" aria-hidden />
         )}
       </div>
+
+      <Card className="rounded-2xl">
+        <CardHeader className="space-y-2">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <CardTitle className="text-base">Advanced route (multi-stop)</CardTitle>
+              <CardDescription>Realtime stops list shared across devices.</CardDescription>
+            </div>
+            <IconBubble icon={MapPin} />
+          </div>
+        </CardHeader>
+        <div className="px-5 pb-5 md:px-6 md:pb-6">
+          <RouteStopsEditor interventionId={intervention.id} />
+        </div>
+      </Card>
 
       {intervention.notes ? (
         <Card className="rounded-2xl">

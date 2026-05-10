@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { DynamicChecklistEditor, type ChecklistRow } from "@/components/checklist/dynamic-checklist-editor";
 import { InterventionLocationFields } from "@/components/interventions/intervention-location-fields";
+import { RouteStopsEditor } from "@/components/interventions/route-stops-editor";
 import { JOB_TYPE_PRESETS } from "@/lib/interventions/job-types";
 import { preservedWorkflowStatus } from "@/lib/interventions/intervention-helpers";
 import {
@@ -662,14 +663,18 @@ export function InterventionFormDialog(props: Props) {
             ) : null}
           </div>
 
-          <InterventionLocationFields
-            start={startLocation}
-            end={endLocation}
-            autoKm={locationKmAuto}
-            onChangeStart={setStartLocation}
-            onChangeEnd={setEndLocation}
-            onAutoKm={setLocationKmAuto}
-          />
+          {mode === "edit" && interventionId ? (
+            <RouteStopsEditor interventionId={interventionId} />
+          ) : (
+            <InterventionLocationFields
+              start={startLocation}
+              end={endLocation}
+              autoKm={locationKmAuto}
+              onChangeStart={setStartLocation}
+              onChangeEnd={setEndLocation}
+              onAutoKm={setLocationKmAuto}
+            />
+          )}
 
           {/* KM + Notes */}
           <div className="grid gap-3 sm:grid-cols-2">
