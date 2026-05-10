@@ -11,10 +11,10 @@ import {
   Package,
   Plus,
   Save,
-  TimerReset,
-  Users
+  TimerReset
 } from "lucide-react";
 import { DynamicChecklistEditor, type ChecklistRow } from "@/components/checklist/dynamic-checklist-editor";
+import { ClientPickerField } from "@/components/clients/client-picker-field";
 import { InterventionLocationFields } from "@/components/interventions/intervention-location-fields";
 import { RouteStopsEditor, buildRoundTripStops } from "@/components/interventions/route-stops-editor";
 import type { RouteStopDraft } from "@/lib/routes/route-stops";
@@ -86,13 +86,38 @@ function computeDurationMinutes(startLocal: string, endLocal: string) {
   return Math.round((end - start) / 60000);
 }
 
-async function getOrCreateClientIdByName(nameRaw: string) {
+async function resolveClientIdForIntervention(
+  selectedClientId: string | null,
+  clientNameRaw: string
+): Promise<string> {
+  const name = clientNameRaw.trim();
+  if (name.length < 2) throw new Error("Client name too short");
+
   const nowIso = new Date().toISOString();
-  const name = nameRaw.trim();
+
+  if (selectedClientId) {
+    const cl = await db.clients.get(selectedClientId);
+    if (cl) {
+      if (cl.name.trim() !== name) {
+        await db.clients.update(selectedClientId, { name, updatedAt: nowIso });
+        scheduleWorkflowSync();
+      }
+      return selectedClientId;
+    }
+  }
+
   const existing = await db.clients.where("name").equalsIgnoreCase(name).first();
   if (existing) return existing.id;
+
   const id = crypto.randomUUID();
-  await db.clients.add({ id, name, createdAt: nowIso, updatedAt: nowIso });
+  await db.clients.add({
+    id,
+    name,
+    clientType: "other",
+    createdAt: nowIso,
+    updatedAt: nowIso
+  });
+  scheduleWorkflowSync();
   return id;
 }
 
@@ -119,6 +144,7 @@ export function InterventionFormDialog(props: Props) {
   }, [mode, interventionId]);
 
   const [clientName, setClientName] = useState("");
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [type, setType] = useState("maintenance");
   const [workCategory, setWorkCategory] = useState<WorkCategory>("intervention");
   const [isOfficeActivity, setIsOfficeActivity] = useState(false);
@@ -191,6 +217,7 @@ export function InterventionFormDialog(props: Props) {
       setEndLocation(undefined);
       setLocationKmAuto(undefined);
       setDraftStops([]);
+      setSelectedClientId(null);
       return;
     }
 
@@ -201,6 +228,7 @@ export function InterventionFormDialog(props: Props) {
 
       const client = clients?.find((c) => c.id === existing.clientId);
       setClientName(client?.name ?? "");
+      setSelectedClientId(existing.clientId ?? null);
       setType(existing.type ?? "maintenance");
       setWorkCategory(existing.workCategory ?? "intervention");
       setIsOfficeActivity(existing.isOfficeActivity ?? false);
@@ -254,6 +282,7 @@ export function InterventionFormDialog(props: Props) {
       const cl = await db.clients.get(cid);
       if (cancelled || !cl) return;
       setClientName(cl.name);
+      setSelectedClientId(cid);
     })();
     return () => {
       cancelled = true;
@@ -298,7 +327,7 @@ export function InterventionFormDialog(props: Props) {
     setSaving(true);
     try {
       const nowIso = new Date().toISOString();
-      const clientId = await getOrCreateClientIdByName(clientName);
+      const clientId = await resolveClientIdForIntervention(selectedClientId, clientName);
 
       const startIso = new Date(startAtLocal).toISOString();
       const endIso = endAtLocal ? new Date(endAtLocal).toISOString() : undefined;
@@ -548,26 +577,21 @@ export function InterventionFormDialog(props: Props) {
 
         <div className="mt-4 grid gap-5">
           {/* Client */}
-          <div className="grid gap-2">
-            <Label className="flex items-center gap-2">
-              <Icon icon={Users} />
-              Client
-            </Label>
-            <Input
-              value={clientName}
-              onChange={(e) => setClientName(e.target.value)}
-              placeholder="Restaurant / Shop name"
-              list="client-suggestions"
-            />
-            <datalist id="client-suggestions">
-              {(clients ?? []).slice(0, 60).map((c) => (
-                <option key={c.id} value={c.name} />
-              ))}
-            </datalist>
-            <div className="text-xs text-muted-foreground">
-              If it doesn’t exist, it will be created automatically.
-            </div>
-          </div>
+          <ClientPickerField
+            clients={clients}
+            clientName={clientName}
+            onClientNameChange={setClientName}
+            selectedClientId={selectedClientId}
+            onSelectClient={(id, name) => {
+              if (id) {
+                setSelectedClientId(id);
+                setClientName(name);
+              } else {
+                setSelectedClientId(null);
+              }
+            }}
+            disabled={saving}
+          />
 
           {/* Intervention vs activity */}
           <div className="grid gap-2">

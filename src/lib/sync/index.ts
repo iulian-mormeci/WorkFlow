@@ -21,6 +21,7 @@ export {
   deleteDocumentRemote,
   deleteVoiceAttachmentRemote,
   deleteTemplateRemote,
+  deleteClientRemote,
   type InterventionCloudDeleteResult
 } from "./cloud-delete";
 export { pushSyncFailure, useSyncFailureQueue } from "./sync-failure-queue";

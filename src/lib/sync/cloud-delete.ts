@@ -451,6 +451,20 @@ export async function deleteTemplateRemote(
   syncAuditLog("template_deleted_remote", { templateId });
 }
 
+export async function deleteClientRemote(
+  supabase: SupabaseClient,
+  userId: string,
+  clientId: string
+): Promise<void> {
+  const { error } = await supabase
+    .from("wf_clients")
+    .delete()
+    .eq("user_id", userId)
+    .eq("id", clientId);
+  if (error) throw new Error(error.message);
+  syncAuditLog("client_deleted_remote", { clientId });
+}
+
 export async function deleteDocumentRemote(
   supabase: SupabaseClient,
   userId: string,

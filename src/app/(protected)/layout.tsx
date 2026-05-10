@@ -3,9 +3,10 @@ import { SidebarSignOut } from "@/components/auth/sidebar-sign-out";
 import { SyncStatus } from "@/components/sync/sync-status";
 import { GlobalSearch } from "@/components/search/global-search";
 import { KeyboardShortcutsDialog } from "@/components/shortcuts/keyboard-shortcuts-dialog";
-import { SidebarNav, type SidebarNavItem } from "@/components/layout/sidebar-nav";
+import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { InterventionRemindersProvider } from "@/components/interventions/intervention-reminders-provider";
-import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
+import { MobileMenu } from "@/components/layout/mobile-menu";
+import { PROTECTED_NAV_ITEMS } from "@/lib/navigation/protected-nav";
 
 // Protected area must never be statically cached.
 export const dynamic = "force-dynamic";
@@ -21,19 +22,6 @@ export default async function ProtectedLayout({
   // persist refreshed cookies). We keep this layout fast and stable.
   const userEmail = undefined;
 
-  const nav: readonly SidebarNavItem[] = [
-    { href: "/dashboard", label: "Home", iconName: "home" },
-    { href: "/interventions", label: "Interventions", iconName: "interventions" },
-    { href: "/templates", label: "Templates", iconName: "templates" },
-    { href: "/documents", label: "Documents", iconName: "documents" },
-    { href: "/crm-tickets", label: "CRM Tickets", iconName: "crmTickets" },
-    { href: "/clients", label: "Clients", iconName: "clients" },
-    { href: "/spare-parts", label: "Spare Parts", iconName: "spareParts" },
-    { href: "/reports", label: "Reports", iconName: "reports" },
-    { href: "/statistics", label: "Statistics", iconName: "statistics" },
-    { href: "/settings", label: "Settings", iconName: "settings" }
-  ] as const;
-
   return (
     <div
       className="min-h-dvh bg-background"
@@ -41,7 +29,7 @@ export default async function ProtectedLayout({
         paddingTop: "env(safe-area-inset-top)"
       }}
     >
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 px-3 py-3 md:grid-cols-[300px_1fr] md:px-6 md:py-6">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 px-3 py-3 max-md:pt-[3.75rem] md:grid-cols-[300px_1fr] md:px-6 md:py-6 md:pt-6">
         <aside className="hidden rounded-2xl border bg-background p-4 md:sticky md:top-6 md:block md:h-[calc(100dvh-3rem)] md:overflow-auto">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
@@ -62,7 +50,7 @@ export default async function ProtectedLayout({
 
           <SyncStatus />
 
-          <SidebarNav items={nav} />
+          <SidebarNav items={PROTECTED_NAV_ITEMS} />
 
           <div className="mt-6 rounded-xl border bg-muted p-3 text-xs text-muted-foreground">
             Offline-first. Data is stored locally and can sync later.
@@ -78,14 +66,14 @@ export default async function ProtectedLayout({
           </div>
         </aside>
 
-        <main className="rounded-2xl border bg-background p-4 pb-32 md:p-6 md:pb-6">
+        <main className="rounded-2xl border bg-background p-4 pb-24 max-md:pb-28 md:p-6 md:pb-6">
           {/* Client: polls Dexie every 45s for due reminders (notifications + email). */}
           <InterventionRemindersProvider />
           {children}
         </main>
       </div>
 
-      <MobileBottomNav />
+      <MobileMenu items={PROTECTED_NAV_ITEMS} />
     </div>
   );
 }

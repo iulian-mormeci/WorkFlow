@@ -27,14 +27,29 @@ export type SyncMeta = {
   remoteId?: string;
 };
 
+/** Synced with public.wf_clients.client_type (text). */
+export type ClientType = "company" | "private" | "restaurant" | "shop" | "other";
+
+export const CLIENT_TYPES: readonly ClientType[] = [
+  "company",
+  "private",
+  "restaurant",
+  "shop",
+  "other"
+] as const;
+
 export type Client = {
   id: Id;
   name: string;
+  contactPerson?: string;
   address?: string;
   city?: string;
+  postalCode?: string;
   phone?: string;
   email?: string;
+  /** Legacy cloud column; not shown or edited in the app. */
   vatNumber?: string;
+  clientType?: ClientType;
   notes?: string;
   createdAt: string;
   updatedAt: string;
@@ -423,6 +438,30 @@ export class WorkFlowDB extends Dexie {
         "&id, status, to, createdAt, updatedAt, documentId, interventionId, syncedAt",
       templates: "&id, name, updatedAt, workCategory, syncedAt"
     });
+
+    this.version(16)
+      .stores({
+        clients: "&id, name, clientType, updatedAt, syncedAt",
+        interventions:
+          "&id, clientId, startAt, updatedAt, status, createdBy, timerStartedAt, workCategory, dueAt, timerRunState, syncedAt",
+        spareParts: "&id, sku, name, updatedAt, syncedAt",
+        stockMovements: "&id, sparePartId, createdAt, interventionId, syncedAt",
+        tickets:
+          "&id, status, priority, reminderAt, dueAt, updatedAt, clientId, interventionId, syncedAt",
+        attachments: "&id, kind, createdAt, mime, syncedAt",
+        documents: "&id, interventionId, createdAt, title, syncedAt",
+        supportEmailOutbox:
+          "&id, status, to, createdAt, updatedAt, documentId, interventionId, syncedAt",
+        templates: "&id, name, updatedAt, workCategory, syncedAt"
+      })
+      .upgrade(async (tx) => {
+        await tx
+          .table("clients")
+          .toCollection()
+          .modify((row: Record<string, unknown>) => {
+            if (row.clientType == null) row.clientType = "other";
+          });
+      });
   }
 }
 

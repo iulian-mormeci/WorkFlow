@@ -29,7 +29,8 @@ export type SidebarIconName =
   | "statistics"
   | "settings";
 
-const iconMap = {
+/** Lucide icons for each `SidebarIconName` (sidebar + mobile menu). */
+export const SIDEBAR_NAV_ICONS = {
   home: Home,
   interventions: ClipboardList,
   templates: Layers,
@@ -40,7 +41,7 @@ const iconMap = {
   reports: BarChart3,
   statistics: LineChart,
   settings: Settings
-} satisfies Record<SidebarIconName, any>;
+} satisfies Record<SidebarIconName, typeof Home>;
 
 export type SidebarNavItem = {
   href: string;
@@ -55,7 +56,7 @@ export function SidebarNav({ items }: { items: readonly SidebarNavItem[] }) {
     <nav className="mt-5 grid gap-1">
       {items.map((item) => {
         const active = pathname === item.href || pathname.startsWith(item.href + "/");
-        const IconCmp = iconMap[item.iconName] ?? Home;
+        const IconCmp = SIDEBAR_NAV_ICONS[item.iconName] ?? Home;
         return (
           <Link
             key={item.href}

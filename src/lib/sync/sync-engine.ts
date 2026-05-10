@@ -130,26 +130,46 @@ function clientToRow(c: Client, userId: string) {
     id: c.id,
     user_id: userId,
     name: c.name,
+    contact_person: c.contactPerson ?? null,
     address: c.address ?? null,
     city: c.city ?? null,
+    postal_code: c.postalCode ?? null,
     phone: c.phone ?? null,
     email: c.email ?? null,
     vat_number: c.vatNumber ?? null,
+    client_type: c.clientType ?? "other",
     notes: c.notes ?? null,
     created_at: c.createdAt,
     updated_at: c.updatedAt
   };
 }
 
+function normalizeClientType(v: unknown): Client["clientType"] {
+  const s = typeof v === "string" ? v : "other";
+  if (
+    s === "company" ||
+    s === "private" ||
+    s === "restaurant" ||
+    s === "shop" ||
+    s === "other"
+  ) {
+    return s;
+  }
+  return "other";
+}
+
 function clientFromRow(r: Record<string, unknown>): Client {
   return {
     id: String(r.id),
     name: String(r.name),
+    contactPerson: (r.contact_person as string) ?? undefined,
     address: (r.address as string) ?? undefined,
     city: (r.city as string) ?? undefined,
+    postalCode: (r.postal_code as string) ?? undefined,
     phone: (r.phone as string) ?? undefined,
     email: (r.email as string) ?? undefined,
     vatNumber: (r.vat_number as string) ?? undefined,
+    clientType: normalizeClientType(r.client_type),
     notes: (r.notes as string) ?? undefined,
     createdAt: iso(r.created_at),
     updatedAt: iso(r.updated_at),
