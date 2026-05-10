@@ -21,20 +21,18 @@ WorkFlow is a progressive web app (PWA) for managing interventions, clients, doc
 
 ## Key features
 
-| Icon | Feature | What you get |
-|:-:|---|---|
-| 🛠️ | **Interventions & activities** | Schedule, status, timers, KM, checklists, photos, voice notes |
-| 📷 | **Document scanner** | Capture PDFs on-site, attach to visits, send to support when online |
-| 🔔 | **Reminders** | Pre-due and due notifications (browser + optional email via Resend) |
-| ☁️ | **Multi-device sync** | Supabase + Realtime; merge rules favour recent local edits |
-| 📄 | **PDF export** | Printable intervention reports for customers or archives |
-| 👥 | **Clients & CRM tickets** | Structured customer data and lightweight ticket tracking |
-| 📦 | **Spare parts & stock** | Movements linked to interventions |
-| 📋 | **Templates** | Start new visits from repeatable presets |
-| 📊 | **Reports & statistics** | Exports and operational visibility |
-| 📱 | **PWA install** | Add to Home Screen for an app-like experience |
-
-Italian labels for the same areas: **Interventi** · **Scanner** · **Promemoria** · **Sync** · **PDF** · **Clienti** · **Ricambi** · **Ticket** · **Modelli** · **Report** · **PWA**
+| Icon | Feature | What you get | Area (IT) |
+|:-:|---|---|---|
+| 🛠️ | **Interventions & activities** | Schedule, status, timers, KM, checklists, photos, voice notes | Interventi |
+| 📷 | **Document scanner** | Capture PDFs on-site, attach to visits, send to support when online | Scanner |
+| 🔔 | **Reminders** | Pre-due and due notifications (browser + optional email via Resend) | Promemoria |
+| ☁️ | **Multi-device sync** | Supabase + Realtime; merge rules favour recent local edits | Sync |
+| 📄 | **PDF export** | Printable intervention reports for customers or archives | PDF |
+| 👥 | **Clients & CRM tickets** | Structured customer data and lightweight ticket tracking | Clienti · Ticket |
+| 📦 | **Spare parts & stock** | Movements linked to interventions | Ricambi |
+| 📋 | **Templates** | Start new visits from repeatable presets | Modelli |
+| 📊 | **Reports & statistics** | Exports and operational visibility | Report |
+| 📱 | **PWA install** | Add to Home Screen for an app-like experience | PWA |
 
 ---
 
