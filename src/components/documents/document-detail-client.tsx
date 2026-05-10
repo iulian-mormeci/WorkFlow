@@ -141,7 +141,7 @@ export function DocumentDetailClient({ id }: { id: string }) {
             onClick={() => setSendOpen(true)}
           >
             <Send className="h-4 w-4" />
-            Send to Support
+            Send
           </Button>
           <Button
             variant="outline"

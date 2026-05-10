@@ -4,11 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth";
+import { getAuthCallbackUrl } from "@/lib/supabase/site-url";
 
 function getRedirectTo() {
-  if (typeof window === "undefined") return undefined;
-  const origin = window.location.origin;
-  return `${origin}/auth/callback`;
+  return getAuthCallbackUrl();
 }
 
 export function LoginClient() {

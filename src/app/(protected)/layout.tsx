@@ -5,6 +5,7 @@ import { GlobalSearch } from "@/components/search/global-search";
 import { KeyboardShortcutsDialog } from "@/components/shortcuts/keyboard-shortcuts-dialog";
 import { SidebarNav, type SidebarNavItem } from "@/components/layout/sidebar-nav";
 import { InterventionRemindersProvider } from "@/components/interventions/intervention-reminders-provider";
+import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 
 // Protected area must never be statically cached.
 export const dynamic = "force-dynamic";
@@ -35,8 +36,8 @@ export default async function ProtectedLayout({
 
   return (
     <div className="min-h-dvh bg-background">
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 px-4 py-4 md:grid-cols-[300px_1fr] md:px-6 md:py-6">
-        <aside className="rounded-2xl border bg-background p-4 md:sticky md:top-6 md:h-[calc(100dvh-3rem)] md:overflow-auto">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 px-3 py-3 md:grid-cols-[300px_1fr] md:px-6 md:py-6">
+        <aside className="hidden rounded-2xl border bg-background p-4 md:sticky md:top-6 md:block md:h-[calc(100dvh-3rem)] md:overflow-auto">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <div className="text-base font-semibold tracking-tight">
@@ -72,12 +73,14 @@ export default async function ProtectedLayout({
           </div>
         </aside>
 
-        <main className="rounded-2xl border bg-background p-4 md:p-6">
+        <main className="rounded-2xl border bg-background p-4 pb-24 md:p-6 md:pb-6">
           {/* Client: polls Dexie every 45s for due reminders (notifications + email). */}
           <InterventionRemindersProvider />
           {children}
         </main>
       </div>
+
+      <MobileBottomNav />
     </div>
   );
 }

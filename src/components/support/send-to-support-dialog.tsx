@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { db } from "@/lib/db/workflow-db";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { useToast } from "@/hooks/use-toast";
-import { getSupportEmailTo } from "@/lib/support-email/config";
+import { getSupportEmailTo, setSupportEmailTo } from "@/lib/support-email/config";
 import { flushSupportEmailOutbox, queueSupportEmail } from "@/lib/support-email/send";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,6 +60,8 @@ export function SendToSupportDialog({
     if (!canSend) return;
     setSending(true);
     try {
+      // Persist last-used recipient for next time (user can override per send).
+      setSupportEmailTo(to.trim());
       const outboxId = crypto.randomUUID();
       await queueSupportEmail({
         id: outboxId,
@@ -105,7 +107,13 @@ export function SendToSupportDialog({
         <div className="mt-4 grid gap-3">
           <div className="grid gap-2">
             <Label>To</Label>
-            <Input value={to} onChange={(e) => setTo(e.target.value)} placeholder="support@company.com" />
+            <Input
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              onBlur={() => setSupportEmailTo(to.trim())}
+              placeholder="support@company.com"
+              inputMode="email"
+            />
             {interventionRef ? (
               <div className="text-xs text-muted-foreground">Intervention: {interventionRef}</div>
             ) : null}

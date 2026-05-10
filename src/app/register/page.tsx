@@ -3,12 +3,12 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { getAuthCallbackUrl } from "@/lib/supabase/site-url";
 
 function getEmailRedirectTo() {
-  if (typeof window === "undefined") return undefined;
-  const origin = window.location.origin;
-  // After email confirmation, Supabase will redirect back with a code/session
-  return `${origin}/auth/callback`;
+  // After email confirmation, Supabase will redirect back with a code/session.
+  // Use configured site URL (prevents localhost redirects in production).
+  return getAuthCallbackUrl();
 }
 
 export default function RegisterPage() {

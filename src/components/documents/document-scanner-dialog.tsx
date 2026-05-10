@@ -76,6 +76,7 @@ export function DocumentScannerDialog({
   const [enhance, setEnhance] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadPct, setUploadPct] = useState<number | null>(null);
+  const [adding, setAdding] = useState(false);
 
   const canSave = useMemo(
     () => title.trim().length > 2 && pages.length > 0,
@@ -96,13 +97,32 @@ export function DocumentScannerDialog({
   }, [open, defaultTitle]);
 
   async function addFiles(files: File[]) {
-    const items: PageItem[] = files.map((f) => ({
-      id: crypto.randomUUID(),
-      file: f,
-      rotation: 0,
-      originalUrl: URL.createObjectURL(f)
-    }));
-    setPages((s) => [...s, ...items]);
+    if (!files.length) return;
+    setAdding(true);
+    try {
+      const items: PageItem[] = [];
+      for (const f of files) {
+        const originalUrl = URL.createObjectURL(f);
+        const it: PageItem = {
+          id: crypto.randomUUID(),
+          file: f,
+          rotation: 0,
+          originalUrl
+        };
+        if (enhance) {
+          try {
+            const raw = await fileToDataUrl(f);
+            it.enhancedUrl = await enhanceToJpegDataUrl(raw);
+          } catch {
+            // ignore enhancement errors; still keep the page
+          }
+        }
+        items.push(it);
+      }
+      setPages((s) => [...s, ...items]);
+    } finally {
+      setAdding(false);
+    }
   }
 
   function removePage(id: string) {
@@ -138,7 +158,7 @@ export function DocumentScannerDialog({
 
   async function getProcessedDataUrl(p: PageItem) {
     const raw = await fileToDataUrl(p.file);
-    const imgData = enhance ? await enhanceToJpegDataUrl(raw) : raw;
+    const imgData = enhance ? (p.enhancedUrl ?? (await enhanceToJpegDataUrl(raw))) : raw;
 
     if (p.rotation === 0) return imgData;
 
@@ -296,19 +316,39 @@ export function DocumentScannerDialog({
 
           <div className="grid gap-2">
             <Label>Pages</Label>
-            <input
-              className="h-12 w-full rounded-xl border bg-background px-3 text-sm"
-              type="file"
-              accept="image/*"
-              multiple
-              capture="environment"
-              onChange={(e) => {
-                const files = Array.from(e.target.files ?? []);
-                void addFiles(files);
-              }}
-            />
+            <div className="grid gap-2 sm:grid-cols-2">
+              <label className="grid gap-2">
+                <span className="text-xs font-medium text-muted-foreground">Add pages (camera)</span>
+                <input
+                  className="h-12 w-full rounded-xl border bg-background px-3 text-sm"
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files ?? []);
+                    void addFiles(files);
+                    // allow selecting the same file again
+                    e.currentTarget.value = "";
+                  }}
+                />
+              </label>
+              <label className="grid gap-2">
+                <span className="text-xs font-medium text-muted-foreground">Add multiple (library)</span>
+                <input
+                  className="h-12 w-full rounded-xl border bg-background px-3 text-sm"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files ?? []);
+                    void addFiles(files);
+                    e.currentTarget.value = "";
+                  }}
+                />
+              </label>
+            </div>
             <div className="text-xs text-muted-foreground">
-              Tip: on iPad, this opens the camera. Take multiple photos to create a multi-page PDF.
+              Take a photo, then tap the camera input again to add another page. Reorder, rotate, delete, then save one PDF.
             </div>
           </div>
 
@@ -339,16 +379,36 @@ export function DocumentScannerDialog({
                     <div className="flex items-center justify-between gap-2">
                       <div className="text-sm font-semibold">Page {idx + 1}</div>
                       <div className="flex items-center gap-2">
-                        <Button variant="outline" type="button" onClick={() => move(p.id, -1)}>
+                        <Button
+                          variant="outline"
+                          type="button"
+                          className="min-h-11 touch-manipulation"
+                          onClick={() => move(p.id, -1)}
+                        >
                           Up
                         </Button>
-                        <Button variant="outline" type="button" onClick={() => move(p.id, 1)}>
+                        <Button
+                          variant="outline"
+                          type="button"
+                          className="min-h-11 touch-manipulation"
+                          onClick={() => move(p.id, 1)}
+                        >
                           Down
                         </Button>
-                        <Button variant="outline" type="button" onClick={() => rotate(p.id)}>
+                        <Button
+                          variant="outline"
+                          type="button"
+                          className="min-h-11 touch-manipulation"
+                          onClick={() => rotate(p.id)}
+                        >
                           Rotate
                         </Button>
-                        <Button variant="outline" type="button" onClick={() => removePage(p.id)}>
+                        <Button
+                          variant="outline"
+                          type="button"
+                          className="min-h-11 touch-manipulation"
+                          onClick={() => removePage(p.id)}
+                        >
                           Delete
                         </Button>
                       </div>
@@ -357,7 +417,7 @@ export function DocumentScannerDialog({
                     <div className="mt-3 overflow-hidden rounded-2xl border bg-muted">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={p.originalUrl}
+                        src={enhance ? (p.enhancedUrl ?? p.originalUrl) : p.originalUrl}
                         alt={`Page ${idx + 1}`}
                         className="h-48 w-full object-contain"
                         style={{ transform: `rotate(${p.rotation}deg)` }}
@@ -391,8 +451,8 @@ export function DocumentScannerDialog({
             <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button disabled={!canSave || saving} type="button" onClick={savePdf}>
-              {saving ? (uploadPct != null ? `Upload ${uploadPct}%` : "Saving…") : "Save PDF"}
+            <Button disabled={!canSave || saving || adding} type="button" onClick={savePdf}>
+              {adding ? "Adding…" : saving ? (uploadPct != null ? `Upload ${uploadPct}%` : "Saving…") : "Save PDF"}
             </Button>
           </div>
         </div>
