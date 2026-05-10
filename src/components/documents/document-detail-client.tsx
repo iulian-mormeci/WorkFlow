@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { deleteDocumentRemote } from "@/lib/sync/cloud-delete";
+import { performDocumentCloudSyncDelete } from "@/lib/sync/cloud-delete";
+import { scheduleWorkflowSync } from "@/lib/sync/sync-engine";
 import { SendToSupportDialog } from "@/components/support/send-to-support-dialog";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -162,24 +163,25 @@ export function DocumentDetailClient({ id }: { id: string }) {
                 const {
                   data: { user }
                 } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
-                if (supabase && user && typeof navigator !== "undefined" && navigator.onLine) {
-                  await deleteDocumentRemote(supabase, user.id, {
+                const res = await performDocumentCloudSyncDelete({
+                  snap: {
                     documentId: doc.id,
                     attachmentId: doc.attachmentId,
                     interventionId: doc.interventionId ?? null
+                  },
+                  supabase: supabase ?? null,
+                  userId: user?.id ?? null
+                });
+                if (!res.ok) {
+                  toast({
+                    title: "Delete failed",
+                    description: res.message,
+                    variant: "destructive"
                   });
+                  return;
                 }
-                if (doc.interventionId) {
-                  const it = await db.interventions.get(doc.interventionId);
-                  const next = (it?.documentIds ?? []).filter((x) => x !== doc.id);
-                  await db.interventions.update(doc.interventionId, {
-                    documentIds: next,
-                    updatedAt: new Date().toISOString()
-                  });
-                }
-                await db.attachments.delete(doc.attachmentId);
-                await db.documents.delete(doc.id);
                 toast({ title: "Deleted", description: "Document removed." });
+                scheduleWorkflowSync();
                 window.location.href = "/documents";
               } catch (e: any) {
                 toast({

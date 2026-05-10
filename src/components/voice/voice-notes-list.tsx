@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { deleteVoiceAttachmentRemote } from "@/lib/sync/cloud-delete";
+import { performVoiceAttachmentCloudSyncDelete } from "@/lib/sync/cloud-delete";
+import { scheduleWorkflowSync } from "@/lib/sync/sync-engine";
 
 export function VoiceNotesList({ interventionId }: { interventionId: string }) {
   const { toast } = useToast();
@@ -87,20 +88,21 @@ export function VoiceNotesList({ interventionId }: { interventionId: string }) {
                     const {
                       data: { user }
                     } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
-                    if (supabase && user && typeof navigator !== "undefined" && navigator.onLine) {
-                      await deleteVoiceAttachmentRemote(supabase, user.id, {
-                        attachmentId: a.id,
-                        interventionId
-                      });
-                    }
-                    const nowIso = new Date().toISOString();
-                    await db.attachments.delete(a.id);
-                    const prev = intervention?.voiceNoteIds ?? [];
-                    await db.interventions.update(interventionId, {
-                      voiceNoteIds: prev.filter((x) => x !== a.id),
-                      updatedAt: nowIso
+                    const res = await performVoiceAttachmentCloudSyncDelete({
+                      snap: { attachmentId: a.id, interventionId },
+                      supabase: supabase ?? null,
+                      userId: user?.id ?? null
                     });
+                    if (!res.ok) {
+                      toast({
+                        title: "Delete failed",
+                        description: res.message,
+                        variant: "destructive"
+                      });
+                      return;
+                    }
                     toast({ title: "Deleted", description: "Voice note removed." });
+                    scheduleWorkflowSync();
                   } catch (e: any) {
                     toast({
                       title: "Delete failed",

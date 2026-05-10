@@ -25,8 +25,29 @@ export {
   performClientCloudSyncDelete,
   flushPendingClientDeletes,
   getPendingClientPullSkipContext,
+  performDocumentCloudSyncDelete,
+  performTemplateCloudSyncDelete,
+  performVoiceAttachmentCloudSyncDelete,
+  flushPendingDocumentDeletes,
+  flushPendingTemplateDeletes,
+  flushPendingAttachmentDeletes,
+  getPendingSyncPullSkipContext,
+  deleteSparePartRemote,
+  deleteStockMovementRemote,
+  deleteTicketRemote,
+  deleteOutboxRemote,
   type InterventionCloudDeleteResult,
-  type ClientCloudDeleteResult
+  type ClientCloudDeleteResult,
+  type EntityCloudDeleteResult
 } from "./cloud-delete";
+export {
+  purgeAttachmentLocallyById,
+  purgeDocumentLocallyById,
+  purgeSparePartLocallyById,
+  purgeStockMovementLocallyById,
+  purgeTicketLocallyById,
+  purgeTemplateLocallyById,
+  purgeOutboxLocallyById
+} from "./purge-entities-locally";
 export { pushSyncFailure, useSyncFailureQueue } from "./sync-failure-queue";
 export { syncAuditLog } from "./sync-audit";

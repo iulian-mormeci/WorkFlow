@@ -7,10 +7,23 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { purgeInterventionLocallyById } from "@/lib/interventions/delete-intervention";
 import { purgeClientLocallyById } from "@/lib/clients/purge-client-locally";
 import {
+  purgeAttachmentLocallyById,
+  purgeDocumentLocallyById,
+  purgeOutboxLocallyById,
+  purgeSparePartLocallyById,
+  purgeStockMovementLocallyById,
+  purgeTicketLocallyById,
+  purgeTemplateLocallyById
+} from "@/lib/sync/purge-entities-locally";
+import {
+  flushPendingAttachmentDeletes,
   flushPendingClientDeletes,
+  flushPendingDocumentDeletes,
   flushPendingInterventionDeletes,
+  flushPendingTemplateDeletes,
   getPendingClientPullSkipContext,
-  getPendingInterventionPullSkipContext
+  getPendingInterventionPullSkipContext,
+  getPendingSyncPullSkipContext
 } from "@/lib/sync/cloud-delete";
 import { pushSyncFailure, useSyncFailureQueue } from "@/lib/sync/sync-failure-queue";
 import { syncAuditLog } from "@/lib/sync/sync-audit";
@@ -900,24 +913,36 @@ async function pullClients(supabase: SupabaseClient, userId: string) {
 
 async function pullSpares(supabase: SupabaseClient, userId: string) {
   const rows = await pullPaged(supabase, "wf_spare_parts", userId, "updated_at");
+  const serverIds = new Set<string>();
   let n = 0;
   for (const r of rows) {
+    const id = String(r.id);
+    serverIds.add(id);
     const remoteU = iso(r.updated_at);
-    const local = await db.spareParts.get(String(r.id));
+    const local = await db.spareParts.get(id);
     if (local && shouldSkipRemoteMerge(remoteU, local)) continue;
     await db.spareParts.put(spareFromRow(r));
     n += 1;
+  }
+  const locals = await db.spareParts.toArray();
+  for (const local of locals) {
+    if (serverIds.has(local.id)) continue;
+    if (!local.syncedAt) continue;
+    console.info("[sync] pull: purging spare part absent on server (remote delete)", local.id);
+    await purgeSparePartLocallyById(local.id);
   }
   return n;
 }
 
 async function pullAttachments(supabase: SupabaseClient, userId: string) {
   const rows = await pullPaged(supabase, "wf_attachments", userId, "updated_at");
-  const pend = getPendingInterventionPullSkipContext();
+  const pend = getPendingSyncPullSkipContext();
+  const serverIds = new Set<string>();
   let n = 0;
   for (const r of rows) {
     const remoteU = iso(r.updated_at);
     const id = String(r.id);
+    serverIds.add(id);
     if (pend.attachmentIds.has(id)) continue;
     const local = await db.attachments.get(id);
     const localU = local
@@ -943,6 +968,16 @@ async function pullAttachments(supabase: SupabaseClient, userId: string) {
     await db.attachments.put(attachmentFromRow(r, file));
     n += 1;
   }
+
+  const attLocals = await db.attachments.toArray();
+  for (const local of attLocals) {
+    if (serverIds.has(local.id)) continue;
+    if (pend.attachmentIds.has(local.id)) continue;
+    if (!local.syncedAt) continue;
+    console.info("[sync] pull: purging attachment absent on server (remote delete)", local.id);
+    await purgeAttachmentLocallyById(local.id);
+  }
+
   return n;
 }
 
@@ -985,10 +1020,12 @@ async function pullStock(supabase: SupabaseClient, userId: string) {
     userId,
     "updated_at"
   );
-  const pend = getPendingInterventionPullSkipContext();
+  const pend = getPendingSyncPullSkipContext();
+  const serverIds = new Set<string>();
   let n = 0;
   for (const r of rows) {
     const rowId = String(r.id);
+    serverIds.add(rowId);
     if (pend.stockMovementIds.has(rowId)) continue;
     const ivRef = (r.intervention_id as string) ?? "";
     if (ivRef && pend.interventionIds.has(ivRef)) continue;
@@ -1001,28 +1038,50 @@ async function pullStock(supabase: SupabaseClient, userId: string) {
     await db.stockMovements.put(stockFromRow(r));
     n += 1;
   }
+
+  const smLocals = await db.stockMovements.toArray();
+  for (const local of smLocals) {
+    if (serverIds.has(local.id)) continue;
+    if (pend.stockMovementIds.has(local.id)) continue;
+    if (!local.syncedAt) continue;
+    console.info("[sync] pull: purging stock movement absent on server (remote delete)", local.id);
+    await purgeStockMovementLocallyById(local.id);
+  }
+
   return n;
 }
 
 async function pullTickets(supabase: SupabaseClient, userId: string) {
   const rows = await pullPaged(supabase, "wf_tickets", userId, "updated_at");
+  const serverIds = new Set<string>();
   let n = 0;
   for (const r of rows) {
+    const id = String(r.id);
+    serverIds.add(id);
     const remoteU = iso(r.updated_at);
-    const local = await db.tickets.get(String(r.id));
+    const local = await db.tickets.get(id);
     if (local && shouldSkipRemoteMerge(remoteU, local)) continue;
     await db.tickets.put(ticketFromRow(r));
     n += 1;
+  }
+  const locals = await db.tickets.toArray();
+  for (const local of locals) {
+    if (serverIds.has(local.id)) continue;
+    if (!local.syncedAt) continue;
+    console.info("[sync] pull: purging ticket absent on server (remote delete)", local.id);
+    await purgeTicketLocallyById(local.id);
   }
   return n;
 }
 
 async function pullDocuments(supabase: SupabaseClient, userId: string) {
   const rows = await pullPaged(supabase, "wf_documents", userId, "updated_at");
-  const pend = getPendingInterventionPullSkipContext();
+  const pend = getPendingSyncPullSkipContext();
+  const serverIds = new Set<string>();
   let n = 0;
   for (const r of rows) {
     const rowId = String(r.id);
+    serverIds.add(rowId);
     if (pend.documentIds.has(rowId)) continue;
     const ivRef = (r.intervention_id as string) ?? "";
     if (ivRef && pend.interventionIds.has(ivRef)) continue;
@@ -1035,6 +1094,16 @@ async function pullDocuments(supabase: SupabaseClient, userId: string) {
     await db.documents.put(documentFromRow(r));
     n += 1;
   }
+
+  const docLocals = await db.documents.toArray();
+  for (const local of docLocals) {
+    if (serverIds.has(local.id)) continue;
+    if (pend.documentIds.has(local.id)) continue;
+    if (!local.syncedAt) continue;
+    console.info("[sync] pull: purging document absent on server (remote delete)", local.id);
+    await purgeDocumentLocallyById(local.id);
+  }
+
   return n;
 }
 
@@ -1045,10 +1114,12 @@ async function pullOutbox(supabase: SupabaseClient, userId: string) {
     userId,
     "updated_at"
   );
-  const pend = getPendingInterventionPullSkipContext();
+  const pend = getPendingSyncPullSkipContext();
+  const serverIds = new Set<string>();
   let n = 0;
   for (const r of rows) {
     const rowId = String(r.id);
+    serverIds.add(rowId);
     if (pend.outboxIds.has(rowId)) continue;
     const ivRef = (r.intervention_id as string) ?? "";
     if (ivRef && pend.interventionIds.has(ivRef)) continue;
@@ -1058,19 +1129,44 @@ async function pullOutbox(supabase: SupabaseClient, userId: string) {
     await db.supportEmailOutbox.put(outboxFromRow(r));
     n += 1;
   }
+
+  const obLocals = await db.supportEmailOutbox.toArray();
+  for (const local of obLocals) {
+    if (serverIds.has(local.id)) continue;
+    if (pend.outboxIds.has(local.id)) continue;
+    if (!local.syncedAt) continue;
+    console.info("[sync] pull: purging outbox row absent on server (remote delete)", local.id);
+    await purgeOutboxLocallyById(local.id);
+  }
+
   return n;
 }
 
 async function pullTemplates(supabase: SupabaseClient, userId: string) {
   const rows = await pullPaged(supabase, "wf_templates", userId, "updated_at");
+  const pend = getPendingSyncPullSkipContext();
+  const serverIds = new Set<string>();
   let n = 0;
   for (const r of rows) {
+    const id = String(r.id);
+    serverIds.add(id);
+    if (pend.templateIds.has(id)) continue;
     const remoteU = iso(r.updated_at);
-    const local = await db.templates.get(String(r.id));
+    const local = await db.templates.get(id);
     if (local && shouldSkipRemoteMerge(remoteU, local)) continue;
     await db.templates.put(templateFromRow(r));
     n += 1;
   }
+
+  const locals = await db.templates.toArray();
+  for (const local of locals) {
+    if (serverIds.has(local.id)) continue;
+    if (pend.templateIds.has(local.id)) continue;
+    if (!local.syncedAt) continue;
+    console.info("[sync] pull: purging template absent on server (remote delete)", local.id);
+    await purgeTemplateLocallyById(local.id);
+  }
+
   return n;
 }
 
@@ -1198,6 +1294,9 @@ export async function runFullSync(
     try {
       await flushPendingInterventionDeletes(supabase, user.id);
       await flushPendingClientDeletes(supabase, user.id);
+      await flushPendingDocumentDeletes(supabase, user.id);
+      await flushPendingTemplateDeletes(supabase, user.id);
+      await flushPendingAttachmentDeletes(supabase, user.id);
       syncAuditLog("full_sync_start", { userId: user.id });
 
       // Push FK-safe order
@@ -1224,6 +1323,9 @@ export async function runFullSync(
 
       await flushPendingInterventionDeletes(supabase, user.id);
       await flushPendingClientDeletes(supabase, user.id);
+      await flushPendingDocumentDeletes(supabase, user.id);
+      await flushPendingTemplateDeletes(supabase, user.id);
+      await flushPendingAttachmentDeletes(supabase, user.id);
 
       result.ok = result.errors.length === 0;
 
@@ -1340,6 +1442,9 @@ export async function runForceFullWorkflowSync(): Promise<SyncResult | null> {
   if (user) {
     await flushPendingInterventionDeletes(c, user.id);
     await flushPendingClientDeletes(c, user.id);
+    await flushPendingDocumentDeletes(c, user.id);
+    await flushPendingTemplateDeletes(c, user.id);
+    await flushPendingAttachmentDeletes(c, user.id);
   }
   const r = await runFullSync(c);
   useSyncUiStore.getState().bumpLiveQueryEpoch();
@@ -1381,29 +1486,29 @@ export async function applyRealtimePostgresChange(
           console.info("[sync] realtime: remote client delete applied", id);
           break;
         case "wf_spare_parts":
-          await db.spareParts.delete(id);
+          await purgeSparePartLocallyById(id);
           break;
         case "wf_attachments":
-          await db.attachments.delete(id);
+          await purgeAttachmentLocallyById(id);
           break;
         case "wf_interventions":
           await purgeInterventionLocallyById(id);
           console.info("[sync] realtime: remote intervention delete applied", id);
           break;
         case "wf_stock_movements":
-          await db.stockMovements.delete(id);
+          await purgeStockMovementLocallyById(id);
           break;
         case "wf_tickets":
-          await db.tickets.delete(id);
+          await purgeTicketLocallyById(id);
           break;
         case "wf_documents":
-          await db.documents.delete(id);
+          await purgeDocumentLocallyById(id);
           break;
         case "wf_support_email_outbox":
-          await db.supportEmailOutbox.delete(id);
+          await purgeOutboxLocallyById(id);
           break;
         case "wf_templates":
-          await db.templates.delete(id);
+          await purgeTemplateLocallyById(id);
           break;
         default:
           break;
@@ -1415,6 +1520,7 @@ export async function applyRealtimePostgresChange(
     const row = rec;
     if (!row) return;
     const remoteU = iso(row.updated_at ?? row.created_at);
+    const pendSk = getPendingSyncPullSkipContext();
 
     switch (table) {
       case "wf_clients": {
@@ -1426,13 +1532,15 @@ export async function applyRealtimePostgresChange(
         break;
       }
       case "wf_spare_parts": {
-        const local = await db.spareParts.get(String(row.id));
+        const id = String(row.id);
+        const local = await db.spareParts.get(id);
         if (local && shouldSkipRemoteMerge(remoteU, local)) return;
         await db.spareParts.put(spareFromRow(row));
         break;
       }
       case "wf_attachments": {
         const id = String(row.id);
+        if (pendSk.attachmentIds.has(id)) return;
         const local = await db.attachments.get(id);
         const localU = local
           ? effectiveUpdated({ updatedAt: local.updatedAt, createdAt: local.createdAt })
@@ -1454,13 +1562,17 @@ export async function applyRealtimePostgresChange(
         break;
       }
       case "wf_interventions": {
-        const local = await db.interventions.get(String(row.id));
+        const id = String(row.id);
+        if (pendSk.interventionIds.has(id)) return;
+        const local = await db.interventions.get(id);
         if (local && shouldSkipRemoteMerge(remoteU, local)) return;
         await db.interventions.put(interventionFromRow(row));
         break;
       }
       case "wf_stock_movements": {
-        const local = await db.stockMovements.get(String(row.id));
+        const sid = String(row.id);
+        if (pendSk.stockMovementIds.has(sid)) return;
+        const local = await db.stockMovements.get(sid);
         const localU = local
           ? effectiveUpdated({ updatedAt: local.updatedAt, createdAt: local.createdAt })
           : "";
@@ -1469,13 +1581,16 @@ export async function applyRealtimePostgresChange(
         break;
       }
       case "wf_tickets": {
-        const local = await db.tickets.get(String(row.id));
+        const id = String(row.id);
+        const local = await db.tickets.get(id);
         if (local && shouldSkipRemoteMerge(remoteU, local)) return;
         await db.tickets.put(ticketFromRow(row));
         break;
       }
       case "wf_documents": {
-        const local = await db.documents.get(String(row.id));
+        const did = String(row.id);
+        if (pendSk.documentIds.has(did)) return;
+        const local = await db.documents.get(did);
         const localU = local
           ? effectiveUpdated({ updatedAt: local.updatedAt, createdAt: local.createdAt })
           : "";
@@ -1484,13 +1599,17 @@ export async function applyRealtimePostgresChange(
         break;
       }
       case "wf_support_email_outbox": {
-        const local = await db.supportEmailOutbox.get(String(row.id));
+        const oid = String(row.id);
+        if (pendSk.outboxIds.has(oid)) return;
+        const local = await db.supportEmailOutbox.get(oid);
         if (local && shouldSkipRemoteMerge(remoteU, local)) return;
         await db.supportEmailOutbox.put(outboxFromRow(row));
         break;
       }
       case "wf_templates": {
-        const local = await db.templates.get(String(row.id));
+        const tid = String(row.id);
+        if (pendSk.templateIds.has(tid)) return;
+        const local = await db.templates.get(tid);
         if (local && shouldSkipRemoteMerge(remoteU, local)) return;
         await db.templates.put(templateFromRow(row));
         break;

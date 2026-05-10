@@ -21,7 +21,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { deleteTemplateRemote } from "@/lib/sync/cloud-delete";
+import { performTemplateCloudSyncDelete } from "@/lib/sync/cloud-delete";
+import { scheduleWorkflowSync } from "@/lib/sync/sync-engine";
 
 function clientSubtitle(
   t: InterventionTemplate,
@@ -150,11 +151,21 @@ export function TemplatesClient() {
                     const {
                       data: { user }
                     } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
-                    if (supabase && user && typeof navigator !== "undefined" && navigator.onLine) {
-                      await deleteTemplateRemote(supabase, user.id, t.id);
+                    const res = await performTemplateCloudSyncDelete({
+                      templateId: t.id,
+                      supabase: supabase ?? null,
+                      userId: user?.id ?? null
+                    });
+                    if (!res.ok) {
+                      toast({
+                        title: "Delete failed",
+                        description: res.message,
+                        variant: "destructive"
+                      });
+                      return;
                     }
-                    await db.templates.delete(t.id);
                     toast({ title: "Deleted", description: "Template removed." });
+                    scheduleWorkflowSync();
                   } catch (e: unknown) {
                     toast({
                       title: "Delete failed",

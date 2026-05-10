@@ -3,6 +3,11 @@ import {
   deleteInterventionWithRelations
 } from "@/lib/interventions/delete-intervention";
 import { purgeClientLocallyById } from "@/lib/clients/purge-client-locally";
+import {
+  purgeAttachmentLocallyById,
+  purgeDocumentLocallyById,
+  purgeTemplateLocallyById
+} from "@/lib/sync/purge-entities-locally";
 import { db } from "@/lib/db/workflow-db";
 import {
   STORAGE_BUCKET,
@@ -262,6 +267,375 @@ export async function performClientCloudSyncDelete(params: {
   await purgeClientLocallyById(params.clientId);
   syncAuditLog("client_delete_local_queued_cloud", { clientId: params.clientId });
   return { ok: true, mode: "queued" };
+}
+
+// —— Pending deletes: documents / templates / voice attachments ———————————
+
+const PENDING_DOCUMENT_DELETES_KEY = "workflow:pendingDocumentDeletes:v1";
+const PENDING_TEMPLATE_DELETES_KEY = "workflow:pendingTemplateDeletes:v1";
+const PENDING_ATTACHMENT_DELETES_KEY = "workflow:pendingAttachmentDeletes:v1";
+
+export type PendingDocumentDeleteSnapshot = {
+  documentId: string;
+  attachmentId: string;
+  interventionId?: string | null;
+};
+
+export type PendingVoiceAttachmentDeleteSnapshot = {
+  attachmentId: string;
+  interventionId: string;
+};
+
+function loadPendingDocumentDeletes(): PendingDocumentDeleteSnapshot[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(PENDING_DOCUMENT_DELETES_KEY);
+    if (!raw) return [];
+    const v = JSON.parse(raw) as unknown;
+    return Array.isArray(v) ? (v as PendingDocumentDeleteSnapshot[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function savePendingDocumentDeletes(items: PendingDocumentDeleteSnapshot[]) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(PENDING_DOCUMENT_DELETES_KEY, JSON.stringify(items.slice(0, 40)));
+}
+
+export function enqueuePendingDocumentDelete(snap: PendingDocumentDeleteSnapshot): void {
+  const cur = loadPendingDocumentDeletes().filter((x) => x.documentId !== snap.documentId);
+  savePendingDocumentDeletes([snap, ...cur]);
+}
+
+export function dequeuePendingDocumentDelete(documentId: string): void {
+  savePendingDocumentDeletes(loadPendingDocumentDeletes().filter((x) => x.documentId !== documentId));
+}
+
+function loadPendingTemplateDeletes(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(PENDING_TEMPLATE_DELETES_KEY);
+    if (!raw) return [];
+    const v = JSON.parse(raw) as unknown;
+    return Array.isArray(v) ? (v as string[]).filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function savePendingTemplateDeletes(ids: string[]) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(PENDING_TEMPLATE_DELETES_KEY, JSON.stringify(ids.slice(0, 60)));
+}
+
+export function enqueuePendingTemplateDelete(templateId: string): void {
+  const cur = loadPendingTemplateDeletes().filter((x) => x !== templateId);
+  savePendingTemplateDeletes([templateId, ...cur]);
+}
+
+export function dequeuePendingTemplateDelete(templateId: string): void {
+  savePendingTemplateDeletes(loadPendingTemplateDeletes().filter((x) => x !== templateId));
+}
+
+function loadPendingAttachmentDeletes(): PendingVoiceAttachmentDeleteSnapshot[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(PENDING_ATTACHMENT_DELETES_KEY);
+    if (!raw) return [];
+    const v = JSON.parse(raw) as unknown;
+    return Array.isArray(v) ? (v as PendingVoiceAttachmentDeleteSnapshot[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function savePendingAttachmentDeletes(items: PendingVoiceAttachmentDeleteSnapshot[]) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(PENDING_ATTACHMENT_DELETES_KEY, JSON.stringify(items.slice(0, 40)));
+}
+
+export function enqueuePendingAttachmentDelete(snap: PendingVoiceAttachmentDeleteSnapshot): void {
+  const cur = loadPendingAttachmentDeletes().filter((x) => x.attachmentId !== snap.attachmentId);
+  savePendingAttachmentDeletes([snap, ...cur]);
+}
+
+export function dequeuePendingAttachmentDelete(attachmentId: string): void {
+  savePendingAttachmentDeletes(
+    loadPendingAttachmentDeletes().filter((x) => x.attachmentId !== attachmentId)
+  );
+}
+
+/**
+ * Merged pull-skip context: intervention pending deletes + document/template/voice
+ * pending queues so pull does not resurrect rows we are still deleting from the cloud.
+ */
+export function getPendingSyncPullSkipContext(): {
+  interventionIds: Set<string>;
+  documentIds: Set<string>;
+  attachmentIds: Set<string>;
+  outboxIds: Set<string>;
+  stockMovementIds: Set<string>;
+  templateIds: Set<string>;
+} {
+  const iv = getPendingInterventionPullSkipContext();
+  const documentIds = new Set(iv.documentIds);
+  for (const s of loadPendingDocumentDeletes()) {
+    documentIds.add(s.documentId);
+  }
+  const attachmentIds = new Set(iv.attachmentIds);
+  for (const s of loadPendingAttachmentDeletes()) {
+    attachmentIds.add(s.attachmentId);
+  }
+  const templateIds = new Set(loadPendingTemplateDeletes());
+  return {
+    interventionIds: iv.interventionIds,
+    documentIds,
+    attachmentIds,
+    outboxIds: iv.outboxIds,
+    stockMovementIds: iv.stockMovementIds,
+    templateIds
+  };
+}
+
+export async function flushPendingDocumentDeletes(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<void> {
+  const items = loadPendingDocumentDeletes();
+  if (!items.length) return;
+  const remaining: PendingDocumentDeleteSnapshot[] = [];
+  for (const snap of items) {
+    try {
+      await deleteDocumentRemote(supabase, userId, {
+        documentId: snap.documentId,
+        attachmentId: snap.attachmentId,
+        interventionId: snap.interventionId ?? null
+      });
+      dequeuePendingDocumentDelete(snap.documentId);
+      await purgeDocumentLocallyById(snap.documentId);
+      syncAuditLog("pending_document_delete_flushed", { documentId: snap.documentId });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      syncAuditLog("pending_document_delete_flush_failed", {
+        documentId: snap.documentId,
+        message: msg
+      });
+      remaining.push(snap);
+    }
+  }
+  savePendingDocumentDeletes(remaining);
+}
+
+export async function flushPendingTemplateDeletes(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<void> {
+  const ids = loadPendingTemplateDeletes();
+  if (!ids.length) return;
+  const remaining: string[] = [];
+  for (const templateId of ids) {
+    try {
+      await deleteTemplateRemote(supabase, userId, templateId);
+      dequeuePendingTemplateDelete(templateId);
+      await purgeTemplateLocallyById(templateId);
+      syncAuditLog("pending_template_delete_flushed", { templateId });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      syncAuditLog("pending_template_delete_flush_failed", { templateId, message: msg });
+      remaining.push(templateId);
+    }
+  }
+  savePendingTemplateDeletes(remaining);
+}
+
+export async function flushPendingAttachmentDeletes(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<void> {
+  const items = loadPendingAttachmentDeletes();
+  if (!items.length) return;
+  const remaining: PendingVoiceAttachmentDeleteSnapshot[] = [];
+  for (const snap of items) {
+    try {
+      await deleteVoiceAttachmentRemote(supabase, userId, {
+        attachmentId: snap.attachmentId,
+        interventionId: snap.interventionId
+      });
+      dequeuePendingAttachmentDelete(snap.attachmentId);
+      await purgeAttachmentLocallyById(snap.attachmentId);
+      syncAuditLog("pending_attachment_delete_flushed", { attachmentId: snap.attachmentId });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      syncAuditLog("pending_attachment_delete_flush_failed", {
+        attachmentId: snap.attachmentId,
+        message: msg
+      });
+      remaining.push(snap);
+    }
+  }
+  savePendingAttachmentDeletes(remaining);
+}
+
+export type EntityCloudDeleteResult =
+  | { ok: true; mode: "cloud" | "queued" }
+  | { ok: false; message: string };
+
+export async function performDocumentCloudSyncDelete(params: {
+  snap: PendingDocumentDeleteSnapshot;
+  supabase: SupabaseClient | null;
+  userId: string | null;
+}): Promise<EntityCloudDeleteResult> {
+  enqueuePendingDocumentDelete(params.snap);
+  const client = params.supabase;
+  let resolvedUserId = params.userId;
+  if (client && !resolvedUserId) {
+    const { data } = await client.auth.getSession();
+    resolvedUserId = data.session?.user?.id ?? null;
+  }
+  const online = typeof navigator !== "undefined" && navigator.onLine === true;
+  const canRemote = Boolean(online && client && resolvedUserId);
+  if (canRemote) {
+    try {
+      await deleteDocumentRemote(client!, resolvedUserId!, {
+        documentId: params.snap.documentId,
+        attachmentId: params.snap.attachmentId,
+        interventionId: params.snap.interventionId ?? null
+      });
+      await purgeDocumentLocallyById(params.snap.documentId);
+      dequeuePendingDocumentDelete(params.snap.documentId);
+      return { ok: true, mode: "cloud" };
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      pushSyncFailure({ kind: "delete", title: "Document cloud delete failed", detail: message });
+      return { ok: false, message };
+    }
+  }
+  await purgeDocumentLocallyById(params.snap.documentId);
+  return { ok: true, mode: "queued" };
+}
+
+export async function performTemplateCloudSyncDelete(params: {
+  templateId: string;
+  supabase: SupabaseClient | null;
+  userId: string | null;
+}): Promise<EntityCloudDeleteResult> {
+  enqueuePendingTemplateDelete(params.templateId);
+  const client = params.supabase;
+  let resolvedUserId = params.userId;
+  if (client && !resolvedUserId) {
+    const { data } = await client.auth.getSession();
+    resolvedUserId = data.session?.user?.id ?? null;
+  }
+  const online = typeof navigator !== "undefined" && navigator.onLine === true;
+  const canRemote = Boolean(online && client && resolvedUserId);
+  if (canRemote) {
+    try {
+      await deleteTemplateRemote(client!, resolvedUserId!, params.templateId);
+      await purgeTemplateLocallyById(params.templateId);
+      dequeuePendingTemplateDelete(params.templateId);
+      return { ok: true, mode: "cloud" };
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      pushSyncFailure({ kind: "delete", title: "Template cloud delete failed", detail: message });
+      return { ok: false, message };
+    }
+  }
+  await purgeTemplateLocallyById(params.templateId);
+  return { ok: true, mode: "queued" };
+}
+
+export async function performVoiceAttachmentCloudSyncDelete(params: {
+  snap: PendingVoiceAttachmentDeleteSnapshot;
+  supabase: SupabaseClient | null;
+  userId: string | null;
+}): Promise<EntityCloudDeleteResult> {
+  enqueuePendingAttachmentDelete(params.snap);
+  const client = params.supabase;
+  let resolvedUserId = params.userId;
+  if (client && !resolvedUserId) {
+    const { data } = await client.auth.getSession();
+    resolvedUserId = data.session?.user?.id ?? null;
+  }
+  const online = typeof navigator !== "undefined" && navigator.onLine === true;
+  const canRemote = Boolean(online && client && resolvedUserId);
+  if (canRemote) {
+    try {
+      await deleteVoiceAttachmentRemote(client!, resolvedUserId!, {
+        attachmentId: params.snap.attachmentId,
+        interventionId: params.snap.interventionId
+      });
+      await purgeAttachmentLocallyById(params.snap.attachmentId);
+      dequeuePendingAttachmentDelete(params.snap.attachmentId);
+      return { ok: true, mode: "cloud" };
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      pushSyncFailure({
+        kind: "delete",
+        title: "Voice attachment cloud delete failed",
+        detail: message
+      });
+      return { ok: false, message };
+    }
+  }
+  await purgeAttachmentLocallyById(params.snap.attachmentId);
+  return { ok: true, mode: "queued" };
+}
+
+export async function deleteSparePartRemote(
+  supabase: SupabaseClient,
+  userId: string,
+  sparePartId: string
+): Promise<void> {
+  const { error } = await supabase
+    .from("wf_spare_parts")
+    .delete()
+    .eq("user_id", userId)
+    .eq("id", sparePartId);
+  if (error) throw new Error(error.message);
+  syncAuditLog("spare_part_deleted_remote", { sparePartId });
+}
+
+export async function deleteStockMovementRemote(
+  supabase: SupabaseClient,
+  userId: string,
+  stockMovementId: string
+): Promise<void> {
+  const { error } = await supabase
+    .from("wf_stock_movements")
+    .delete()
+    .eq("user_id", userId)
+    .eq("id", stockMovementId);
+  if (error) throw new Error(error.message);
+  syncAuditLog("stock_movement_deleted_remote", { stockMovementId });
+}
+
+export async function deleteTicketRemote(
+  supabase: SupabaseClient,
+  userId: string,
+  ticketId: string
+): Promise<void> {
+  const { error } = await supabase
+    .from("wf_tickets")
+    .delete()
+    .eq("user_id", userId)
+    .eq("id", ticketId);
+  if (error) throw new Error(error.message);
+  syncAuditLog("ticket_deleted_remote", { ticketId });
+}
+
+export async function deleteOutboxRemote(
+  supabase: SupabaseClient,
+  userId: string,
+  outboxId: string
+): Promise<void> {
+  const { error } = await supabase
+    .from("wf_support_email_outbox")
+    .delete()
+    .eq("user_id", userId)
+    .eq("id", outboxId);
+  if (error) throw new Error(error.message);
+  syncAuditLog("outbox_deleted_remote", { outboxId });
 }
 
 async function deleteByIdsInChunks(
