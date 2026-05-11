@@ -41,8 +41,10 @@ function isLocalizablePath(pathname: string) {
 
 function getLocaleFromRequest(req: NextRequest): { locale: Locale; pathnameNoLocale: string } {
   const p = req.nextUrl.pathname;
-  if (p === "/en" || p.startsWith("/en/")) return { locale: "en", pathnameNoLocale: p === "/en" ? "/" : p.slice(3) };
-  if (p === "/it" || p.startsWith("/it/")) return { locale: "it", pathnameNoLocale: p === "/it" ? "/" : p.slice(3) };
+  if (p === "/en" || p.startsWith("/en/"))
+    return { locale: "en", pathnameNoLocale: p === "/en" ? "/" : p.slice(3) };
+  if (p === "/it" || p.startsWith("/it/"))
+    return { locale: "it", pathnameNoLocale: p === "/it" ? "/" : p.slice(3) };
   const cookie = req.cookies.get("NEXT_LOCALE")?.value;
   const locale: Locale = cookie === "en" ? "en" : "it";
   return { locale, pathnameNoLocale: p };
@@ -76,38 +78,40 @@ function isPublicPath(pathnameNoLocale: string) {
 export async function middleware(req: NextRequest) {
   const { locale, pathnameNoLocale } = getLocaleFromRequest(req);
 
-  // Enforce SEO-friendly prefixes: Italian is default (no /it), English always uses /en.
-  if (isLocalizablePath(req.nextUrl.pathname)) {
-    const hasEnPrefix = req.nextUrl.pathname === "/en" || req.nextUrl.pathname.startsWith("/en/");
-    const hasItPrefix = req.nextUrl.pathname === "/it" || req.nextUrl.pathname.startsWith("/it/");
+  const pathnameWithLocale = req.nextUrl.pathname;
+  const hasEnPrefix = pathnameWithLocale === "/en" || pathnameWithLocale.startsWith("/en/");
+  const hasItPrefix = pathnameWithLocale === "/it" || pathnameWithLocale.startsWith("/it/");
 
+  // Enforce SEO-friendly prefixes: Italian is default (no /it), English always uses /en.
+  if (isLocalizablePath(pathnameWithLocale)) {
     if (hasItPrefix) {
       // Never expose /it — keep default locale clean.
       const target = req.nextUrl.clone();
-      target.pathname = req.nextUrl.pathname === "/it" ? "/" : req.nextUrl.pathname.slice(3);
+      target.pathname = pathnameWithLocale === "/it" ? "/" : pathnameWithLocale.slice(3);
       return NextResponse.redirect(target, 308);
     }
     if (locale === "en" && !hasEnPrefix) {
       const target = req.nextUrl.clone();
-      target.pathname = req.nextUrl.pathname === "/" ? "/en" : `/en${req.nextUrl.pathname}`;
-      return NextResponse.redirect(target, 307);
-    }
-    if (locale === "it" && hasEnPrefix) {
-      const target = req.nextUrl.clone();
-      target.pathname = req.nextUrl.pathname === "/en" ? "/" : req.nextUrl.pathname.slice(3);
+      target.pathname = pathnameWithLocale === "/" ? "/en" : `/en${pathnameWithLocale}`;
       return NextResponse.redirect(target, 307);
     }
   }
+
+  // Critical for App Router without an explicit `[locale]` segment:
+  // we keep `/en/...` in the browser URL but internally serve the same route tree by rewriting
+  // `/en/...` → `/...`. Without this, Next would try to match `/en/*` as real routes and 404.
+  const res = isLocalizablePath(pathnameWithLocale) && hasEnPrefix
+    ? NextResponse.rewrite(new URL(pathnameNoLocale, req.url))
+    : NextResponse.next({
+        request: {
+          headers: req.headers
+        }
+      });
 
   // IMPORTANT (Supabase SSR): when refreshing cookies in middleware, we must
   // update BOTH the response cookies and the in-memory request cookies,
   // otherwise downstream auth checks in the same request can see stale cookies.
   // This follows Supabase's recommended Next.js middleware pattern.
-  const res = NextResponse.next({
-    request: {
-      headers: req.headers
-    }
-  });
   // Make the resolved locale available to Server Components (layout/meta) without relying on URL params.
   res.headers.set("x-workflow-locale", locale);
 
@@ -156,7 +160,7 @@ export async function middleware(req: NextRequest) {
 
   const redirectUrl = req.nextUrl.clone();
   redirectUrl.pathname = locale === "en" ? "/en/login" : "/login";
-  redirectUrl.searchParams.set("next", pathname);
+  redirectUrl.searchParams.set("next", locale === "en" ? (hasEnPrefix ? pathnameWithLocale : (pathname === "/" ? "/en" : `/en${pathname}`)) : pathname);
   const redirectRes = NextResponse.redirect(redirectUrl);
   redirectRes.headers.set("Cache-Control", "private, no-cache, no-store, must-revalidate");
   redirectRes.headers.set("Pragma", "no-cache");
