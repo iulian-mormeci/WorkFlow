@@ -13,7 +13,7 @@ function getEmailRedirectTo() {
 }
 
 export default function RegisterPage() {
-  const t = useTranslations();
+  const t = useTranslations("auth");
   const router = useRouter();
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
 
@@ -27,7 +27,7 @@ export default function RegisterPage() {
     e.preventDefault();
     setError(null);
     if (!supabase) {
-      setError("Supabase env vars are missing. Configure .env.local first.");
+      setError(t("envMissing"));
       return;
     }
     setLoading(true);
@@ -45,8 +45,9 @@ export default function RegisterPage() {
       });
       if (signUpError) throw signUpError;
       setSent(true);
-    } catch (err: any) {
-      setError(err?.message ?? "Registration failed");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message || t("register.error"));
     } finally {
       setLoading(false);
     }
@@ -55,16 +56,16 @@ export default function RegisterPage() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 px-6 py-10">
       <header className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight">{t("auth.register.title")}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("register.title")}</h1>
         <p className="text-sm text-muted-foreground">
-          {t("auth.register.subtitle")}
+          {t("register.subtitle")}
         </p>
       </header>
 
       <div className="rounded-2xl border bg-background p-5 shadow-sm">
         {!supabase ? (
           <p className="rounded-md border bg-muted px-3 py-2 text-sm text-muted-foreground">
-            {t.rich("auth.register.supabaseMissing", {
+            {t.rich("register.supabaseMissing", {
               envExample: (chunks) => <span className="font-mono">{chunks}</span>,
               envLocal: (chunks) => <span className="font-mono">{chunks}</span>
             })}
@@ -73,19 +74,19 @@ export default function RegisterPage() {
         {sent ? (
           <div className="space-y-3">
             <p className="text-sm">
-              {t("auth.register.checkInbox")}
+              {t("register.checkInbox")}
             </p>
             <button
               className="h-11 w-full rounded-md border bg-background px-4 text-sm font-medium"
               onClick={() => router.push("/login")}
             >
-              {t("auth.register.goToSignIn")}
+              {t("register.goToSignIn")}
             </button>
           </div>
         ) : (
           <form onSubmit={register} className="space-y-4">
             <label className="grid gap-2 text-sm">
-              <span>{t("auth.fields.email")}</span>
+              <span>{t("fields.email")}</span>
               <input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -98,7 +99,7 @@ export default function RegisterPage() {
             </label>
 
             <label className="grid gap-2 text-sm">
-              <span>{t("auth.fields.password")}</span>
+              <span>{t("fields.password")}</span>
               <input
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -109,7 +110,7 @@ export default function RegisterPage() {
                 className="h-11 rounded-md border bg-transparent px-3 outline-none focus:ring-2 focus:ring-primary/20"
               />
               <span className="text-xs text-muted-foreground">
-                {t("auth.register.passwordHint")}
+                {t("register.passwordHint")}
               </span>
             </label>
 
@@ -123,19 +124,18 @@ export default function RegisterPage() {
               disabled={loading || !supabase}
               className="h-11 w-full rounded-md bg-primary px-4 text-primary-foreground disabled:opacity-60"
             >
-              {loading ? t("auth.register.creating") : t("auth.register.createAccount")}
+              {loading ? t("register.creating") : t("register.createAccount")}
             </button>
           </form>
         )}
       </div>
 
       <p className="text-center text-sm text-muted-foreground">
-        {t("auth.register.haveAccount")}{" "}
+        {t("register.haveAccount")}{" "}
         <Link className="underline" href="/login">
-          {t("auth.register.signIn")}
+          {t("register.signIn")}
         </Link>
       </p>
     </main>
   );
 }
-

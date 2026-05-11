@@ -12,6 +12,7 @@ export type Locale = (typeof locales)[number];
 export const { Link, redirect, usePathname, useRouter, getPathname } =
   createNavigation({
     locales,
+    defaultLocale: "it",
     localePrefix: "as-needed"
   });
 

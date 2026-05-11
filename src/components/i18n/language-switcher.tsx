@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { usePathname } from "next/navigation";
-import { useRouter } from "@/i18n/navigation";
+import { useLocale } from "next-intl";
+import { usePathname, useRouter } from "@/i18n/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 
@@ -11,7 +11,6 @@ type Locale = "it" | "en";
 const KEY = "wf:locale.v1";
 
 function setLocaleCookie(locale: Locale) {
-  // next-intl / common i18n convention.
   document.cookie = `NEXT_LOCALE=${locale}; Path=/; Max-Age=31536000; SameSite=Lax`;
 }
 
@@ -21,16 +20,6 @@ function setLocaleLocal(locale: Locale) {
   } catch {
     /* ignore */
   }
-}
-
-function detectCurrentLocaleFromPath(pathname: string): Locale {
-  return pathname === "/en" || pathname.startsWith("/en/") ? "en" : "it";
-}
-
-function stripLocaleFromPath(pathname: string): string {
-  if (pathname === "/en") return "/";
-  if (pathname.startsWith("/en/")) return pathname.slice(3);
-  return pathname;
 }
 
 export function LanguageSwitcher({
@@ -44,35 +33,36 @@ export function LanguageSwitcher({
 }) {
   const router = useRouter();
   const pathname = usePathname() || "/";
+  const currentLocale = useLocale() as Locale;
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
-  const [busy, setBusy] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [busy, setBusy] = useState(false);
 
-  const locale = detectCurrentLocaleFromPath(pathname);
-  const label = locale === "it" ? "🇮🇹 Italiano" : "🇬🇧 English";
+  const label = currentLocale === "it" ? "🇮🇹 Italiano" : "🇬🇧 English";
 
-  async function apply(next: Locale) {
-    const pathnameNoLocale = stripLocaleFromPath(pathname);
+  function apply(next: Locale) {
+    if (next === currentLocale) return;
+
+    const search = typeof window !== "undefined" ? window.location.search : "";
+    const base = !pathname || pathname === "" ? "/" : pathname;
+    const href = `${base}${search}`;
+
+    // Set cookie before navigation so middleware + RSC see the new locale on the first request.
     setLocaleCookie(next);
     setLocaleLocal(next);
 
-    // Best-effort persistence in Supabase metadata (only if logged in).
+    startTransition(() => {
+      router.replace(href, { locale: next });
+    });
+
+    // Do not block locale change on Supabase; next-intl also syncs NEXT_LOCALE on navigation.
     if (supabase) {
       setBusy(true);
-      try {
-        await supabase.auth.updateUser({ data: { locale: next } });
-      } catch {
-        /* ignore */
-      } finally {
-        setBusy(false);
-      }
+      void supabase.auth
+        .updateUser({ data: { locale: next } })
+        .catch(() => {})
+        .finally(() => setBusy(false));
     }
-
-    // Locale-aware URL + refresh so RSC (layouts, server pages) pick up `X-NEXT-INTL-LOCALE` from middleware.
-    startTransition(() => {
-      router.replace(pathnameNoLocale, { locale: next });
-      router.refresh();
-    });
   }
 
   return (
@@ -83,9 +73,9 @@ export function LanguageSwitcher({
           variant={variant}
           size={size}
           className="rounded-none border-0"
-          aria-pressed={locale === "it"}
+          aria-pressed={currentLocale === "it"}
           disabled={busy || isPending}
-          onClick={() => void apply("it")}
+          onClick={() => apply("it")}
         >
           🇮🇹 IT
         </Button>
@@ -95,9 +85,9 @@ export function LanguageSwitcher({
           variant={variant}
           size={size}
           className="rounded-none border-0"
-          aria-pressed={locale === "en"}
+          aria-pressed={currentLocale === "en"}
           disabled={busy || isPending}
-          onClick={() => void apply("en")}
+          onClick={() => apply("en")}
         >
           🇬🇧 EN
         </Button>
@@ -106,4 +96,3 @@ export function LanguageSwitcher({
     </div>
   );
 }
-

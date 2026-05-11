@@ -44,12 +44,20 @@ function isLocalizablePath(pathname: string) {
 
 function getLocaleFromRequest(req: NextRequest): { locale: Locale; pathnameNoLocale: string } {
   const p = req.nextUrl.pathname;
-  if (p === "/en" || p.startsWith("/en/"))
-    return { locale: "en", pathnameNoLocale: p === "/en" ? "/" : p.slice(3) };
+  const cookieRaw = req.cookies.get("NEXT_LOCALE")?.value;
+
+  if (p === "/en" || p.startsWith("/en/")) {
+    const pathnameNoLocale = p === "/en" ? "/" : p.slice(3);
+    // URL says English, but the switcher sets NEXT_LOCALE=it before navigation finishes.
+    // If we always trusted /en/*, Italian could never "win" and the UI stayed English.
+    if (cookieRaw === "it") {
+      return { locale: "it", pathnameNoLocale };
+    }
+    return { locale: "en", pathnameNoLocale };
+  }
   if (p === "/it" || p.startsWith("/it/"))
     return { locale: "it", pathnameNoLocale: p === "/it" ? "/" : p.slice(3) };
-  const cookie = req.cookies.get("NEXT_LOCALE")?.value;
-  const locale: Locale = cookie === "en" ? "en" : "it";
+  const locale: Locale = cookieRaw === "en" ? "en" : "it";
   return { locale, pathnameNoLocale: p };
 }
 

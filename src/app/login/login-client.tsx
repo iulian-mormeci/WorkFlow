@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { useRouter } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth";
 import { getAuthCallbackUrl } from "@/lib/supabase/site-url";
@@ -13,7 +13,8 @@ function getRedirectTo() {
 }
 
 export function LoginClient() {
-  const t = useTranslations();
+  const t = useTranslations("auth");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const search = useSearchParams();
   const nextPath = search.get("next") ?? "/dashboard";
@@ -50,7 +51,7 @@ export function LoginClient() {
       if (!res.ok) throw new Error(await res.text());
       router.replace(nextPath);
     } catch (err: any) {
-      setError(err?.message ?? t("auth.signIn.error"));
+      setError(err?.message ?? t("signIn.error"));
     } finally {
       setLoading(false);
     }
@@ -59,7 +60,7 @@ export function LoginClient() {
   async function signInOAuth(provider: "google" | "apple") {
     setError(null);
     if (!supabase) {
-      setError(t("auth.envMissing"));
+      setError(t("envMissing"));
       return;
     }
     setLoading(true);
@@ -76,7 +77,7 @@ export function LoginClient() {
       });
       if (oauthError) throw oauthError;
     } catch (err: any) {
-      setError(err?.message ?? t("auth.oauthError"));
+      setError(err?.message ?? t("oauthError"));
       setLoading(false);
     }
   }
@@ -84,26 +85,26 @@ export function LoginClient() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 px-6 py-10">
       <header className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight">{t("auth.signIn.title")}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("signIn.title")}</h1>
         <p className="text-sm text-muted-foreground">
-          {t("auth.signIn.subtitle")}
+          {t("signIn.subtitle")}
         </p>
       </header>
 
       <div className="rounded-2xl border bg-background p-5 shadow-sm">
         {!supabase ? (
           <p className="rounded-md border bg-muted px-3 py-2 text-sm text-muted-foreground">
-            {t.rich("auth.supabaseNotConfiguredSteps", {
+            {t.rich("supabaseNotConfiguredSteps", {
               envExample: (chunks) => <span className="font-mono">{chunks}</span>,
               envLocal: (chunks) => <span className="font-mono">{chunks}</span>
             })}
-            {t("auth.supabaseNotConfiguredTail")}
+            {t("supabaseNotConfiguredTail")}
           </p>
         ) : null}
 
         <form onSubmit={signInEmailPassword} className="space-y-4">
           <label className="grid gap-2 text-sm">
-            <span>{t("auth.email")}</span>
+            <span>{t("fields.email")}</span>
             <input
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -116,7 +117,7 @@ export function LoginClient() {
           </label>
 
           <label className="grid gap-2 text-sm">
-            <span>{t("auth.password")}</span>
+            <span>{t("fields.password")}</span>
             <input
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -137,13 +138,13 @@ export function LoginClient() {
             disabled={loading || !supabase}
             className="h-11 w-full rounded-md bg-primary px-4 text-primary-foreground disabled:opacity-60"
           >
-            {loading ? t("auth.signIn.loading") : t("auth.signIn.cta")}
+            {loading ? t("signIn.loading") : t("signIn.cta")}
           </button>
         </form>
 
         <div className="my-5 flex items-center gap-3">
           <div className="h-px flex-1 bg-border" />
-          <div className="text-xs text-muted-foreground">{t("common.or")}</div>
+          <div className="text-xs text-muted-foreground">{tCommon("or")}</div>
           <div className="h-px flex-1 bg-border" />
         </div>
 
@@ -153,23 +154,23 @@ export function LoginClient() {
             onClick={() => signInOAuth("google")}
             className="h-11 w-full rounded-md border bg-background px-4 text-sm font-medium disabled:opacity-60"
           >
-            {t("auth.signIn.google")}
+            {t("signIn.google")}
           </button>
           <button
             disabled={loading || !supabase}
             onClick={() => signInOAuth("apple")}
             className="h-11 w-full rounded-md border bg-background px-4 text-sm font-medium disabled:opacity-60"
           >
-            {t("auth.signIn.apple")}
+            {t("signIn.apple")}
           </button>
         </div>
       </div>
 
       <p className="text-center text-sm text-muted-foreground">
-        {t("auth.signIn.noAccount")}{" "}
-        <a className="underline" href="/register">
-          {t("auth.signIn.createOne")}
-        </a>
+        {t("signIn.noAccount")}{" "}
+        <Link className="underline" href="/register">
+          {t("signIn.createOne")}
+        </Link>
       </p>
     </main>
   );

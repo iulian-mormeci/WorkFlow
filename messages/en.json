@@ -1412,7 +1412,8 @@
     "register": {
       "title": "Create account",
       "subtitle": "You’ll receive an email to confirm your address.",
-      "supabaseMissing": "Supabase isn’t configured yet. Copy {envExample} to {envLocal} and fill in the variables.",
+      "supabaseMissing": "Supabase isn’t configured yet. Copy <envExample>.env.local.example</envExample> to <envLocal>.env.local</envLocal> and fill in the variables.",
+      "error": "Registration failed. Check your details and try again.",
       "checkInbox": "Check your inbox to confirm your email, then come back to sign in.",
       "goToSignIn": "Go to sign in",
       "passwordHint": "Minimum 8 characters.",

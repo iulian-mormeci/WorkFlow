@@ -3,7 +3,7 @@
  * Auth-sensitive UI lives under `(protected)`; this shell stays lean for every route.
  */
 import type { Metadata, Viewport } from "next";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
 import "./globals.css";
@@ -38,9 +38,19 @@ const NEXT_INTL_LOCALE_HEADER = "X-NEXT-INTL-LOCALE";
 /** Wraps all pages with Supabase context, background sync, and toaster. */
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const h = await headers();
-  // Must match `src/middleware.ts`: next-intl and RSC read `X-NEXT-INTL-LOCALE` on the forwarded request.
+  const c = await cookies();
+  // Must match `src/middleware.ts`: forwarded request carries `X-NEXT-INTL-LOCALE`.
   const fromIntl = h.get(NEXT_INTL_LOCALE_HEADER) ?? h.get("x-workflow-locale");
-  const locale = (fromIntl === "en" ? "en" : "it") as "it" | "en";
+  const fromCookie = c.get("NEXT_LOCALE")?.value;
+  const locale = (
+    fromIntl === "en"
+      ? "en"
+      : fromIntl === "it"
+        ? "it"
+        : fromCookie === "en"
+          ? "en"
+          : "it"
+  ) as "it" | "en";
   setRequestLocale(locale);
   const messages = (await import(`../../messages/${locale}.json`)).default;
   return (

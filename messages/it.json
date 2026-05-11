@@ -1412,7 +1412,8 @@
     "register": {
       "title": "Crea account",
       "subtitle": "Riceverai un’email per confermare l’indirizzo.",
-      "supabaseMissing": "Supabase non è ancora configurato. Copia {envExample} in {envLocal} e compila le variabili.",
+      "supabaseMissing": "Supabase non è ancora configurato. Copia <envExample>.env.local.example</envExample> in <envLocal>.env.local</envLocal> e compila le variabili.",
+      "error": "Registrazione non riuscita. Controlla i dati e riprova.",
       "checkInbox": "Controlla la posta in arrivo per confermare l’email, poi torna qui per accedere.",
       "goToSignIn": "Vai all’accesso",
       "passwordHint": "Minimo 8 caratteri.",
