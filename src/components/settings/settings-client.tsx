@@ -51,7 +51,8 @@ function base64ToBlob(base64: string, mime: string) {
 }
 
 export function SettingsClient() {
-  const t = useTranslations();
+  const t = useTranslations("settings");
+  const tCommon = useTranslations("common");
   const { toast } = useToast();
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const { theme, toggle } = useDarkMode();
@@ -147,14 +148,14 @@ export function SettingsClient() {
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <div className="lg:col-span-2 text-xs text-muted-foreground">
-        {t("settings.appVersion", { appName: t("common.appName"), version: APP_VERSION })}
+        {t("appVersion", { appName: tCommon("appName"), version: APP_VERSION })}
       </div>
       <Card className="rounded-2xl">
         <CardHeader className="space-y-2">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <CardTitle className="text-base">{t("settings.profile.title")}</CardTitle>
-              <CardDescription>{t("settings.profile.subtitle")}</CardDescription>
+              <CardTitle className="text-base">{t("profile.title")}</CardTitle>
+              <CardDescription>{t("profile.subtitle")}</CardDescription>
             </div>
             <IconBubble icon={User} />
           </div>
@@ -162,25 +163,25 @@ export function SettingsClient() {
             {supabase ? (
               <ProfileInfo />
             ) : (
-              <div className="text-muted-foreground">{t("settings.profile.supabaseNotConfigured")}</div>
+              <div className="text-muted-foreground">{t("profile.supabaseNotConfigured")}</div>
             )}
           </div>
 
           <div className="mt-3 flex flex-col gap-2">
-            <div className="text-sm font-medium">{t("settings.profile.techNameLabel")}</div>
+            <div className="text-sm font-medium">{t("profile.techNameLabel")}</div>
             <Input
               value={techName}
               onChange={(e) => {
                 setTechName(e.target.value);
                 localStorage.setItem("workflow:techName", e.target.value);
               }}
-              placeholder={t("settings.profile.techNamePlaceholder")}
+              placeholder={t("profile.techNamePlaceholder")}
               className="min-h-12 touch-manipulation text-base"
             />
           </div>
 
           <div className="mt-4 flex flex-col gap-2">
-            <div className="text-sm font-medium">{t("settings.profile.supportEmailLabel")}</div>
+            <div className="text-sm font-medium">{t("profile.supportEmailLabel")}</div>
             <Input
               value={supportEmail}
               onChange={(e) => {
@@ -189,17 +190,17 @@ export function SettingsClient() {
                 setSupportEmailTo(v);
               }}
               onBlur={() => void persistSupportEmailToCloud(supportEmail)}
-              placeholder={t("settings.profile.supportEmailPlaceholder")}
+              placeholder={t("profile.supportEmailPlaceholder")}
               inputMode="email"
               className="min-h-12 touch-manipulation text-base"
             />
             <div className="text-xs text-muted-foreground">
-              {t("settings.profile.supportEmailHint")}
+              {t("profile.supportEmailHint")}
             </div>
           </div>
 
           <div className="mt-4 flex flex-col gap-2">
-            <div className="text-sm font-medium">{t("settings.profile.reminderEmailLabel")}</div>
+            <div className="text-sm font-medium">{t("profile.reminderEmailLabel")}</div>
             <Input
               value={reminderEmail}
               onChange={(e) => {
@@ -207,12 +208,12 @@ export function SettingsClient() {
                 setReminderEmail(v);
                 setReminderDefaultEmail(v);
               }}
-              placeholder={t("settings.profile.reminderEmailPlaceholder")}
+              placeholder={t("profile.reminderEmailPlaceholder")}
               inputMode="email"
               className="min-h-12 touch-manipulation text-base"
             />
             <div className="text-xs text-muted-foreground">
-              {t("settings.profile.reminderEmailHint")}
+              {t("profile.reminderEmailHint")}
             </div>
             <Button
               type="button"
@@ -225,21 +226,21 @@ export function SettingsClient() {
                 toast({
                   title:
                     p === "granted"
-                      ? t("settings.profile.notificationsEnabledTitle")
-                      : t("settings.profile.notificationPermissionTitle", { permission: p }),
+                      ? t("profile.notificationsEnabledTitle")
+                      : t("profile.notificationPermissionTitle", { permission: p }),
                   description:
                     p === "granted"
-                      ? t("settings.profile.notificationsEnabledBody")
-                      : t("settings.profile.notificationPermissionBody")
+                      ? t("profile.notificationsEnabledBody")
+                      : t("profile.notificationPermissionBody")
                 });
               }}
             >
-              {t("settings.profile.requestNotificationPermission")}
+              {t("profile.requestNotificationPermission")}
             </Button>
           </div>
 
           <div className="mt-4 flex flex-col gap-2">
-            <div className="text-sm font-medium">{t("settings.profile.officeAddressLabel")}</div>
+            <div className="text-sm font-medium">{t("profile.officeAddressLabel")}</div>
             <Input
               value={officeAddress}
               onChange={(e) => {
@@ -252,11 +253,11 @@ export function SettingsClient() {
                 }
               }}
               onBlur={() => void persistOfficeToCloud(officeAddress)}
-              placeholder={t("settings.profile.officeAddressPlaceholder")}
+              placeholder={t("profile.officeAddressPlaceholder")}
               className="min-h-12 touch-manipulation text-base"
             />
             <div className="text-xs text-muted-foreground">
-              {t("settings.profile.officeAddressHint")}
+              {t("profile.officeAddressHint")}
             </div>
           </div>
         </CardHeader>
@@ -266,9 +267,9 @@ export function SettingsClient() {
         <CardHeader className="space-y-2">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <CardTitle className="text-base">{t("settings.sync.title")}</CardTitle>
+              <CardTitle className="text-base">{t("sync.title")}</CardTitle>
               <CardDescription>
-                {t("settings.sync.subtitle")}
+                {t("sync.subtitle")}
               </CardDescription>
             </div>
             <IconBubble icon={Cloud} />
@@ -282,10 +283,10 @@ export function SettingsClient() {
                 try {
                   await runManualFullSync();
                   await refreshPendingDirtyCount();
-                  toast({ title: t("settings.sync.toasts.syncFinishedTitle"), description: t("settings.sync.toasts.syncFinishedBody") });
+                  toast({ title: t("sync.toasts.syncFinishedTitle"), description: t("sync.toasts.syncFinishedBody") });
                 } catch (e: unknown) {
                   toast({
-                    title: t("settings.sync.toasts.syncErrorTitle"),
+                    title: t("sync.toasts.syncErrorTitle"),
                     description: e instanceof Error ? e.message : String(e),
                     variant: "destructive"
                   });
@@ -295,7 +296,7 @@ export function SettingsClient() {
               }}
             >
               <RefreshCw className={`h-4 w-4 ${syncBusy ? "animate-spin" : ""}`} />
-              {t("settings.sync.actions.syncNow")}
+              {t("sync.actions.syncNow")}
             </Button>
             <Button
               variant="secondary"
@@ -306,17 +307,17 @@ export function SettingsClient() {
                   const r = await runForceFullWorkflowSync();
                   await refreshPendingDirtyCount();
                   if (r?.ok) {
-                    toast({ title: t("settings.sync.toasts.forceSyncCompleteTitle"), description: t("settings.sync.toasts.forceSyncCompleteBody") });
+                    toast({ title: t("sync.toasts.forceSyncCompleteTitle"), description: t("sync.toasts.forceSyncCompleteBody") });
                   } else if (r && !r.skipped) {
                     toast({
-                      title: t("settings.sync.toasts.forceSyncIssuesTitle"),
-                      description: r.errors[0] ?? t("settings.sync.toasts.forceSyncIssuesBodyFallback"),
+                      title: t("sync.toasts.forceSyncIssuesTitle"),
+                      description: r.errors[0] ?? t("sync.toasts.forceSyncIssuesBodyFallback"),
                       variant: "destructive"
                     });
                   }
                 } catch (e: unknown) {
                   toast({
-                    title: t("settings.sync.toasts.forceSyncErrorTitle"),
+                    title: t("sync.toasts.forceSyncErrorTitle"),
                     description: e instanceof Error ? e.message : String(e),
                     variant: "destructive"
                   });
@@ -325,15 +326,15 @@ export function SettingsClient() {
                 }
               }}
             >
-              {t("settings.sync.actions.forceFullSync")}
+              {t("sync.actions.forceFullSync")}
             </Button>
           </div>
 
           <div className="mt-4 space-y-2">
-            <div className="text-sm font-medium">{t("settings.sync.failures.title")}</div>
+            <div className="text-sm font-medium">{t("sync.failures.title")}</div>
             {syncFailures.length === 0 ? (
               <div className="rounded-xl border bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-                {t("settings.sync.failures.empty")}
+                {t("sync.failures.empty")}
               </div>
             ) : (
               <div className="max-h-52 space-y-2 overflow-y-auto rounded-xl border bg-muted/30 p-2">
@@ -356,7 +357,7 @@ export function SettingsClient() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 shrink-0"
-                      aria-label={t("settings.sync.failures.dismissAria")}
+                      aria-label={t("sync.failures.dismissAria")}
                       onClick={() => dismissFailure(f.id)}
                     >
                       <X className="h-3.5 w-3.5" />
@@ -364,7 +365,7 @@ export function SettingsClient() {
                   </div>
                 ))}
                 <Button type="button" variant="outline" size="sm" className="w-full" onClick={() => clearFailures()}>
-                  {t("settings.sync.failures.clear")}
+                  {t("sync.failures.clear")}
                 </Button>
               </div>
             )}
@@ -376,15 +377,15 @@ export function SettingsClient() {
         <CardHeader className="space-y-2">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <CardTitle className="text-base">{t("settings.appearance.title")}</CardTitle>
-              <CardDescription>{t("settings.appearance.subtitle")}</CardDescription>
+              <CardTitle className="text-base">{t("appearance.title")}</CardTitle>
+              <CardDescription>{t("appearance.subtitle")}</CardDescription>
             </div>
             <IconBubble icon={Monitor} />
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
             <Button variant="outline" onClick={toggle}>
               <Moon className="h-4 w-4" />
-              {t("settings.appearance.toggleDarkMode", { theme })}
+              {t("appearance.toggleDarkMode", { theme })}
             </Button>
             <Button
               variant="outline"
@@ -392,15 +393,15 @@ export function SettingsClient() {
               onClick={async () => {
                 const ok = await promptInstall();
                 if (!ok) return;
-                toast({ title: t("settings.appearance.toasts.installStartedTitle"), description: t("settings.appearance.toasts.installStartedBody") });
+                toast({ title: t("appearance.toasts.installStartedTitle"), description: t("appearance.toasts.installStartedBody") });
               }}
             >
               <Download className="h-4 w-4" />
-              {t("settings.appearance.installPwa")}
+              {t("appearance.installPwa")}
             </Button>
           </div>
           <div className="mt-2 text-xs text-muted-foreground">
-            {t("settings.appearance.tip")}
+            {t("appearance.tip")}
           </div>
         </CardHeader>
       </Card>
@@ -409,8 +410,8 @@ export function SettingsClient() {
         <CardHeader className="space-y-2">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <CardTitle className="text-base">{t("settings.offlineData.title")}</CardTitle>
-              <CardDescription>{t("settings.offlineData.subtitle")}</CardDescription>
+              <CardTitle className="text-base">{t("offlineData.title")}</CardTitle>
+              <CardDescription>{t("offlineData.subtitle")}</CardDescription>
             </div>
             <IconBubble icon={Database} />
           </div>
@@ -444,16 +445,16 @@ export function SettingsClient() {
                   const url = URL.createObjectURL(blob);
                   const a = document.createElement("a");
                   a.href = url;
-                  a.download = t("settings.offlineData.filenames.fullBackup", {
+                  a.download = t("offlineData.filenames.fullBackup", {
                     date: new Date().toISOString().slice(0, 10)
                   });
                   a.click();
                   URL.revokeObjectURL(url);
-                  toast({ title: t("settings.offlineData.toasts.backupExportedTitle"), description: t("settings.offlineData.toasts.backupExportedBody") });
+                  toast({ title: t("offlineData.toasts.backupExportedTitle"), description: t("offlineData.toasts.backupExportedBody") });
                 } catch (e: any) {
                   toast({
-                    title: t("settings.offlineData.toasts.exportFailedTitle"),
-                    description: e?.message ?? t("settings.offlineData.toasts.exportFailedBody"),
+                    title: t("offlineData.toasts.exportFailedTitle"),
+                    description: e?.message ?? t("offlineData.toasts.exportFailedBody"),
                     variant: "destructive"
                   });
                 } finally {
@@ -462,7 +463,7 @@ export function SettingsClient() {
               }}
             >
               <Download className="h-4 w-4" />
-              {t("settings.offlineData.actions.exportFullBackup")}
+              {t("offlineData.actions.exportFullBackup")}
             </Button>
 
             <Button
@@ -480,7 +481,7 @@ export function SettingsClient() {
                     const text = await file.text();
                     const parsed = JSON.parse(text);
 
-                    if (!confirm(t("settings.offlineData.confirmImport"))) {
+                    if (!confirm(t("offlineData.confirmImport"))) {
                       return;
                     }
 
@@ -516,12 +517,12 @@ export function SettingsClient() {
                         if (attachments.length) await db.attachments.bulkAdd(attachments);
                       });
 
-                    toast({ title: t("settings.offlineData.toasts.importCompleteTitle"), description: t("settings.offlineData.toasts.importCompleteBody") });
+                    toast({ title: t("offlineData.toasts.importCompleteTitle"), description: t("offlineData.toasts.importCompleteBody") });
                     window.location.href = "/dashboard";
                   } catch (e: any) {
                     toast({
-                      title: t("settings.offlineData.toasts.importFailedTitle"),
-                      description: e?.message ?? t("settings.offlineData.toasts.importFailedBody"),
+                      title: t("offlineData.toasts.importFailedTitle"),
+                      description: e?.message ?? t("offlineData.toasts.importFailedBody"),
                       variant: "destructive"
                     });
                   } finally {
@@ -532,18 +533,18 @@ export function SettingsClient() {
               }}
             >
               <Upload className="h-4 w-4" />
-              {t("settings.offlineData.actions.importBackup")}
+              {t("offlineData.actions.importBackup")}
             </Button>
 
             <Button
               variant="outline"
               disabled={busy}
               onClick={async () => {
-                if (!confirm(t("settings.offlineData.confirmClearLocal"))) return;
+                if (!confirm(t("offlineData.confirmClearLocal"))) return;
                 setBusy(true);
                 try {
                   await db.delete();
-                  toast({ title: t("settings.offlineData.toasts.localClearedTitle"), description: t("settings.offlineData.toasts.localClearedBody") });
+                  toast({ title: t("offlineData.toasts.localClearedTitle"), description: t("offlineData.toasts.localClearedBody") });
                   window.location.href = "/dashboard";
                 } finally {
                   setBusy(false);
@@ -551,12 +552,12 @@ export function SettingsClient() {
               }}
             >
               <Trash2 className="h-4 w-4" />
-              {t("settings.offlineData.actions.clearLocalDb")}
+              {t("offlineData.actions.clearLocalDb")}
             </Button>
           </div>
 
           <div className="mt-2 text-xs text-muted-foreground">
-            {t("settings.offlineData.keyboardHint")}
+            {t("offlineData.keyboardHint")}
           </div>
         </CardHeader>
       </Card>
@@ -565,9 +566,9 @@ export function SettingsClient() {
         <CardHeader className="space-y-2">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <CardTitle className="text-base">{t("settings.rights.title")}</CardTitle>
+              <CardTitle className="text-base">{t("rights.title")}</CardTitle>
               <CardDescription>
-                {t("settings.rights.subtitle")}
+                {t("rights.subtitle")}
               </CardDescription>
             </div>
             <IconBubble icon={User} />
@@ -622,19 +623,19 @@ export function SettingsClient() {
                   const url = URL.createObjectURL(blob);
                   const a = document.createElement("a");
                   a.href = url;
-                  a.download = t("settings.rights.filenames.export", {
+                  a.download = t("rights.filenames.export", {
                     date: new Date().toISOString().slice(0, 10)
                   });
                   a.click();
                   URL.revokeObjectURL(url);
                   toast({
-                    title: t("settings.rights.toasts.exportReadyTitle"),
-                    description: t("settings.rights.toasts.exportReadyBody")
+                    title: t("rights.toasts.exportReadyTitle"),
+                    description: t("rights.toasts.exportReadyBody")
                   });
                 } catch (e: any) {
                   toast({
-                    title: t("settings.rights.toasts.exportFailedTitle"),
-                    description: e?.message ?? t("settings.rights.toasts.exportFailedBody"),
+                    title: t("rights.toasts.exportFailedTitle"),
+                    description: e?.message ?? t("rights.toasts.exportFailedBody"),
                     variant: "destructive"
                   });
                 } finally {
@@ -643,7 +644,7 @@ export function SettingsClient() {
               }}
             >
               <Download className="h-4 w-4" />
-              {t("settings.rights.actions.exportAllJson")}
+              {t("rights.actions.exportAllJson")}
             </Button>
 
             <Button
@@ -652,7 +653,7 @@ export function SettingsClient() {
               className="border-destructive/50 text-destructive hover:bg-destructive/10"
               disabled={rightsBusy}
               onClick={async () => {
-                if (!confirm(t("settings.rights.confirmDeleteAll"))) {
+                if (!confirm(t("rights.confirmDeleteAll"))) {
                   return;
                 }
                 setRightsBusy(true);
@@ -692,9 +693,9 @@ export function SettingsClient() {
                         "wf_clients",
                         "wf_attachments"
                       ] as const;
-                      for (const t of tables) {
-                        const { error } = await supabase.from(t).delete().eq("user_id", userId);
-                        if (error) throw new Error(`${t}: ${error.message}`);
+                      for (const tableName of tables) {
+                        const { error } = await supabase.from(tableName).delete().eq("user_id", userId);
+                        if (error) throw new Error(`${tableName}: ${error.message}`);
                       }
                     }
                   }
@@ -702,14 +703,14 @@ export function SettingsClient() {
                   // Always wipe local DB.
                   await db.delete();
                   toast({
-                    title: t("settings.rights.toasts.deletedTitle"),
-                    description: t("settings.rights.toasts.deletedBody")
+                    title: t("rights.toasts.deletedTitle"),
+                    description: t("rights.toasts.deletedBody")
                   });
                   window.location.href = "/auth/logout";
                 } catch (e: any) {
                   toast({
-                    title: t("settings.rights.toasts.deleteFailedTitle"),
-                    description: e?.message ?? t("settings.rights.toasts.deleteFailedBody"),
+                    title: t("rights.toasts.deleteFailedTitle"),
+                    description: e?.message ?? t("rights.toasts.deleteFailedBody"),
                     variant: "destructive"
                   });
                 } finally {
@@ -718,12 +719,12 @@ export function SettingsClient() {
               }}
             >
               <Trash2 className="h-4 w-4" />
-              {t("settings.rights.actions.deleteAll")}
+              {t("rights.actions.deleteAll")}
             </Button>
           </div>
 
           <p className="mt-2 text-xs text-muted-foreground">
-            {t("settings.rights.note")}
+            {t("rights.note")}
           </p>
         </CardHeader>
       </Card>
@@ -734,7 +735,7 @@ export function SettingsClient() {
 function ProfileInfo() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [email, setEmail] = useState<string>("—");
-  const t = useTranslations();
+  const tAuth = useTranslations("auth");
 
   useEffect(() => {
     (async () => {
@@ -746,7 +747,7 @@ function ProfileInfo() {
 
   return (
     <div className="space-y-1">
-      <div className="text-xs text-muted-foreground">{t("auth.fields.email")}</div>
+      <div className="text-xs text-muted-foreground">{tAuth("fields.email")}</div>
       <div className="font-semibold">{email}</div>
     </div>
   );

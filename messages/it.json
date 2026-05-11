@@ -958,6 +958,10 @@
     }
   },
   "settings": {
+    "page": {
+      "title": "Impostazioni",
+      "subtitle": "Profilo, sincronizzazione cloud, aspetto, backup locale e diritti sui dati."
+    },
     "appVersion": "{appName} • v{version}",
     "profile": {
       "title": "Profilo",

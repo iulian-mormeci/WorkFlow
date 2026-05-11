@@ -958,6 +958,10 @@
     }
   },
   "settings": {
+    "page": {
+      "title": "Settings",
+      "subtitle": "Profile, cloud sync, appearance, local backup and your data rights."
+    },
     "appVersion": "{appName} • v{version}",
     "profile": {
       "title": "Profile",
