@@ -13,7 +13,7 @@ import { InterventionRemindersProvider } from "@/components/interventions/interv
 import { MobileMenu } from "@/components/layout/mobile-menu";
 import { PROTECTED_NAV_ITEMS } from "@/lib/navigation/protected-nav";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations, setRequestLocale } from "next-intl/server";
 
 // Protected area must never be statically cached.
 export const dynamic = "force-dynamic";
@@ -24,6 +24,8 @@ export default async function ProtectedLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const locale = await getLocale();
+  setRequestLocale(locale);
   const t = await getTranslations();
   // Auth protection is enforced by `src/middleware.ts`.
   // No `getUser()` here: refreshing JWTs belongs in middleware / route handlers.

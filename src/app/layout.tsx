@@ -5,6 +5,7 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
+import { setRequestLocale } from "next-intl/server";
 import "./globals.css";
 import { SupabaseProvider } from "@/components/supabase/supabase-provider";
 import { WorkflowSyncRunner } from "@/components/sync/workflow-sync-runner";
@@ -32,10 +33,15 @@ export const viewport: Viewport = {
   viewportFit: "cover"
 };
 
+const NEXT_INTL_LOCALE_HEADER = "X-NEXT-INTL-LOCALE";
+
 /** Wraps all pages with Supabase context, background sync, and toaster. */
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const h = await headers();
-  const locale = (h.get("x-workflow-locale") === "en" ? "en" : "it") as "it" | "en";
+  // Must match `src/middleware.ts`: next-intl and RSC read `X-NEXT-INTL-LOCALE` on the forwarded request.
+  const fromIntl = h.get(NEXT_INTL_LOCALE_HEADER) ?? h.get("x-workflow-locale");
+  const locale = (fromIntl === "en" ? "en" : "it") as "it" | "en";
+  setRequestLocale(locale);
   const messages = (await import(`../../messages/${locale}.json`)).default;
   return (
     <html lang={locale} suppressHydrationWarning>

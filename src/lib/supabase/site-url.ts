@@ -18,8 +18,17 @@ export function getSiteUrl(): string {
  * to localhost or the wrong deployment. Order: configured URL → forwarded headers → request URL.
  */
 export function getAuthRedirectOrigin(req: NextRequest): string {
-  const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/+$/, "") ?? "";
-  if (configured) return configured;
+  const configuredRaw = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/+$/, "") ?? "";
+  if (configuredRaw) {
+    try {
+      const withScheme = /^https?:\/\//i.test(configuredRaw)
+        ? configuredRaw
+        : `https://${configuredRaw}`;
+      return new URL(withScheme).origin.replace(/\/+$/, "");
+    } catch {
+      /* fall through — bad env should not take down auth routes */
+    }
+  }
 
   const xfHost = req.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
   const host = xfHost || req.headers.get("host")?.split(",")[0]?.trim();
@@ -39,7 +48,11 @@ export function getAuthRedirectOrigin(req: NextRequest): string {
     }
   }
 
-  return new URL(req.url).origin.replace(/\/+$/, "");
+  try {
+    return new URL(req.url).origin.replace(/\/+$/, "");
+  } catch {
+    return "http://localhost:3000";
+  }
 }
 
 /**

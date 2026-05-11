@@ -24,6 +24,9 @@ function hasSupabaseSessionCookie(req: NextRequest) {
 
 type Locale = "it" | "en";
 
+/** next-intl reads this header in RSC (`getTranslations`, `getLocale`, etc.). Must be on the *request* passed through rewrites. */
+const NEXT_INTL_LOCALE_HEADER = "X-NEXT-INTL-LOCALE";
+
 function isLocalizablePath(pathname: string) {
   return !(
     pathname.startsWith("/api/") ||
@@ -104,22 +107,29 @@ export async function middleware(req: NextRequest) {
     }
   }
 
+  // Forward resolved locale on the *incoming* request so App Router RSC + next-intl see the same
+  // locale as the browser URL (`/en/...` rewrites internally to `/...` but must stay "en").
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set(NEXT_INTL_LOCALE_HEADER, locale);
+  requestHeaders.set("x-workflow-locale", locale);
+
   // Critical for App Router without an explicit `[locale]` segment:
   // we keep `/en/...` in the browser URL but internally serve the same route tree by rewriting
   // `/en/...` → `/...`. Without this, Next would try to match `/en/*` as real routes and 404.
   const res = isLocalizablePath(pathnameWithLocale) && hasEnPrefix
-    ? NextResponse.rewrite(new URL(pathnameNoLocale, req.url))
+    ? NextResponse.rewrite(new URL(pathnameNoLocale, req.url), {
+        request: { headers: requestHeaders }
+      })
     : NextResponse.next({
-        request: {
-          headers: req.headers
-        }
+        request: { headers: requestHeaders }
       });
 
   // IMPORTANT (Supabase SSR): when refreshing cookies in middleware, we must
   // update BOTH the response cookies and the in-memory request cookies,
   // otherwise downstream auth checks in the same request can see stale cookies.
   // This follows Supabase's recommended Next.js middleware pattern.
-  // Make the resolved locale available to Server Components (layout/meta) without relying on URL params.
+  // Response headers (optional): helps proxies / debugging; RSC reads request headers above.
+  res.headers.set(NEXT_INTL_LOCALE_HEADER, locale);
   res.headers.set("x-workflow-locale", locale);
   // Keep next-intl's server-side locale (`requestLocale`) and our middleware in sync,
   // otherwise Server Components can render with a different locale and you get mixed strings.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { usePathname } from "next/navigation";
 import { useRouter } from "@/i18n/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -46,6 +46,7 @@ export function LanguageSwitcher({
   const pathname = usePathname() || "/";
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [busy, setBusy] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   const locale = detectCurrentLocaleFromPath(pathname);
   const label = locale === "it" ? "🇮🇹 Italiano" : "🇬🇧 English";
@@ -67,9 +68,11 @@ export function LanguageSwitcher({
       }
     }
 
-    // Let next-intl build the correct locale-prefixed URL.
-    router.push(pathnameNoLocale, { locale: next });
-    router.refresh();
+    // Locale-aware URL + refresh so RSC (layouts, server pages) pick up `X-NEXT-INTL-LOCALE` from middleware.
+    startTransition(() => {
+      router.replace(pathnameNoLocale, { locale: next });
+      router.refresh();
+    });
   }
 
   return (
@@ -81,7 +84,7 @@ export function LanguageSwitcher({
           size={size}
           className="rounded-none border-0"
           aria-pressed={locale === "it"}
-          disabled={busy}
+          disabled={busy || isPending}
           onClick={() => void apply("it")}
         >
           🇮🇹 IT
@@ -93,7 +96,7 @@ export function LanguageSwitcher({
           size={size}
           className="rounded-none border-0"
           aria-pressed={locale === "en"}
-          disabled={busy}
+          disabled={busy || isPending}
           onClick={() => void apply("en")}
         >
           🇬🇧 EN
