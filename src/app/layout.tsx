@@ -4,7 +4,6 @@
  */
 import type { Metadata, Viewport } from "next";
 import { cookies, headers } from "next/headers";
-import { NextIntlClientProvider } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
 import "./globals.css";
 import { SupabaseProvider } from "@/components/supabase/supabase-provider";
@@ -13,6 +12,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { SupportEmailOutboxAutoFlush } from "@/components/support/support-email-outbox-autoflush";
 import { LegalFooter } from "@/components/legal/legal-footer";
 import { CookieConsentBanner } from "@/components/legal/cookie-consent-banner";
+import { IntlProvider } from "@/components/i18n/intl-provider";
 
 export const metadata: Metadata = {
   title: "WorkFlow",
@@ -56,7 +56,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang={locale} suppressHydrationWarning>
       <body className="min-h-dvh bg-background text-foreground antialiased">
-        <NextIntlClientProvider locale={locale} messages={messages}>
+        <IntlProvider locale={locale} messages={messages}>
           <SupabaseProvider>
             <WorkflowSyncRunner />
             <div className="flex min-h-dvh flex-col">
@@ -67,7 +67,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <SupportEmailOutboxAutoFlush />
             <Toaster />
           </SupabaseProvider>
-        </NextIntlClientProvider>
+        </IntlProvider>
       </body>
     </html>
   );
