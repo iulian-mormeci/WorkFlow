@@ -19,7 +19,10 @@ import { InterventionLocationFields } from "@/components/interventions/intervent
 import { RouteStopsEditor, buildRoundTripStops } from "@/components/interventions/route-stops-editor";
 import type { RouteStopDraft } from "@/lib/routes/route-stops";
 import { upsertRouteStop } from "@/lib/routes/route-stops";
-import { totalKmFromRouteStops } from "@/lib/routes/route-distance";
+import {
+  interventionEndpointsFromRouteStopDrafts,
+  totalKmFromRouteStops
+} from "@/lib/routes/route-distance";
 import { scheduleWorkflowSync, syncWorkflowNow } from "@/lib/sync/sync-engine";
 import { JOB_TYPE_PRESETS } from "@/lib/interventions/job-types";
 import { preservedWorkflowStatus } from "@/lib/interventions/intervention-helpers";
@@ -342,6 +345,12 @@ export function InterventionFormDialog(props: Props) {
           ? [...existing.photoIds]
           : undefined;
 
+      const fromDraft = interventionEndpointsFromRouteStopDrafts(draftStops);
+      const savedStartLocation = fromDraft.startLocation ?? startLocation;
+      const savedEndLocation = fromDraft.endLocation ?? endLocation;
+      const savedLocationKmAuto =
+        fromDraft.locationKmAuto != null ? fromDraft.locationKmAuto : locationKmAuto;
+
       const dueIso = dueAtLocal ? new Date(dueAtLocal).toISOString() : undefined;
       const reminderCustomIso =
         remindersEnabled && reminderPreset === "custom" && reminderCustomAtLocal
@@ -426,9 +435,9 @@ export function InterventionFormDialog(props: Props) {
           reminderLastFireAt: reminderConfigChanged ? undefined : existing.reminderLastFireAt,
           reminderPreDueAckAt: reminderConfigChanged ? undefined : existing.reminderPreDueAckAt,
           reminderDueAckAt: reminderConfigChanged ? undefined : existing.reminderDueAckAt,
-          startLocation,
-          endLocation,
-          locationKmAuto,
+          startLocation: savedStartLocation,
+          endLocation: savedEndLocation,
+          locationKmAuto: savedLocationKmAuto,
           updatedAt: nowIso
         };
         console.info("[InterventionFormDialog] payload(edit)", {
@@ -467,9 +476,9 @@ export function InterventionFormDialog(props: Props) {
           reminderCustomAt:
             remindersEnabled && reminderPreset === "custom" ? reminderCustomIso : undefined,
           reminderEmailTo: nextReminderEmail,
-          startLocation,
-          endLocation,
-          locationKmAuto,
+          startLocation: savedStartLocation,
+          endLocation: savedEndLocation,
+          locationKmAuto: savedLocationKmAuto,
           createdAt: nowIso,
           updatedAt: nowIso
         };
