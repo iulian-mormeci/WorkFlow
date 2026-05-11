@@ -369,8 +369,6 @@ export function RouteStopsEditor({
     () => stops.map(toGeoStop).filter(Boolean) as InterventionGeoStop[],
     [stops]
   );
-  const start = geoStops[0];
-  const end = geoStops.length > 1 ? geoStops[geoStops.length - 1] : undefined;
 
   const segments = useMemo(() => {
     const out: { from?: InterventionGeoStop; to?: InterventionGeoStop; km?: number }[] = [];
@@ -470,7 +468,7 @@ export function RouteStopsEditor({
 
       <div className="space-y-2">
         <div className="text-sm font-semibold text-foreground">{t("route.stops.mapPreviewTitle")}</div>
-        <InterventionRouteMapPreview start={start} end={end} variant="comfortable" />
+        <InterventionRouteMapPreview waypoints={geoStops} variant="comfortable" />
       </div>
     </div>
   );

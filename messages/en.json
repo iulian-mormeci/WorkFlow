@@ -431,6 +431,7 @@
     "map": {
       "markerStart": "Start",
       "markerEnd": "End",
+      "markerStopN": "Stop {n}",
       "empty": "Search and select a <start>start</start> address to show the map. Add an <end>end</end> address for the route line.",
       "footerHint": "Pinch-zoom and drag · Driving path via OSRM when available · Tap markers for labels",
       "errors": {
@@ -1287,6 +1288,7 @@
       "roundTripEstimate": "Route total (air, estimate)",
       "kmManual": "KM (manual)",
       "useAutoKm": "Use auto ({km} km)",
+      "applyRouteKmEstimate": "Use route estimate ({km} km)",
       "autoFromRouteKm": "Auto from route ≈ {km} km",
       "notes": "Notes",
       "notesPlaceholder": "What was done, issues found…",

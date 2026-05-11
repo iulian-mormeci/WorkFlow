@@ -1,29 +1,49 @@
 import { NextResponse } from "next/server";
 
+type LatLng = { lat: number; lng: number };
+
 type Body = {
-  origin?: { lat: number; lng: number };
-  destination?: { lat: number; lng: number };
+  origin?: LatLng;
+  destination?: LatLng;
+  /** Ordered driving stops (≥2). Preferred when set — draws full path through all points. */
+  waypoints?: LatLng[];
 };
 
-/**
- * Proxies OSRM public demo router (no API key). Coordinates suitable for Leaflet polylines [lat,lng][].
- */
-export async function POST(req: Request) {
-  const body = (await req.json()) as Body;
+function normalizePoints(body: Body): LatLng[] | null {
+  if (Array.isArray(body.waypoints) && body.waypoints.length >= 2) {
+    const pts = body.waypoints.filter(
+      (p) => p && Number.isFinite(p.lat) && Number.isFinite(p.lng)
+    );
+    return pts.length >= 2 ? pts : null;
+  }
   const o = body.origin;
   const d = body.destination;
   if (
-    !o ||
-    !d ||
-    !Number.isFinite(o.lat) ||
-    !Number.isFinite(o.lng) ||
-    !Number.isFinite(d.lat) ||
-    !Number.isFinite(d.lng)
+    o &&
+    d &&
+    Number.isFinite(o.lat) &&
+    Number.isFinite(o.lng) &&
+    Number.isFinite(d.lat) &&
+    Number.isFinite(d.lng)
   ) {
+    return [o, d];
+  }
+  return null;
+}
+
+/**
+ * Proxies OSRM public demo router (no API key). Coordinates suitable for Leaflet polylines [lat,lng][].
+ * Supports `waypoints` (full multi-stop) or legacy `origin` + `destination`.
+ */
+export async function POST(req: Request) {
+  const body = (await req.json()) as Body;
+  const pts = normalizePoints(body);
+  if (!pts || pts.length < 2) {
     return NextResponse.json({ ok: false, error: "invalid payload" }, { status: 400 });
   }
 
-  const url = `https://router.project-osrm.org/route/v1/driving/${o.lng},${o.lat};${d.lng},${d.lat}?overview=full&geometries=geojson`;
+  const path = pts.map((p) => `${p.lng},${p.lat}`).join(";");
+  const url = `https://router.project-osrm.org/route/v1/driving/${path}?overview=full&geometries=geojson`;
 
   try {
     const res = await fetch(url, {

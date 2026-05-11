@@ -408,6 +408,7 @@ export function InterventionEditClient({ id }: { id: string }) {
               </div>
               <div className="mt-4">
                 <InterventionRouteMapPreview
+                  interventionId={intervention.id}
                   start={intervention.startLocation}
                   end={intervention.endLocation}
                   variant="compact"

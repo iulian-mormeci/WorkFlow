@@ -431,6 +431,7 @@
     "map": {
       "markerStart": "Partenza",
       "markerEnd": "Arrivo",
+      "markerStopN": "Fermata {n}",
       "empty": "Cerca e seleziona un indirizzo di <start>partenza</start> per vedere la mappa. Aggiungi l’<end>arrivo</end> per la linea del percorso.",
       "footerHint": "Pinch-zoom e trascina · Percorso auto via OSRM quando disponibile · Tocca i marker per le etichette",
       "errors": {
@@ -1287,6 +1288,7 @@
       "roundTripEstimate": "Totale percorso (aria, stima)",
       "kmManual": "KM (manuale)",
       "useAutoKm": "Usa auto ({km} km)",
+      "applyRouteKmEstimate": "Usa stima percorso ({km} km)",
       "autoFromRouteKm": "Auto da percorso ≈ {km} km",
       "notes": "Note",
       "notesPlaceholder": "Cosa è stato fatto, anomalie, follow-up…",

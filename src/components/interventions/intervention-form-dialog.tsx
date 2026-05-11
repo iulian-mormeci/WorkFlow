@@ -899,11 +899,27 @@ export function InterventionFormDialog(props: Props) {
               </div>
 
               {draftStops.length >= 2 && roundTripAirKm > 0 ? (
-                <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border bg-primary/5 px-4 py-3 sm:px-5">
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-primary/5 px-4 py-3 sm:px-5">
                   <span className="text-sm text-muted-foreground">{t("interventions.form.roundTripEstimate")}</span>
-                  <span className="text-xl font-bold tabular-nums tracking-tight">
-                    {roundTripAirKm.toFixed(1)} km
-                  </span>
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <span className="text-xl font-bold tabular-nums tracking-tight">
+                      {roundTripAirKm.toFixed(1)} km
+                    </span>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="min-h-11 shrink-0 touch-manipulation"
+                      onClick={() => {
+                        setKm(roundTripAirKm.toFixed(1));
+                        setLocationKmAuto(roundTripAirKm);
+                      }}
+                    >
+                      {t("interventions.form.applyRouteKmEstimate", {
+                        km: roundTripAirKm.toFixed(1)
+                      })}
+                    </Button>
+                  </div>
                 </div>
               ) : null}
 
