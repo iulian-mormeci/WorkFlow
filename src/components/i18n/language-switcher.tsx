@@ -1,8 +1,7 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
-import { useLocale } from "next-intl";
-import { useRouter } from "next/navigation";
+import { useMemo } from "react";
+import { usePathname } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 
@@ -20,6 +19,12 @@ function setLocaleLocal(locale: Locale) {
   } catch {
     /* ignore */
   }
+}
+
+/** Locale implied by the visible URL (must match middleware: EN uses `/en`, IT has no prefix). */
+function localeFromPathname(pathname: string): Locale {
+  if (pathname === "/en" || pathname.startsWith("/en/")) return "en";
+  return "it";
 }
 
 /** Path without `/en` or `/it` (matches middleware). Avoids double-prefix 404s when switching locale. */
@@ -52,39 +57,32 @@ export function LanguageSwitcher({
   size?: "sm" | "default" | "lg" | "icon";
   className?: string;
 }) {
-  const nextRouter = useRouter();
-  const currentLocale = useLocale() as Locale;
+  const pathname = usePathname() || "/";
+  const activeLocale = localeFromPathname(pathname);
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
-  const [isPending, startTransition] = useTransition();
-  const [busy, setBusy] = useState(false);
 
-  const label = currentLocale === "it" ? "🇮🇹 Italiano" : "🇬🇧 English";
+  const label = activeLocale === "it" ? "🇮🇹 Italiano" : "🇬🇧 English";
 
   function apply(next: Locale) {
-    if (next === currentLocale) return;
     if (typeof window === "undefined") return;
+    // Compare to the URL, not `useLocale()`: after a client transition the provider can stay
+    // stale while pathname is already `/en/...`, so `next === useLocale()` would wrongly no-op
+    // and “switch back” appears broken. Mixed Italian/English chrome follows the same bug.
+    if (next === localeFromPathname(window.location.pathname)) return;
 
     const suffix = `${window.location.search}${window.location.hash}`;
     const path = localizedPath(window.location.pathname, next) + suffix;
 
-    // Set cookie before navigation so middleware + RSC see the new locale on the first request.
     setLocaleCookie(next);
     setLocaleLocal(next);
 
-    // Use Next's router with an explicit pathname — not next-intl's `router.replace(href, { locale })`,
-    // which syncs NEXT_LOCALE using getBasePath() and can set Path=/en on the cookie while the
-    // logical path is still unprefixed, producing duplicate cookies and /en/en/... 404s.
-    startTransition(() => {
-      nextRouter.replace(path);
-    });
-
     if (supabase) {
-      setBusy(true);
-      void supabase.auth
-        .updateUser({ data: { locale: next } })
-        .catch(() => {})
-        .finally(() => setBusy(false));
+      void supabase.auth.updateUser({ data: { locale: next } }).catch(() => {});
     }
+
+    // Full navigation reloads the root layout + `IntlProvider` messages so sidebar / sync / search
+    // always match the URL. Client `router.replace` alone can leave RSC messages one locale behind.
+    window.location.assign(path);
   }
 
   return (
@@ -95,8 +93,7 @@ export function LanguageSwitcher({
           variant={variant}
           size={size}
           className="rounded-none border-0"
-          aria-pressed={currentLocale === "it"}
-          disabled={busy || isPending}
+          aria-pressed={activeLocale === "it"}
           onClick={() => apply("it")}
         >
           🇮🇹 IT
@@ -107,8 +104,7 @@ export function LanguageSwitcher({
           variant={variant}
           size={size}
           className="rounded-none border-0"
-          aria-pressed={currentLocale === "en"}
-          disabled={busy || isPending}
+          aria-pressed={activeLocale === "en"}
           onClick={() => apply("en")}
         >
           🇬🇧 EN

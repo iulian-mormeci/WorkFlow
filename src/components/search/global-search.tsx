@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "@/i18n/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { FileText, Search } from "lucide-react";
@@ -97,7 +97,7 @@ export function GlobalSearch() {
     return res.slice(0, 30);
   }, [q, liveEpoch, t]);
 
-  const placeholder = useMemo(() => t("search.global.buttonPlaceholder"), [t]);
+  const placeholder = t("search.global.buttonPlaceholder");
 
   return (
     <>
