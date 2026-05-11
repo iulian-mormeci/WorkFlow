@@ -86,28 +86,28 @@ export function TemplateEditorDialog({ open, onOpenChange, target, onSaved }: Pr
     setSpareLines([]);
   }
 
-  function applyTemplate(t: InterventionTemplate, opts?: { nameOverride?: string }) {
-    setName(opts?.nameOverride ?? t.name);
-    setJobType(t.type || "maintenance");
-    setWorkCategory(t.workCategory ?? "intervention");
-    setIsOfficeActivity(Boolean(t.isOfficeActivity));
-    if (t.defaultClientId) {
+  function applyTemplate(template: InterventionTemplate, opts?: { nameOverride?: string }) {
+    setName(opts?.nameOverride ?? template.name);
+    setJobType(template.type || "maintenance");
+    setWorkCategory(template.workCategory ?? "intervention");
+    setIsOfficeActivity(Boolean(template.isOfficeActivity));
+    if (template.defaultClientId) {
       setClientMode("saved");
-      setDefaultClientId(t.defaultClientId);
+      setDefaultClientId(template.defaultClientId);
       setClientNameHint("");
     } else {
       setClientMode("new");
       setDefaultClientId("");
-      setClientNameHint(t.clientName ?? "");
+      setClientNameHint(template.clientName ?? "");
     }
     setDefaultDurationMinutes(
-      t.defaultDurationMinutes != null ? String(t.defaultDurationMinutes) : ""
+      template.defaultDurationMinutes != null ? String(template.defaultDurationMinutes) : ""
     );
-    setKm(t.km != null ? String(t.km) : "");
-    setNotes(t.notes ?? "");
-    setChecklist(cloneChecklist(t.checklist as ChecklistRow[] | undefined));
+    setKm(template.km != null ? String(template.km) : "");
+    setNotes(template.notes ?? "");
+    setChecklist(cloneChecklist(template.checklist as ChecklistRow[] | undefined));
     setSpareLines(
-      (t.sparePartsUsed ?? []).map((x) => ({
+      (template.sparePartsUsed ?? []).map((x) => ({
         sparePartId: x.sparePartId,
         qty: String(x.qty)
       }))
@@ -119,25 +119,33 @@ export function TemplateEditorDialog({ open, onOpenChange, target, onSaved }: Pr
     let cancelled = false;
     (async () => {
       if (target.editId) {
-        const t = await db.templates.get(target.editId);
-        if (cancelled || !t) {
-          if (!cancelled && !t) {
-            toast({ title: t("templates.editor.toasts.notFoundTitle"), variant: "destructive" });
+        const template = await db.templates.get(target.editId);
+        if (cancelled || !template) {
+          if (!cancelled && !template) {
+            toast({
+              title: t?.("templates.editor.toasts.notFoundTitle") ?? "Template not found",
+              variant: "destructive"
+            });
           }
           return;
         }
-        applyTemplate(t);
+        applyTemplate(template);
         return;
       }
       if (target.duplicateFromId) {
-        const t = await db.templates.get(target.duplicateFromId);
-        if (cancelled || !t) {
-          if (!cancelled && !t) {
-            toast({ title: t("templates.editor.toasts.notFoundTitle"), variant: "destructive" });
+        const template = await db.templates.get(target.duplicateFromId);
+        if (cancelled || !template) {
+          if (!cancelled && !template) {
+            toast({
+              title: t?.("templates.editor.toasts.notFoundTitle") ?? "Template not found",
+              variant: "destructive"
+            });
           }
           return;
         }
-        applyTemplate(t, { nameOverride: t("templates.editor.copyOf", { name: t.name }) });
+        applyTemplate(template, {
+          nameOverride: t?.("templates.editor.copyOf", { name: template.name }) ?? template.name
+        });
         return;
       }
       resetEmpty();
@@ -145,7 +153,7 @@ export function TemplateEditorDialog({ open, onOpenChange, target, onSaved }: Pr
     return () => {
       cancelled = true;
     };
-  }, [open, target.duplicateFromId, target.editId, toast]);
+  }, [open, target.duplicateFromId, target.editId, t, toast]);
 
   useEffect(() => {
     if (workCategory === "intervention") setIsOfficeActivity(false);

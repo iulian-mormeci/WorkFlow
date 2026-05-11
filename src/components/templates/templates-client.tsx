@@ -87,36 +87,36 @@ export function TemplatesClient() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {(templates ?? []).map((t) => (
+        {(templates ?? []).map((tpl) => (
           <div
-            key={t.id}
+            key={tpl.id}
             className="flex flex-col rounded-2xl border bg-card p-5 shadow-sm transition hover:border-primary/30 hover:shadow-md"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <h2 className="line-clamp-2 text-lg font-semibold leading-tight">{t.name}</h2>
+                <h2 className="line-clamp-2 text-lg font-semibold leading-tight">{tpl.name}</h2>
                 <div className="mt-2 flex flex-wrap gap-2">
                   <Badge
                     className={
-                      t.workCategory === "activity"
+                      tpl.workCategory === "activity"
                         ? "border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-900/50 dark:bg-violet-950/40 dark:text-violet-200"
                         : "border-primary/30 bg-primary/10 text-primary"
                     }
                   >
-                    {t.workCategory === "activity" ? t("common.activity") : t("common.intervention")}
+                    {tpl.workCategory === "activity" ? t("common.activity") : t("common.intervention")}
                   </Badge>
                   <Badge className="border-muted-foreground/30 bg-background font-normal text-muted-foreground">
-                    {t.type}
+                    {tpl.type}
                   </Badge>
                 </div>
               </div>
             </div>
             <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">
-              {clientSubtitle(t, clientNameById, t)}
+              {clientSubtitle(tpl, clientNameById, t)}
             </p>
-            {t.defaultDurationMinutes != null ? (
+            {tpl.defaultDurationMinutes != null ? (
               <p className="mt-1 text-xs text-muted-foreground">
-                {t("templates.card.defaultDuration", { minutes: t.defaultDurationMinutes })}
+                {t("templates.card.defaultDuration", { minutes: tpl.defaultDurationMinutes })}
               </p>
             ) : null}
 
@@ -126,18 +126,18 @@ export function TemplatesClient() {
                 variant="default"
                 className="min-h-11"
                 onClick={() => {
-                  setSelected(t);
+                  setSelected(tpl);
                   setUseOpen(true);
                 }}
               >
                 <Rocket className="h-4 w-4" />
                 {t("templates.actions.createFromTemplate")}
               </Button>
-              <Button type="button" variant="outline" className="min-h-11" onClick={() => openEdit(t.id)}>
+              <Button type="button" variant="outline" className="min-h-11" onClick={() => openEdit(tpl.id)}>
                 <Pencil className="h-4 w-4" />
                 {t("common.edit")}
               </Button>
-              <Button type="button" variant="outline" className="min-h-11" onClick={() => openDuplicate(t.id)}>
+              <Button type="button" variant="outline" className="min-h-11" onClick={() => openDuplicate(tpl.id)}>
                 <Copy className="h-4 w-4" />
                 {t("templates.actions.duplicate")}
               </Button>
@@ -155,7 +155,7 @@ export function TemplatesClient() {
                       data: { user }
                     } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
                     const res = await performTemplateCloudSyncDelete({
-                      templateId: t.id,
+                      templateId: tpl.id,
                       supabase: supabase ?? null,
                       userId: user?.id ?? null
                     });

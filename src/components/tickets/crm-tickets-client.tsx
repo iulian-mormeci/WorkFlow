@@ -155,30 +155,43 @@ export function CrmTicketsClient() {
           <div className="text-right">{t("tickets.table.status")}</div>
         </div>
         <div className="divide-y">
-          {(tickets ?? []).map((t) => {
+          {(tickets ?? []).map((ticket) => {
             const nowIso = new Date().toISOString();
-            const due = (t.reminderAt ?? t.dueAt) && (t.reminderAt ?? t.dueAt)! <= nowIso;
+            const due =
+              (ticket.reminderAt ?? ticket.dueAt) &&
+              (ticket.reminderAt ?? ticket.dueAt)! <= nowIso;
             return (
               <button
-                key={t.id}
+                key={ticket.id}
                 type="button"
                 className="w-full px-4 py-4 text-left hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
                 onClick={async () => {
                   const nextStatus =
-                    t.status === "open" ? "pending" : t.status === "pending" ? "closed" : "open";
-                  await db.tickets.update(t.id, { status: nextStatus, updatedAt: new Date().toISOString() });
+                    ticket.status === "open"
+                      ? "pending"
+                      : ticket.status === "pending"
+                        ? "closed"
+                        : "open";
+                  await db.tickets.update(ticket.id, {
+                    status: nextStatus,
+                    updatedAt: new Date().toISOString()
+                  });
                   toast({
                     title: t("tickets.toasts.updatedTitle"),
-                    description: t("tickets.toasts.updatedBody", { status: t(`tickets.status.${nextStatus}`) })
+                    description: t("tickets.toasts.updatedBody", {
+                      status: t(`tickets.status.${nextStatus}`)
+                    })
                   });
                 }}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <div className="truncate text-base font-semibold">{t.title}</div>
-                      <span className={`rounded-full border px-2 py-0.5 text-xs ${priorityPill(t.priority)}`}>
-                        {t.priority}
+                      <div className="truncate text-base font-semibold">{ticket.title}</div>
+                      <span
+                        className={`rounded-full border px-2 py-0.5 text-xs ${priorityPill(ticket.priority)}`}
+                      >
+                        {ticket.priority}
                       </span>
                       {due ? (
                         <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs text-amber-900">
@@ -187,19 +200,20 @@ export function CrmTicketsClient() {
                         </span>
                       ) : null}
                     </div>
-                    {t.description ? (
+                    {ticket.description ? (
                       <div className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                        {t.description}
+                        {ticket.description}
                       </div>
                     ) : null}
-                    {t.dueAt ? (
+                    {ticket.dueAt ? (
                       <div className="mt-2 text-xs text-muted-foreground">
-                        {t("tickets.duePrefix")} {new Date(t.dueAt).toLocaleDateString()}
+                        {t("tickets.duePrefix")}{" "}
+                        {new Date(ticket.dueAt).toLocaleDateString()}
                       </div>
                     ) : null}
                   </div>
                   <div className="text-right text-sm text-muted-foreground">
-                    {t(`tickets.status.${t.status}`)}
+                    {t(`tickets.status.${ticket.status}`)}
                   </div>
                 </div>
               </button>

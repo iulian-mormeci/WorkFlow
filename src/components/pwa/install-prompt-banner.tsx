@@ -31,7 +31,7 @@ export function InstallPromptBanner() {
   const onInstall = useCallback(async () => {
     const ok = await promptInstall();
     if (ok) toast({ title: t("pwa.installStartedTitle"), description: t("pwa.installStartedBody") });
-  }, [promptInstall, toast]);
+  }, [promptInstall, t, toast]);
 
   if (!canInstall || dismissed) return null;
 

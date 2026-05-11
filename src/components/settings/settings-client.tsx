@@ -33,7 +33,6 @@ import {
 } from "@/lib/sync/sync-engine";
 import { STORAGE_BUCKET } from "@/lib/sync/sync-constants";
 
-const APP_NAME = "WorkFlow";
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "0.1.0";
 
 async function blobToBase64(blob: Blob) {
