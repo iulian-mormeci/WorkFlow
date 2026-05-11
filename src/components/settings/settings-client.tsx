@@ -26,6 +26,7 @@ import { getReminderDefaultEmail, setReminderDefaultEmail } from "@/lib/reminder
 import { getSupportEmailTo, setSupportEmailTo } from "@/lib/support-email/config";
 import { useSyncFailureQueue } from "@/lib/sync/sync-failure-queue";
 import { useTranslations } from "next-intl";
+import { SettingsSecurityCard } from "@/components/settings/settings-security-card";
 import {
   refreshPendingDirtyCount,
   runForceFullWorkflowSync,
@@ -262,6 +263,8 @@ export function SettingsClient() {
           </div>
         </CardHeader>
       </Card>
+
+      <SettingsSecurityCard />
 
       <Card className="rounded-2xl lg:col-span-2">
         <CardHeader className="space-y-2">
@@ -654,6 +657,9 @@ export function SettingsClient() {
               disabled={rightsBusy}
               onClick={async () => {
                 if (!confirm(t("rights.confirmDeleteAll"))) {
+                  return;
+                }
+                if (!confirm(t("rights.confirmDeleteSecond"))) {
                   return;
                 }
                 setRightsBusy(true);

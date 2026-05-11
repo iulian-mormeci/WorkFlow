@@ -7,6 +7,10 @@
  */
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { applySecurityHeaders } from "@/lib/security/http-security";
+import { RATE_LIMITS } from "@/lib/security/rate-limit-config";
+import { checkRateLimit, getClientIp } from "@/lib/security/rate-limit";
+import { logSecurityEvent } from "@/lib/security/security-log";
 
 /** Whether the request carries a Supabase auth cookie (chunked names included). */
 function hasSupabaseSessionCookie(req: NextRequest) {
@@ -85,9 +89,143 @@ function isPublicPath(pathnameNoLocale: string) {
   );
 }
 
+function finish(req: NextRequest, res: NextResponse): NextResponse {
+  applySecurityHeaders(req, res);
+  return res;
+}
+
 /** Runs on matched routes: refreshes auth cookies, redirects anonymous users to `/login`. */
 export async function middleware(req: NextRequest) {
   const { locale, pathnameNoLocale } = getLocaleFromRequest(req);
+  const ip = getClientIp(req);
+
+  if (req.method === "POST" && pathnameNoLocale === "/auth/password") {
+    const c = RATE_LIMITS.authPassword;
+    const rl = checkRateLimit(`auth:pw:${ip}`, c.limit, c.windowMs);
+    if (!rl.allowed) {
+      logSecurityEvent({
+        event: "rate_limited",
+        route: "/auth/password",
+        ip,
+        retryAfterSec: rl.retryAfterSec
+      });
+      return finish(
+        req,
+        NextResponse.json(
+          { ok: false, error: "Too many sign-in attempts. Try again later." },
+          { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } }
+        )
+      );
+    }
+  }
+
+  if (req.method === "POST" && pathnameNoLocale.startsWith("/api/support-email")) {
+    const c = RATE_LIMITS.supportEmail;
+    const rl = checkRateLimit(`api:support-email:${ip}`, c.limit, c.windowMs);
+    if (!rl.allowed) {
+      logSecurityEvent({
+        event: "rate_limited",
+        route: "/api/support-email",
+        ip,
+        retryAfterSec: rl.retryAfterSec
+      });
+      return finish(
+        req,
+        new NextResponse("Too many requests", {
+          status: 429,
+          headers: { "Retry-After": String(rl.retryAfterSec) }
+        })
+      );
+    }
+  }
+
+  if (req.method === "POST" && pathnameNoLocale.startsWith("/api/reminder-email")) {
+    const c = RATE_LIMITS.reminderEmail;
+    const rl = checkRateLimit(`api:reminder-email:${ip}`, c.limit, c.windowMs);
+    if (!rl.allowed) {
+      logSecurityEvent({
+        event: "rate_limited",
+        route: "/api/reminder-email",
+        ip,
+        retryAfterSec: rl.retryAfterSec
+      });
+      return finish(
+        req,
+        NextResponse.json(
+          { ok: false, error: "Too many requests" },
+          { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } }
+        )
+      );
+    }
+  }
+
+  if (req.method === "GET" && pathnameNoLocale.startsWith("/api/geocode")) {
+    const c = RATE_LIMITS.geocode;
+    const rl = checkRateLimit(`api:geocode:${ip}`, c.limit, c.windowMs);
+    if (!rl.allowed) {
+      logSecurityEvent({
+        event: "rate_limited",
+        route: "/api/geocode",
+        ip,
+        retryAfterSec: rl.retryAfterSec
+      });
+      return finish(
+        req,
+        NextResponse.json({ error: "Too many requests" }, { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } })
+      );
+    }
+  }
+
+  if (req.method === "GET" && pathnameNoLocale.startsWith("/api/map-static")) {
+    const c = RATE_LIMITS.mapStatic;
+    const rl = checkRateLimit(`api:map-static:${ip}`, c.limit, c.windowMs);
+    if (!rl.allowed) {
+      logSecurityEvent({
+        event: "rate_limited",
+        route: "/api/map-static",
+        ip,
+        retryAfterSec: rl.retryAfterSec
+      });
+      return finish(
+        req,
+        NextResponse.json({ error: "Too many requests" }, { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } })
+      );
+    }
+  }
+
+  if (req.method === "POST" && pathnameNoLocale.startsWith("/api/route-geometry")) {
+    const c = RATE_LIMITS.routeGeometry;
+    const rl = checkRateLimit(`api:route-geometry:${ip}`, c.limit, c.windowMs);
+    if (!rl.allowed) {
+      logSecurityEvent({
+        event: "rate_limited",
+        route: "/api/route-geometry",
+        ip,
+        retryAfterSec: rl.retryAfterSec
+      });
+      return finish(
+        req,
+        NextResponse.json({ error: "Too many requests" }, { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } })
+      );
+    }
+  }
+
+  if (req.method === "POST" && pathnameNoLocale.startsWith("/api/route-distance")) {
+    const c = RATE_LIMITS.routeDistance;
+    const rl = checkRateLimit(`api:route-distance:${ip}`, c.limit, c.windowMs);
+    if (!rl.allowed) {
+      logSecurityEvent({
+        event: "rate_limited",
+        route: "/api/route-distance",
+        ip,
+        retryAfterSec: rl.retryAfterSec
+      });
+      return finish(
+        req,
+        NextResponse.json({ error: "Too many requests" }, { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } })
+      );
+    }
+  }
 
   const pathnameWithLocale = req.nextUrl.pathname;
   const hasEnPrefix = pathnameWithLocale === "/en" || pathnameWithLocale.startsWith("/en/");
@@ -99,19 +237,19 @@ export async function middleware(req: NextRequest) {
       // Never expose /it — keep default locale clean.
       const target = req.nextUrl.clone();
       target.pathname = pathnameWithLocale === "/it" ? "/" : pathnameWithLocale.slice(3);
-      return NextResponse.redirect(target, 308);
+      return finish(req, NextResponse.redirect(target, 308));
     }
     if (locale === "en" && !hasEnPrefix) {
       const target = req.nextUrl.clone();
       target.pathname = pathnameWithLocale === "/" ? "/en" : `/en${pathnameWithLocale}`;
-      return NextResponse.redirect(target, 307);
+      return finish(req, NextResponse.redirect(target, 307));
     }
     if (locale === "it" && hasEnPrefix) {
       // User explicitly selected Italian (cookie) while on an English URL.
       // Drop the /en prefix to keep default locale clean.
       const target = req.nextUrl.clone();
       target.pathname = pathnameNoLocale;
-      return NextResponse.redirect(target, 307);
+      return finish(req, NextResponse.redirect(target, 307));
     }
   }
 
@@ -153,7 +291,7 @@ export async function middleware(req: NextRequest) {
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
   // If env isn't configured yet, don't hard-fail middleware in dev.
-  if (!url || !anonKey) return res;
+  if (!url || !anonKey) return finish(req, res);
 
   const supabase = createServerClient(url, anonKey, {
     cookies: {
@@ -180,17 +318,17 @@ export async function middleware(req: NextRequest) {
   res.headers.set("Pragma", "no-cache");
   res.headers.set("Vary", "Cookie");
 
-  if (isPublicPath(pathname)) return res;
+  if (isPublicPath(pathname)) return finish(req, res);
 
   // Official pattern: getUser() refreshes JWT and writes cookies via setAll on this response.
   const {
     data: { user }
   } = await supabase.auth.getUser();
 
-  if (user) return res;
+  if (user) return finish(req, res);
 
   // Cookie present but getUser failed (e.g. offline): allow app shell (offline-first).
-  if (hasSupabaseSessionCookie(req)) return res;
+  if (hasSupabaseSessionCookie(req)) return finish(req, res);
 
   const redirectUrl = req.nextUrl.clone();
   redirectUrl.pathname = locale === "en" ? "/en/login" : "/login";
@@ -199,11 +337,10 @@ export async function middleware(req: NextRequest) {
   redirectRes.headers.set("Cache-Control", "private, no-cache, no-store, must-revalidate");
   redirectRes.headers.set("Pragma", "no-cache");
   redirectRes.headers.set("Vary", "Cookie");
-  return redirectRes;
+  return finish(req, redirectRes);
 }
 
 /** Exclude Next image/static from the edge bundle; everything else gets auth headers. */
 export const config = {
   matcher: ["/((?!_next/static|_next/image).*)"]
 };
-

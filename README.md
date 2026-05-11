@@ -98,6 +98,39 @@ WorkFlow is a progressive web app (PWA) for managing interventions, clients, doc
 
 ---
 
+## Security (production-oriented, lightweight)
+
+WorkFlow is a **personal** tool but exposed on the public internet. The stack uses **defense in depth** without running a separate SIEM.
+
+### Level 1 — Essential (built in)
+
+| Control | Where |
+|--------|--------|
+| **CSP, HSTS** (`preload` + `includeSubDomains` in prod), **nosniff**, **DENY** framing, **Referrer-Policy**, **Permissions-Policy**, **DNS prefetch off** | `next.config.mjs` (+ matching headers on middleware responses in `src/middleware.ts` via `src/lib/security/http-security.ts`) |
+| **Edge rate limits** (per IP, per isolate) | `src/middleware.ts` + `src/lib/security/rate-limit.ts` + `src/lib/security/rate-limit-config.ts` |
+| Covered routes | `POST /auth/password`, `POST /api/support-email`, `POST /api/reminder-email`, `GET /api/geocode`, `GET /api/map-static`, `POST /api/route-geometry`, `POST /api/route-distance` |
+| **Supabase in browser** | Anon key only (`src/lib/supabase/client.ts`); PKCE-oriented auth options |
+
+**HSTS preload**: only meaningful on HTTPS. Before asking for global browser preload list inclusion, confirm **all** subdomains under your domain serve HTTPS.
+
+### Level 2 — Advanced (lightweight)
+
+| Control | Where |
+|--------|--------|
+| **Structured security logging** | `src/lib/security/security-log.ts` — `console.warn` JSON for rate-limit hits and failed password attempts. Disable with `WORKFLOW_SECURITY_LOG=0`. |
+| **Failed login logging** | `src/app/auth/password/route.ts` |
+| **Storage hardening checklist** | **`supabase/DASHBOARD_SECURITY.md`** (private bucket, CORS, policies) |
+
+### Supabase Dashboard
+
+Operational steps (Auth, RLS, Storage, keys, rotation): **`supabase/DASHBOARD_SECURITY.md`**.
+
+### Rate limit caveat
+
+Middleware limits are **in-memory per Edge isolate**. Enough for a single-tenant personal deployment; for heavy traffic or multi-region abuse, add **Redis / Upstash** or a **CDN/WAF** in front.
+
+---
+
 ## Self-hosting & deployment
 
 - **Hosting**: any Node-friendly platform (Vercel, Fly.io, Railway, Docker on your own VM). Set the same env vars as production; ensure `NEXT_PUBLIC_SITE_URL` matches your public URL (used in auth redirects and emails).

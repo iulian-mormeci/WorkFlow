@@ -1,5 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { getClientIp } from "@/lib/security/rate-limit";
+import { logSecurityEvent } from "@/lib/security/security-log";
 
 export async function POST(req: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -29,8 +31,16 @@ export async function POST(req: NextRequest) {
     }
   });
 
+  const ip = getClientIp(req);
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 400 });
+  if (error) {
+    logSecurityEvent({
+      event: "login_failed",
+      ip,
+      reason: error.message
+    });
+    return NextResponse.json({ ok: false, error: error.message }, { status: 400 });
+  }
 
   return res;
 }

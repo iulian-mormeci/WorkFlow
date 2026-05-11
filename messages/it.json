@@ -984,6 +984,27 @@
       "officeAddressPlaceholder": "es. Via Roma 10, Milano",
       "officeAddressHint": "Usato dal pulsante Andata e ritorno (Partenza → Ufficio → Partenza) in creazione intervento. Sincronizzato sul profilo utente quando sei online."
     },
+    "security": {
+      "title": "Sicurezza",
+      "subtitle": "Sessione account, disconnessione ovunque e privacy. Le tabelle cloud usano Row Level Security (RLS).",
+      "supabaseMissing": "Configura Supabase per vedere i dettagli di sessione.",
+      "lastLoginLabel": "Ultimo accesso",
+      "lastLoginUnknown": "Non ancora disponibile",
+      "currentSessionTitle": "Sessione attuale",
+      "currentSessionBody": "Connesso.",
+      "currentSessionDeviceHint": "Questo browser — il token di accesso si rinnova automaticamente mentre usi l’app.",
+      "sessionRefreshHint": "Il token di accesso attuale scade verso: {when}",
+      "signOutAllDevices": "Esci da tutti i dispositivi",
+      "signOutAllHint": "Chiude tutte le sessioni Supabase (questo dispositivo e ogni altro). Dovrai accedere di nuovo.",
+      "confirmSignOutAll": "Uscire ovunque? Verrai disconnesso da tutti i browser e dispositivi.",
+      "privacyLink": "Informativa sulla privacy",
+      "toasts": {
+        "signedOutAllTitle": "Disconnessione effettuata",
+        "signedOutAllBody": "Reindirizzamento per chiudere la sessione…",
+        "signedOutAllFailedTitle": "Disconnessione non riuscita",
+        "signedOutAllFailedBody": "Riprova quando sei online."
+      }
+    },
     "sync": {
       "title": "Sincronizzazione cloud",
       "subtitle": "Riprova upload falliti, gestisci eliminazioni in coda e scarica gli ultimi dati da Supabase.",
@@ -1057,6 +1078,7 @@
         "deleteAll": "Cancella tutti i miei dati"
       },
       "confirmDeleteAll": "Vuoi cancellare TUTTI i tuoi dati?\n\n- Verranno rimossi dal dispositivo.\n- Se sei online, verranno eliminati anche dal cloud.\n\nOperazione irreversibile.",
+      "confirmDeleteSecond": "CONFERMA FINALE: eliminare in modo permanente tutti i dati WorkFlow locali e nel cloud per questo account?\n\nEsporta prima un backup JSON se ti serve una copia. Operazione irreversibile.",
       "note": "Nota: se sei offline, la cancellazione cloud verrà riprovata quando torni online (dati locali cancellati subito).",
       "toasts": {
         "exportReadyTitle": "Export pronto",

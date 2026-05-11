@@ -984,6 +984,27 @@
       "officeAddressPlaceholder": "e.g. Via Roma 10, Milan",
       "officeAddressHint": "Used by the Round trip button (Start → Office → Start) when creating an intervention. Synced to your user profile when online."
     },
+    "security": {
+      "title": "Security",
+      "subtitle": "Account session, sign-out everywhere, and privacy. Cloud tables use Row Level Security (RLS).",
+      "supabaseMissing": "Configure Supabase to see session details.",
+      "lastLoginLabel": "Last sign-in",
+      "lastLoginUnknown": "Not available yet",
+      "currentSessionTitle": "Current session",
+      "currentSessionBody": "Signed in.",
+      "currentSessionDeviceHint": "This browser — access token rotates automatically while you use the app.",
+      "sessionRefreshHint": "Current access token expires about: {when}",
+      "signOutAllDevices": "Sign out from all devices",
+      "signOutAllHint": "Ends every Supabase session (this device and any other). You will need to sign in again.",
+      "confirmSignOutAll": "Sign out everywhere? You will be disconnected on all browsers and devices.",
+      "privacyLink": "Privacy Policy",
+      "toasts": {
+        "signedOutAllTitle": "Signed out",
+        "signedOutAllBody": "Redirecting to clear the session…",
+        "signedOutAllFailedTitle": "Sign-out failed",
+        "signedOutAllFailedBody": "Try again when online."
+      }
+    },
     "sync": {
       "title": "Cloud sync",
       "subtitle": "Retry failed uploads, flush pending remote deletes, and pull the latest from Supabase.",
@@ -1057,6 +1078,7 @@
         "deleteAll": "Delete all my data"
       },
       "confirmDeleteAll": "Do you want to delete ALL your data?\n\n- It will be removed from this device.\n- If you are online, it will also be deleted from the cloud.\n\nThis cannot be undone.",
+      "confirmDeleteSecond": "FINAL CONFIRMATION: Permanently delete all cloud and local WorkFlow data for this account?\n\nExport a JSON backup first if you need a copy. This cannot be undone.",
       "note": "Note: if you’re offline, the cloud deletion will be retried when you’re back online (local data is deleted immediately).",
       "toasts": {
         "exportReadyTitle": "Export ready",
