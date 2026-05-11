@@ -41,7 +41,7 @@ export default async function ProtectedLayout({
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <div className="text-base font-semibold tracking-tight">
-                WorkFlow
+                {t("common.appName")}
               </div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <OnlineIndicator />

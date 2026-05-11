@@ -27,11 +27,7 @@ function detectCurrentLocaleFromPath(pathname: string): Locale {
   return pathname === "/en" || pathname.startsWith("/en/") ? "en" : "it";
 }
 
-function swapLocaleInPath(pathname: string, next: Locale): string {
-  const cur = detectCurrentLocaleFromPath(pathname);
-  if (cur === next) return pathname;
-  if (next === "en") return pathname === "/" ? "/en" : `/en${pathname}`;
-  // next = it
+function stripLocaleFromPath(pathname: string): string {
   if (pathname === "/en") return "/";
   if (pathname.startsWith("/en/")) return pathname.slice(3);
   return pathname;
@@ -55,7 +51,7 @@ export function LanguageSwitcher({
   const label = locale === "it" ? "🇮🇹 Italiano" : "🇬🇧 English";
 
   async function apply(next: Locale) {
-    const nextPath = swapLocaleInPath(pathname, next);
+    const pathnameNoLocale = stripLocaleFromPath(pathname);
     setLocaleCookie(next);
     setLocaleLocal(next);
 
@@ -71,7 +67,8 @@ export function LanguageSwitcher({
       }
     }
 
-    router.push(nextPath);
+    // Let next-intl build the correct locale-prefixed URL.
+    router.push(pathnameNoLocale, { locale: next });
     router.refresh();
   }
 

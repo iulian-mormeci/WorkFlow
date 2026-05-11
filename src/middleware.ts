@@ -95,6 +95,13 @@ export async function middleware(req: NextRequest) {
       target.pathname = pathnameWithLocale === "/" ? "/en" : `/en${pathnameWithLocale}`;
       return NextResponse.redirect(target, 307);
     }
+    if (locale === "it" && hasEnPrefix) {
+      // User explicitly selected Italian (cookie) while on an English URL.
+      // Drop the /en prefix to keep default locale clean.
+      const target = req.nextUrl.clone();
+      target.pathname = pathnameNoLocale;
+      return NextResponse.redirect(target, 307);
+    }
   }
 
   // Critical for App Router without an explicit `[locale]` segment:
@@ -114,6 +121,15 @@ export async function middleware(req: NextRequest) {
   // This follows Supabase's recommended Next.js middleware pattern.
   // Make the resolved locale available to Server Components (layout/meta) without relying on URL params.
   res.headers.set("x-workflow-locale", locale);
+  // Keep next-intl's server-side locale (`requestLocale`) and our middleware in sync,
+  // otherwise Server Components can render with a different locale and you get mixed strings.
+  if (isLocalizablePath(pathnameWithLocale)) {
+    res.cookies.set("NEXT_LOCALE", locale, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax"
+    });
+  }
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
