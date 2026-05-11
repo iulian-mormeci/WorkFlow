@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { getRequestConfig } from "next-intl/server";
+import { getAppTimeZone } from "@/lib/i18n/app-time-zone";
 
 const NEXT_INTL_LOCALE_HEADER = "X-NEXT-INTL-LOCALE";
 
@@ -15,6 +16,7 @@ export default getRequestConfig(async ({ requestLocale }) => {
   const locale = resolved === "en" ? "en" : "it";
   return {
     locale,
+    timeZone: getAppTimeZone(),
     messages: (await import(`../messages/${locale}.json`)).default,
     // Critical production hardening: never crash on a missing key.
     // We log on server and show the key path as a visible fallback.

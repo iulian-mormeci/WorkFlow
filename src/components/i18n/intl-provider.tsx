@@ -1,6 +1,7 @@
 "use client";
 
 import { NextIntlClientProvider } from "next-intl";
+import { getAppTimeZone } from "@/lib/i18n/app-time-zone";
 
 export function IntlProvider({
   locale,
@@ -15,6 +16,7 @@ export function IntlProvider({
     <NextIntlClientProvider
       locale={locale}
       messages={messages}
+      timeZone={getAppTimeZone()}
       onError={(error) => {
         // Never crash the UI due to missing translations in production.
         console.warn("[i18n]", error);

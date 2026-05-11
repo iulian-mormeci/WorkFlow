@@ -32,14 +32,26 @@ export async function POST(req: NextRequest) {
   });
 
   const ip = getClientIp(req);
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) {
+  try {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      logSecurityEvent({
+        event: "login_failed",
+        ip,
+        reason: error.message
+      });
+      return NextResponse.json({ ok: false, error: error.message }, { status: 400 });
+    }
+  } catch (e: unknown) {
     logSecurityEvent({
-      event: "login_failed",
+      event: "login_exception",
       ip,
-      reason: error.message
+      message: e instanceof Error ? e.message : String(e)
     });
-    return NextResponse.json({ ok: false, error: error.message }, { status: 400 });
+    return NextResponse.json(
+      { ok: false, error: "Sign-in service unavailable. Try again in a moment." },
+      { status: 503 }
+    );
   }
 
   return res;
