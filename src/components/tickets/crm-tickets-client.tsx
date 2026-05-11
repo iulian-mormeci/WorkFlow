@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
+import { useTranslations } from "next-intl";
 
 type Status = "all" | Ticket["status"];
 type Priority = Ticket["priority"] | "all";
@@ -33,6 +34,7 @@ function priorityPill(p: Ticket["priority"]) {
 }
 
 export function CrmTicketsClient() {
+  const t = useTranslations();
   const { toast } = useToast();
   const liveEpoch = useWorkflowLiveEpoch();
   const [q, setQ] = useState("");
@@ -92,7 +94,7 @@ export function CrmTicketsClient() {
         createdAt: nowIso,
         updatedAt: nowIso
       });
-      toast({ title: "Ticket created", description: "Saved locally." });
+      toast({ title: t("tickets.toasts.createdTitle"), description: t("tickets.toasts.savedLocally") });
       setOpen(false);
       setForm({
         title: "",
@@ -102,8 +104,8 @@ export function CrmTicketsClient() {
       });
     } catch (e: any) {
       toast({
-        title: "Failed to create ticket",
-        description: e?.message ?? "Unknown error",
+        title: t("tickets.toasts.createFailedTitle"),
+        description: e?.message ?? t("common.unknownError"),
         variant: "destructive"
       });
     }
@@ -117,7 +119,7 @@ export function CrmTicketsClient() {
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search tickets…"
+            placeholder={t("tickets.searchPlaceholder")}
             className="pl-9"
           />
         </div>
@@ -128,7 +130,7 @@ export function CrmTicketsClient() {
               variant={status === s ? "default" : "outline"}
               onClick={() => setStatus(s)}
             >
-              {s === "all" ? "All" : s}
+              {s === "all" ? t("tickets.filters.statusAll") : t(`tickets.status.${s}`)}
             </Button>
           ))}
           {(["all", "low", "medium", "high"] as const).map((p) => (
@@ -137,20 +139,20 @@ export function CrmTicketsClient() {
               variant={priority === p ? "default" : "outline"}
               onClick={() => setPriority(p)}
             >
-              {p === "all" ? "Any priority" : p}
+              {p === "all" ? t("tickets.filters.priorityAll") : t(`tickets.priority.${p}`)}
             </Button>
           ))}
           <Button size="lg" onClick={() => setOpen(true)}>
             <Plus className="h-5 w-5" />
-            New ticket
+            {t("tickets.actions.new")}
           </Button>
         </div>
       </div>
 
       <div className="overflow-hidden rounded-2xl border">
         <div className="grid grid-cols-[1fr_auto] gap-3 border-b bg-muted px-4 py-3 text-sm font-medium">
-          <div>Ticket</div>
-          <div className="text-right">Status</div>
+          <div>{t("tickets.table.ticket")}</div>
+          <div className="text-right">{t("tickets.table.status")}</div>
         </div>
         <div className="divide-y">
           {(tickets ?? []).map((t) => {
@@ -165,7 +167,10 @@ export function CrmTicketsClient() {
                   const nextStatus =
                     t.status === "open" ? "pending" : t.status === "pending" ? "closed" : "open";
                   await db.tickets.update(t.id, { status: nextStatus, updatedAt: new Date().toISOString() });
-                  toast({ title: "Ticket updated", description: `Status: ${nextStatus}` });
+                  toast({
+                    title: t("tickets.toasts.updatedTitle"),
+                    description: t("tickets.toasts.updatedBody", { status: t(`tickets.status.${nextStatus}`) })
+                  });
                 }}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -178,7 +183,7 @@ export function CrmTicketsClient() {
                       {due ? (
                         <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs text-amber-900">
                           <AlertCircle className="h-3.5 w-3.5" />
-                          Reminder due
+                          {t("tickets.reminderDue")}
                         </span>
                       ) : null}
                     </div>
@@ -189,12 +194,12 @@ export function CrmTicketsClient() {
                     ) : null}
                     {t.dueAt ? (
                       <div className="mt-2 text-xs text-muted-foreground">
-                        Due: {new Date(t.dueAt).toLocaleDateString()}
+                        {t("tickets.duePrefix")} {new Date(t.dueAt).toLocaleDateString()}
                       </div>
                     ) : null}
                   </div>
                   <div className="text-right text-sm text-muted-foreground">
-                    {t.status}
+                    {t(`tickets.status.${t.status}`)}
                   </div>
                 </div>
               </button>
@@ -203,7 +208,7 @@ export function CrmTicketsClient() {
 
           {(tickets ?? []).length === 0 ? (
             <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-              No tickets yet. Create one for follow-ups and reminders.
+              {t("tickets.empty")}
             </div>
           ) : null}
         </div>
@@ -212,22 +217,22 @@ export function CrmTicketsClient() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>New CRM Ticket</DialogTitle>
-            <DialogDescription>Saved locally, sync later.</DialogDescription>
+            <DialogTitle>{t("tickets.dialog.title")}</DialogTitle>
+            <DialogDescription>{t("tickets.dialog.subtitle")}</DialogDescription>
           </DialogHeader>
 
           <div className="mt-4 grid gap-3">
             <div className="grid gap-2">
-              <Label>Title</Label>
+              <Label>{t("tickets.fields.title")}</Label>
               <Input value={form.title} onChange={(e) => setForm((s) => ({ ...s, title: e.target.value }))} />
             </div>
             <div className="grid gap-2">
-              <Label>Description</Label>
+              <Label>{t("tickets.fields.description")}</Label>
               <Textarea value={form.description} onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))} />
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="grid gap-2">
-                <Label>Priority</Label>
+                <Label>{t("tickets.fields.priority")}</Label>
                 <div className="grid grid-cols-3 gap-2">
                   {(["low", "medium", "high"] as const).map((p) => (
                     <Button
@@ -236,23 +241,23 @@ export function CrmTicketsClient() {
                       onClick={() => setForm((s) => ({ ...s, priority: p }))}
                       type="button"
                     >
-                      {p}
+                      {t(`tickets.priority.${p}`)}
                     </Button>
                   ))}
                 </div>
               </div>
               <div className="grid gap-2">
-                <Label>Due date</Label>
+                <Label>{t("tickets.fields.dueDate")}</Label>
                 <Input type="date" value={form.dueDate} onChange={(e) => setForm((s) => ({ ...s, dueDate: e.target.value }))} />
               </div>
             </div>
 
             <div className="mt-2 flex items-center justify-end gap-2">
               <Button variant="outline" onClick={() => setOpen(false)} type="button">
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button disabled={!canSave} onClick={createTicket} type="button">
-                Save
+                {t("common.save")}
               </Button>
             </div>
           </div>

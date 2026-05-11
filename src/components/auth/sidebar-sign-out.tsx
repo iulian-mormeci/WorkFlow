@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { LogOut } from "lucide-react";
 import { db } from "@/lib/db/workflow-db";
-import { getSiteUrl } from "@/lib/supabase/site-url";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -49,7 +48,7 @@ export function SidebarSignOut() {
               disabled={wiping}
               onClick={() => {
                 setOpen(false);
-                window.location.href = `${getSiteUrl()}/auth/logout`;
+                window.location.href = "/auth/logout";
               }}
             >
               Keep offline data & sign out
@@ -71,7 +70,7 @@ export function SidebarSignOut() {
                 try {
                   await db.delete();
                 } finally {
-                  window.location.href = `${getSiteUrl()}/auth/logout`;
+                  window.location.href = "/auth/logout";
                 }
               }}
             >

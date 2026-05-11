@@ -23,6 +23,7 @@ import {
   DialogTitle
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslations } from "next-intl";
 
 type Props = {
   open: boolean;
@@ -46,6 +47,7 @@ const emptyForm = () => ({
 
 export function ClientFormDialog(props: Props) {
   const { open, onOpenChange, mode, clientId, onSaved } = props;
+  const t = useTranslations();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -83,8 +85,8 @@ export function ClientFormDialog(props: Props) {
     const name = f.name.trim();
     if (name.length < 2) {
       toast({
-        title: "Name required",
-        description: "Enter at least 2 characters for the client name.",
+        title: t("clients.form.toasts.nameRequiredTitle"),
+        description: t("clients.form.toasts.nameRequiredBody"),
         variant: "destructive"
       });
       return;
@@ -110,7 +112,10 @@ export function ClientFormDialog(props: Props) {
         };
         await db.clients.add(row);
         scheduleWorkflowSync();
-        toast({ title: "Client saved", description: "Synced when you are online." });
+        toast({
+          title: t("clients.form.toasts.savedTitle"),
+          description: t("clients.form.toasts.savedBody")
+        });
         onOpenChange(false);
         onSaved?.();
         return;
@@ -118,7 +123,7 @@ export function ClientFormDialog(props: Props) {
       if (!clientId) return;
       const prev = await db.clients.get(clientId);
       if (!prev) {
-        toast({ title: "Missing client", variant: "destructive" });
+        toast({ title: t("clients.form.toasts.missingClientTitle"), variant: "destructive" });
         return;
       }
       const row: Client = {
@@ -136,12 +141,15 @@ export function ClientFormDialog(props: Props) {
       };
       await db.clients.put(row);
       scheduleWorkflowSync();
-      toast({ title: "Client updated", description: "Changes will sync across devices." });
+      toast({
+        title: t("clients.form.toasts.updatedTitle"),
+        description: t("clients.form.toasts.updatedBody")
+      });
       onOpenChange(false);
       onSaved?.();
     } catch (e: unknown) {
       toast({
-        title: "Save failed",
+        title: t("clients.form.toasts.saveFailedTitle"),
         description: e instanceof Error ? e.message : String(e),
         variant: "destructive"
       });
@@ -152,11 +160,7 @@ export function ClientFormDialog(props: Props) {
 
   async function remove() {
     if (mode !== "edit" || !clientId) return;
-    if (
-      !confirm(
-        "Delete this client from this device and from the cloud when online? This cannot be undone if you have no interventions linked."
-      )
-    ) {
+    if (!confirm(t("clients.form.confirmDelete"))) {
       return;
     }
     setDeleting(true);
@@ -164,8 +168,8 @@ export function ClientFormDialog(props: Props) {
       const ivCount = await db.interventions.where("clientId").equals(clientId).count();
       if (ivCount > 0) {
         toast({
-          title: "Cannot delete",
-          description: `This client has ${ivCount} intervention(s). Remove or reassign them first.`,
+          title: t("clients.form.toasts.cannotDeleteTitle"),
+          description: t("clients.form.toasts.cannotDeleteBody", { count: ivCount }),
           variant: "destructive"
         });
         return;
@@ -181,7 +185,7 @@ export function ClientFormDialog(props: Props) {
       });
       if (!result.ok) {
         toast({
-          title: "Delete failed",
+          title: t("clients.form.toasts.deleteFailedTitle"),
           description: result.message,
           variant: "destructive"
         });
@@ -189,17 +193,20 @@ export function ClientFormDialog(props: Props) {
       }
       scheduleWorkflowSync();
       toast({
-        title: result.mode === "queued" ? "Client removed (offline)" : "Client deleted",
+        title:
+          result.mode === "queued"
+            ? t("clients.form.toasts.deletedQueuedTitle")
+            : t("clients.form.toasts.deletedTitle"),
         description:
           result.mode === "queued"
-            ? "Will be removed from the cloud on the next sync."
-            : "Removed on this device and in the cloud."
+            ? t("clients.form.toasts.deletedQueuedBody")
+            : t("clients.form.toasts.deletedBody")
       });
       onOpenChange(false);
       onSaved?.();
     } catch (e: unknown) {
       toast({
-        title: "Delete failed",
+        title: t("clients.form.toasts.deleteFailedTitle"),
         description: e instanceof Error ? e.message : String(e),
         variant: "destructive"
       });
@@ -212,27 +219,27 @@ export function ClientFormDialog(props: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{mode === "new" ? "New client" : "Edit client"}</DialogTitle>
+          <DialogTitle>{mode === "new" ? t("clients.form.titleNew") : t("clients.form.titleEdit")}</DialogTitle>
           <DialogDescription>
-            Practical fields for technicians. No fiscal codes or bank details.
+            {t("clients.form.subtitle")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-2">
           <div className="grid gap-2">
-            <Label htmlFor="cf-name">Name (company or person)</Label>
+            <Label htmlFor="cf-name">{t("clients.form.fields.name")}</Label>
             <Input
               id="cf-name"
               value={f.name}
               onChange={(e) => setF((s) => ({ ...s, name: e.target.value }))}
-              placeholder="e.g. Bar Centrale"
+              placeholder={t("clients.form.placeholders.name")}
               className="min-h-12 text-base"
             />
           </div>
 
           <div className="grid gap-2 sm:grid-cols-2 sm:gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="cf-type">Type</Label>
+              <Label htmlFor="cf-type">{t("clients.form.fields.type")}</Label>
               <select
                 id="cf-type"
                 className="min-h-12 w-full rounded-xl border bg-background px-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
@@ -249,19 +256,19 @@ export function ClientFormDialog(props: Props) {
               </select>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="cf-contact">Contact person (optional)</Label>
+              <Label htmlFor="cf-contact">{t("clients.form.fields.contactPerson")}</Label>
               <Input
                 id="cf-contact"
                 value={f.contactPerson}
                 onChange={(e) => setF((s) => ({ ...s, contactPerson: e.target.value }))}
-                placeholder="Who to ask for on site"
+                placeholder={t("clients.form.placeholders.contactPerson")}
                 className="min-h-12 text-base"
               />
             </div>
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="cf-address">Address</Label>
+            <Label htmlFor="cf-address">{t("clients.form.fields.address")}</Label>
             <Input
               id="cf-address"
               value={f.address}
@@ -272,7 +279,7 @@ export function ClientFormDialog(props: Props) {
 
           <div className="grid gap-2 sm:grid-cols-2 sm:gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="cf-city">City</Label>
+              <Label htmlFor="cf-city">{t("clients.form.fields.city")}</Label>
               <Input
                 id="cf-city"
                 value={f.city}
@@ -281,7 +288,7 @@ export function ClientFormDialog(props: Props) {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="cf-cap">Postal code</Label>
+              <Label htmlFor="cf-cap">{t("clients.form.fields.postalCode")}</Label>
               <Input
                 id="cf-cap"
                 value={f.postalCode}
@@ -293,7 +300,7 @@ export function ClientFormDialog(props: Props) {
 
           <div className="grid gap-2 sm:grid-cols-2 sm:gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="cf-phone">Phone</Label>
+              <Label htmlFor="cf-phone">{t("clients.form.fields.phone")}</Label>
               <Input
                 id="cf-phone"
                 type="tel"
@@ -304,7 +311,7 @@ export function ClientFormDialog(props: Props) {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="cf-email">Email</Label>
+              <Label htmlFor="cf-email">{t("clients.form.fields.email")}</Label>
               <Input
                 id="cf-email"
                 type="email"
@@ -317,7 +324,7 @@ export function ClientFormDialog(props: Props) {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="cf-notes">Notes</Label>
+            <Label htmlFor="cf-notes">{t("clients.form.fields.notes")}</Label>
             <Textarea
               id="cf-notes"
               value={f.notes}
@@ -337,7 +344,7 @@ export function ClientFormDialog(props: Props) {
               disabled={deleting || saving}
               onClick={() => void remove()}
             >
-              {deleting ? "Deleting…" : "Delete"}
+              {deleting ? t("common.deleting") : t("common.delete")}
             </Button>
           ) : (
             <span className="hidden sm:block" />
@@ -349,10 +356,10 @@ export function ClientFormDialog(props: Props) {
               className="min-h-12 w-full sm:w-auto"
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button type="button" className="min-h-12 w-full sm:w-auto" disabled={saving} onClick={() => void save()}>
-              {saving ? "Saving…" : "Save"}
+              {saving ? t("common.saving") : t("common.save")}
             </Button>
           </div>
         </div>

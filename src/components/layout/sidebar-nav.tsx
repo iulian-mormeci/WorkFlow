@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Link, usePathname } from "@/i18n/navigation";
 import {
   BarChart3,
   ClipboardList,
@@ -16,6 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Icon } from "@/components/ui/icon";
+import { useTranslations } from "next-intl";
 
 export type SidebarIconName =
   | "home"
@@ -45,12 +45,16 @@ export const SIDEBAR_NAV_ICONS = {
 
 export type SidebarNavItem = {
   href: string;
+  /** Translation key for label. */
+  labelKey?: string;
+  /** Fallback label (used while migrating). */
   label: string;
   iconName: SidebarIconName;
 };
 
 export function SidebarNav({ items }: { items: readonly SidebarNavItem[] }) {
   const pathname = usePathname();
+  const t = useTranslations();
 
   return (
     <nav className="mt-5 grid gap-1">
@@ -70,7 +74,7 @@ export function SidebarNav({ items }: { items: readonly SidebarNavItem[] }) {
             )}
           >
             <Icon icon={IconCmp} size="md" tone={active ? "default" : "muted"} />
-            <span>{item.label}</span>
+            <span>{item.labelKey ? t(item.labelKey) : item.label}</span>
           </Link>
         );
       })}

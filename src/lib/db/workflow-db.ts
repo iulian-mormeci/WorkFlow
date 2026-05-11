@@ -72,8 +72,13 @@ export type Intervention = {
   /** When workCategory is activity: true = on-site office, false = remote/other. */
   isOfficeActivity?: boolean;
   status?: InterventionWorkflowStatus;
-  startAt: string; // ISO
-  endAt?: string; // ISO
+  /**
+   * Optional start instant (ISO). Some rows are created as “to-do” items with only a due date
+   * and reminders configured, then scheduled later.
+   */
+  startAt?: string;
+  /** Optional end instant (ISO). */
+  endAt?: string;
   durationMinutes?: number;
   /** Elapsed work time already counted (seconds); live segment adds (now - timerStartedAt) when running. */
   timerAccumulatedSeconds?: number;

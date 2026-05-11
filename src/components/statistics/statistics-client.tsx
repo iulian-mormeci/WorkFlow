@@ -10,12 +10,14 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import { exportMonthForCrm } from "@/lib/export/crm-export";
 import { useToast } from "@/hooks/use-toast";
 import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
+import { useTranslations } from "next-intl";
 
 function ymKey(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
 export function StatisticsClient() {
+  const t = useTranslations();
   const { toast } = useToast();
   const liveEpoch = useWorkflowLiveEpoch();
   const [month, setMonth] = useState(() => ymKey(new Date()));
@@ -55,7 +57,7 @@ export function StatisticsClient() {
       .slice(0, 6)
       .map((x) => ({
         ...x,
-        name: clientById.get(x.clientId) ?? "Client"
+        name: clientById.get(x.clientId) ?? t("common.client")
       }));
 
     return {
@@ -78,7 +80,7 @@ export function StatisticsClient() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <BarChart3 className="h-5 w-5 text-muted-foreground" />
-          <div className="text-sm font-medium">Month</div>
+          <div className="text-sm font-medium">{t("statistics.monthLabel")}</div>
           <input
             type="month"
             className="h-11 rounded-xl border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
@@ -93,18 +95,21 @@ export function StatisticsClient() {
               try {
                 if (!stats) return;
                 await exportMonthForCrm(stats.year, stats.monthIndex0);
-                toast({ title: "Exported", description: "Monthly JSON + CSV downloaded." });
+                toast({
+                  title: t("statistics.toasts.exportedTitle"),
+                  description: t("statistics.toasts.exportedBody")
+                });
               } catch (e: any) {
                 toast({
-                  title: "Export failed",
-                  description: e?.message ?? "Could not export",
+                  title: t("statistics.toasts.exportFailedTitle"),
+                  description: e?.message ?? t("statistics.toasts.exportFailedBody"),
                   variant: "destructive"
                 });
               }
             }}
           >
             <Download className="h-4 w-4" />
-            Export JSON + CSV
+            {t("statistics.actions.export")}
           </Button>
         </div>
       </div>
@@ -112,7 +117,7 @@ export function StatisticsClient() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="rounded-2xl">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-sm">Interventions</CardTitle>
+            <CardTitle className="text-sm">{t("statistics.cards.interventions")}</CardTitle>
             <CardDescription className="text-2xl font-semibold text-foreground">
               {stats ? stats.interventionsCount : "—"}
             </CardDescription>
@@ -120,7 +125,7 @@ export function StatisticsClient() {
         </Card>
         <Card className="rounded-2xl">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-sm">Hours worked</CardTitle>
+            <CardTitle className="text-sm">{t("statistics.cards.hoursWorked")}</CardTitle>
             <CardDescription className="text-2xl font-semibold text-foreground">
               {totalHours}
             </CardDescription>
@@ -128,7 +133,7 @@ export function StatisticsClient() {
         </Card>
         <Card className="rounded-2xl">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-sm">KM traveled</CardTitle>
+            <CardTitle className="text-sm">{t("statistics.cards.kmTraveled")}</CardTitle>
             <CardDescription className="text-2xl font-semibold text-foreground">
               {stats ? Math.round(stats.totalKm) : "—"}
             </CardDescription>
@@ -138,15 +143,19 @@ export function StatisticsClient() {
 
       <Card className="rounded-2xl">
         <CardHeader className="space-y-2">
-          <CardTitle className="text-base">Top clients</CardTitle>
-          <CardDescription>By number of interventions (then hours).</CardDescription>
+          <CardTitle className="text-base">{t("statistics.topClients.title")}</CardTitle>
+          <CardDescription>{t("statistics.topClients.subtitle")}</CardDescription>
           <div className="mt-2 grid gap-2">
             {(stats?.topClients ?? []).map((c) => (
               <div key={c.clientId} className="flex items-center justify-between rounded-xl border bg-background px-4 py-3 text-sm">
                 <div className="min-w-0">
                   <div className="truncate font-semibold">{c.name}</div>
                   <div className="mt-0.5 text-xs text-muted-foreground">
-                    {c.count} interventions • {(c.minutes / 60).toFixed(1)} h • {Math.round(c.km)} km
+                    {t("statistics.topClients.rowMeta", {
+                      count: c.count,
+                      hours: (c.minutes / 60).toFixed(1),
+                      km: Math.round(c.km)
+                    })}
                   </div>
                 </div>
                 <div className="w-28">
@@ -164,7 +173,7 @@ export function StatisticsClient() {
 
             {(stats?.topClients ?? []).length === 0 ? (
               <div className="rounded-xl border bg-muted px-4 py-6 text-sm text-muted-foreground">
-                No data for this month yet.
+                {t("statistics.topClients.empty")}
               </div>
             ) : null}
           </div>

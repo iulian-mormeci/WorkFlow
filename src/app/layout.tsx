@@ -3,11 +3,15 @@
  * Auth-sensitive UI lives under `(protected)`; this shell stays lean for every route.
  */
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
+import { NextIntlClientProvider } from "next-intl";
 import "./globals.css";
 import { SupabaseProvider } from "@/components/supabase/supabase-provider";
 import { WorkflowSyncRunner } from "@/components/sync/workflow-sync-runner";
 import { Toaster } from "@/components/ui/toaster";
 import { SupportEmailOutboxAutoFlush } from "@/components/support/support-email-outbox-autoflush";
+import { LegalFooter } from "@/components/legal/legal-footer";
+import { CookieConsentBanner } from "@/components/legal/cookie-consent-banner";
 
 export const metadata: Metadata = {
   title: "WorkFlow",
@@ -29,16 +33,25 @@ export const viewport: Viewport = {
 };
 
 /** Wraps all pages with Supabase context, background sync, and toaster. */
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const h = await headers();
+  const locale = (h.get("x-workflow-locale") === "en" ? "en" : "it") as "it" | "en";
+  const messages = (await import(`../../messages/${locale}.json`)).default;
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <body className="min-h-dvh bg-background text-foreground antialiased">
-        <SupabaseProvider>
-          <WorkflowSyncRunner />
-          {children}
-          <SupportEmailOutboxAutoFlush />
-          <Toaster />
-        </SupabaseProvider>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <SupabaseProvider>
+            <WorkflowSyncRunner />
+            <div className="flex min-h-dvh flex-col">
+              <div className="flex-1">{children}</div>
+              <LegalFooter />
+            </div>
+            <CookieConsentBanner />
+            <SupportEmailOutboxAutoFlush />
+            <Toaster />
+          </SupabaseProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

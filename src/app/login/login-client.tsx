@@ -1,16 +1,19 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth";
 import { getAuthCallbackUrl } from "@/lib/supabase/site-url";
+import { useTranslations } from "next-intl";
 
 function getRedirectTo() {
   return getAuthCallbackUrl();
 }
 
 export function LoginClient() {
+  const t = useTranslations();
   const router = useRouter();
   const search = useSearchParams();
   const nextPath = search.get("next") ?? "/dashboard";
@@ -47,7 +50,7 @@ export function LoginClient() {
       if (!res.ok) throw new Error(await res.text());
       router.replace(nextPath);
     } catch (err: any) {
-      setError(err?.message ?? "Login failed");
+      setError(err?.message ?? t("auth.signIn.error"));
     } finally {
       setLoading(false);
     }
@@ -56,7 +59,7 @@ export function LoginClient() {
   async function signInOAuth(provider: "google" | "apple") {
     setError(null);
     if (!supabase) {
-      setError("Supabase env vars are missing. Configure .env.local first.");
+      setError(t("auth.envMissing"));
       return;
     }
     setLoading(true);
@@ -73,7 +76,7 @@ export function LoginClient() {
       });
       if (oauthError) throw oauthError;
     } catch (err: any) {
-      setError(err?.message ?? "OAuth login failed");
+      setError(err?.message ?? t("auth.oauthError"));
       setLoading(false);
     }
   }
@@ -81,25 +84,26 @@ export function LoginClient() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 px-6 py-10">
       <header className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight">Sign in</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("auth.signIn.title")}</h1>
         <p className="text-sm text-muted-foreground">
-          Secure access for WorkFlow technicians.
+          {t("auth.signIn.subtitle")}
         </p>
       </header>
 
       <div className="rounded-2xl border bg-background p-5 shadow-sm">
         {!supabase ? (
           <p className="rounded-md border bg-muted px-3 py-2 text-sm text-muted-foreground">
-            Supabase is not configured yet. Copy{" "}
-            <span className="font-mono">.env.local.example</span> to{" "}
-            <span className="font-mono">.env.local</span> and fill in the
-            variables.
+            {t.rich("auth.supabaseNotConfiguredSteps", {
+              envExample: (chunks) => <span className="font-mono">{chunks}</span>,
+              envLocal: (chunks) => <span className="font-mono">{chunks}</span>
+            })}
+            {t("auth.supabaseNotConfiguredTail")}
           </p>
         ) : null}
 
         <form onSubmit={signInEmailPassword} className="space-y-4">
           <label className="grid gap-2 text-sm">
-            <span>Email</span>
+            <span>{t("auth.email")}</span>
             <input
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -112,7 +116,7 @@ export function LoginClient() {
           </label>
 
           <label className="grid gap-2 text-sm">
-            <span>Password</span>
+            <span>{t("auth.password")}</span>
             <input
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -133,13 +137,13 @@ export function LoginClient() {
             disabled={loading || !supabase}
             className="h-11 w-full rounded-md bg-primary px-4 text-primary-foreground disabled:opacity-60"
           >
-            {loading ? "Signing in…" : "Sign in"}
+            {loading ? t("auth.signIn.loading") : t("auth.signIn.cta")}
           </button>
         </form>
 
         <div className="my-5 flex items-center gap-3">
           <div className="h-px flex-1 bg-border" />
-          <div className="text-xs text-muted-foreground">or</div>
+          <div className="text-xs text-muted-foreground">{t("common.or")}</div>
           <div className="h-px flex-1 bg-border" />
         </div>
 
@@ -149,22 +153,22 @@ export function LoginClient() {
             onClick={() => signInOAuth("google")}
             className="h-11 w-full rounded-md border bg-background px-4 text-sm font-medium disabled:opacity-60"
           >
-            Continue with Google
+            {t("auth.signIn.google")}
           </button>
           <button
             disabled={loading || !supabase}
             onClick={() => signInOAuth("apple")}
             className="h-11 w-full rounded-md border bg-background px-4 text-sm font-medium disabled:opacity-60"
           >
-            Continue with Apple
+            {t("auth.signIn.apple")}
           </button>
         </div>
       </div>
 
       <p className="text-center text-sm text-muted-foreground">
-        No account?{" "}
+        {t("auth.signIn.noAccount")}{" "}
         <a className="underline" href="/register">
-          Create one
+          {t("auth.signIn.createOne")}
         </a>
       </p>
     </main>

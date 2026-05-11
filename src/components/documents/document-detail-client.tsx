@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ChevronLeft, FileText, Images, Pencil, Send, Trash2 } from "lucide-react";
@@ -15,8 +15,10 @@ import { scheduleWorkflowSync } from "@/lib/sync/sync-engine";
 import { SendToSupportDialog } from "@/components/support/send-to-support-dialog";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTranslations } from "next-intl";
 
 export function DocumentDetailClient({ id }: { id: string }) {
+  const t = useTranslations();
   const { toast } = useToast();
   const liveEpoch = useWorkflowLiveEpoch();
   const doc = useLiveQuery(async () => await db.documents.get(id), [id, liveEpoch]);
@@ -78,9 +80,13 @@ export function DocumentDetailClient({ id }: { id: string }) {
       }
       setThumbs(urls);
     })().catch((e) =>
-      toast({ title: "PDF preview failed", description: String(e), variant: "destructive" })
+      toast({
+        title: t("documents.detail.toasts.previewFailedTitle"),
+        description: String(e),
+        variant: "destructive"
+      })
     );
-  }, [attachment?.blob, toast]);
+  }, [attachment?.blob, toast, t]);
 
   if (doc === undefined) {
     return (
@@ -99,10 +105,10 @@ export function DocumentDetailClient({ id }: { id: string }) {
       <div className="space-y-4">
         <Link className="inline-flex items-center gap-2 text-sm underline" href="/documents">
           <ChevronLeft className="h-4 w-4" />
-          Back
+          {t("common.back")}
         </Link>
         <div className="rounded-2xl border bg-muted p-4 text-sm text-muted-foreground">
-          Document not found.
+          {t("documents.detail.notFound")}
         </div>
       </div>
     );
@@ -117,17 +123,17 @@ export function DocumentDetailClient({ id }: { id: string }) {
         <div className="space-y-1">
           <Link className="inline-flex items-center gap-2 text-sm underline" href="/documents">
             <ChevronLeft className="h-4 w-4" />
-            Back
+            {t("common.back")}
           </Link>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight">{doc.title}</h1>
           <p className="text-sm text-muted-foreground">
-            {new Date(doc.createdAt).toLocaleString()} • {doc.pageCount} pages
+            {new Date(doc.createdAt).toLocaleString()} • {t("search.global.pages", { count: doc.pageCount })}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" onClick={() => setRename((v) => !v)}>
             <Pencil className="h-4 w-4" />
-            Rename
+            {t("documents.detail.actions.rename")}
           </Button>
           <Button
             variant="outline"
@@ -135,7 +141,7 @@ export function DocumentDetailClient({ id }: { id: string }) {
             onClick={() => pdfUrl && window.open(pdfUrl, "_blank", "noopener,noreferrer")}
           >
             <FileText className="h-4 w-4" />
-            Open
+            {t("documents.detail.actions.open")}
           </Button>
           <Button
             variant="outline"
@@ -146,16 +152,12 @@ export function DocumentDetailClient({ id }: { id: string }) {
             }}
           >
             <Send className="h-4 w-4" />
-            Send
+            {t("documents.detail.actions.send")}
           </Button>
           <Button
             variant="outline"
             onClick={async () => {
-              if (
-                !confirm(
-                  "Delete this document from this device and from the cloud (when online)?"
-                )
-              ) {
+              if (!confirm(t("documents.detail.confirmDelete"))) {
                 return;
               }
               try {
@@ -174,26 +176,29 @@ export function DocumentDetailClient({ id }: { id: string }) {
                 });
                 if (!res.ok) {
                   toast({
-                    title: "Delete failed",
+                    title: t("documents.detail.toasts.deleteFailedTitle"),
                     description: res.message,
                     variant: "destructive"
                   });
                   return;
                 }
-                toast({ title: "Deleted", description: "Document removed." });
+                toast({
+                  title: t("documents.detail.toasts.deletedTitle"),
+                  description: t("documents.detail.toasts.deletedBody")
+                });
                 scheduleWorkflowSync();
                 window.location.href = "/documents";
               } catch (e: any) {
                 toast({
-                  title: "Delete failed",
-                  description: e?.message ?? "Could not delete",
+                  title: t("documents.detail.toasts.deleteFailedTitle"),
+                  description: e?.message ?? t("documents.detail.toasts.deleteFailedBodyFallback"),
                   variant: "destructive"
                 });
               }
             }}
           >
             <Trash2 className="h-4 w-4" />
-            Delete
+            {t("common.delete")}
           </Button>
         </div>
       </header>
@@ -201,8 +206,8 @@ export function DocumentDetailClient({ id }: { id: string }) {
       {rename ? (
         <Card className="rounded-2xl">
           <CardHeader className="space-y-2">
-            <CardTitle className="text-base">Rename</CardTitle>
-            <CardDescription>Keep titles consistent for quick search.</CardDescription>
+            <CardTitle className="text-base">{t("documents.detail.rename.title")}</CardTitle>
+            <CardDescription>{t("documents.detail.rename.subtitle")}</CardDescription>
           </CardHeader>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <Input value={title} onChange={(e) => setTitle(e.target.value)} />
@@ -212,14 +217,17 @@ export function DocumentDetailClient({ id }: { id: string }) {
                   const next = title.trim();
                   if (!next) return;
                   await db.documents.update(doc.id, { title: next });
-                  toast({ title: "Renamed", description: "Document title updated." });
+                  toast({
+                    title: t("documents.detail.toasts.renamedTitle"),
+                    description: t("documents.detail.toasts.renamedBody")
+                  });
                   setRename(false);
                 }}
               >
-                Save
+                {t("common.save")}
               </Button>
               <Button variant="outline" onClick={() => setRename(false)}>
-                Cancel
+                {t("common.cancel")}
               </Button>
             </div>
           </div>
@@ -230,7 +238,7 @@ export function DocumentDetailClient({ id }: { id: string }) {
       <div className="grid gap-4 lg:grid-cols-[240px_1fr]">
         <aside className="rounded-2xl border bg-background p-3">
           <div className="text-xs text-muted-foreground">
-            Pages {pageCount ? `(${pageCount})` : ""}
+            {t("documents.detail.pagesLabel", { count: pageCount })}
           </div>
           <div className="mt-3 grid gap-2">
             {thumbs.length ? (
@@ -245,15 +253,17 @@ export function DocumentDetailClient({ id }: { id: string }) {
                   onClick={() => setActivePage(idx + 1)}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={u} alt={`Page ${idx + 1}`} className="w-full rounded-lg" />
-                  <div className="mt-2 text-xs text-muted-foreground">Page {idx + 1}</div>
+                  <img src={u} alt={t("documents.detail.pageAlt", { index: idx + 1 })} className="w-full rounded-lg" />
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    {t("documents.detail.pageLabel", { index: idx + 1 })}
+                  </div>
                 </button>
               ))
             ) : (
               <div className="rounded-xl border bg-muted px-3 py-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <Images className="h-4 w-4" />
-                  Generating thumbnails…
+                  {t("documents.detail.generatingThumbs")}
                 </div>
               </div>
             )}
@@ -267,14 +277,14 @@ export function DocumentDetailClient({ id }: { id: string }) {
               className="h-[60dvh] overflow-hidden rounded-xl border bg-black sm:h-[70dvh]"
             >
               <iframe
-                title="PDF viewer"
+                title={t("documents.detail.pdfViewerTitle")}
                 src={`${pdfUrl}#page=${activePage}&zoom=page-width`}
                 className="h-full w-full"
               />
             </div>
           ) : (
             <div className="rounded-xl border bg-muted px-3 py-6 text-sm text-muted-foreground">
-              PDF not ready yet.
+              {t("documents.detail.pdfNotReady")}
             </div>
           )}
         </section>

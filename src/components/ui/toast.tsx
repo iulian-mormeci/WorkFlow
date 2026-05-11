@@ -5,6 +5,7 @@ import * as ToastPrimitive from "@radix-ui/react-toast";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 
 export type Toast = {
   id: string;
@@ -36,6 +37,7 @@ export function ToastItem({
   toast: Toast;
   onOpenChange: (open: boolean) => void;
 }) {
+  const t = useTranslations();
   const destructive = toast.variant === "destructive";
   const duration = toast.action ? 12_000 : 4000;
   return (
@@ -78,7 +80,7 @@ export function ToastItem({
           ) : null}
         </div>
         <ToastPrimitive.Close asChild>
-          <button className="shrink-0 rounded-lg p-1 hover:bg-muted" aria-label="Close">
+          <button className="shrink-0 rounded-lg p-1 hover:bg-muted" aria-label={t("common.close")}>
             <X className="h-4 w-4" />
           </button>
         </ToastPrimitive.Close>

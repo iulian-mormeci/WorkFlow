@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslations } from "next-intl";
 
 type SpareLine = { sparePartId: string; qty: string };
 
@@ -45,6 +46,7 @@ type Props = {
 };
 
 export function TemplateEditorDialog({ open, onOpenChange, target, onSaved }: Props) {
+  const t = useTranslations();
   const { toast } = useToast();
   const clients = useLiveQuery(async () => db.clients.orderBy("name").toArray(), []);
   const spareParts = useLiveQuery(async () => db.spareParts.orderBy("name").toArray(), []);
@@ -64,10 +66,10 @@ export function TemplateEditorDialog({ open, onOpenChange, target, onSaved }: Pr
   const [saving, setSaving] = useState(false);
 
   const title = useMemo(() => {
-    if (target.editId) return "Edit template";
-    if (target.duplicateFromId) return "Duplicate template";
-    return "New template";
-  }, [target.duplicateFromId, target.editId]);
+    if (target.editId) return t("templates.editor.titleEdit");
+    if (target.duplicateFromId) return t("templates.editor.titleDuplicate");
+    return t("templates.editor.titleNew");
+  }, [target.duplicateFromId, target.editId, t]);
 
   function resetEmpty() {
     setName("");
@@ -120,7 +122,7 @@ export function TemplateEditorDialog({ open, onOpenChange, target, onSaved }: Pr
         const t = await db.templates.get(target.editId);
         if (cancelled || !t) {
           if (!cancelled && !t) {
-            toast({ title: "Template not found", variant: "destructive" });
+            toast({ title: t("templates.editor.toasts.notFoundTitle"), variant: "destructive" });
           }
           return;
         }
@@ -131,11 +133,11 @@ export function TemplateEditorDialog({ open, onOpenChange, target, onSaved }: Pr
         const t = await db.templates.get(target.duplicateFromId);
         if (cancelled || !t) {
           if (!cancelled && !t) {
-            toast({ title: "Template not found", variant: "destructive" });
+            toast({ title: t("templates.editor.toasts.notFoundTitle"), variant: "destructive" });
           }
           return;
         }
-        applyTemplate(t, { nameOverride: `Copy of ${t.name}` });
+        applyTemplate(t, { nameOverride: t("templates.editor.copyOf", { name: t.name }) });
         return;
       }
       resetEmpty();
@@ -202,12 +204,12 @@ export function TemplateEditorDialog({ open, onOpenChange, target, onSaved }: Pr
         await db.templates.add(row);
       }
 
-      toast({ title: "Template saved", description: row.name });
+      toast({ title: t("templates.editor.toasts.savedTitle"), description: row.name });
       onOpenChange(false);
       onSaved?.();
     } catch (e: unknown) {
       toast({
-        title: "Save failed",
+        title: t("templates.editor.toasts.saveFailedTitle"),
         description: e instanceof Error ? e.message : String(e),
         variant: "destructive"
       });
@@ -223,23 +225,23 @@ export function TemplateEditorDialog({ open, onOpenChange, target, onSaved }: Pr
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
             <DialogDescription>
-              Define defaults for new visits. Checklist and spare parts prefill the intervention form.
+              {t("templates.editor.subtitle")}
             </DialogDescription>
           </DialogHeader>
 
           <div className="mt-6 grid gap-6">
             <div className="grid gap-2">
-              <Label>Template name</Label>
+              <Label>{t("templates.editor.fields.name")}</Label>
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Quarterly HVAC — downtown route"
+                placeholder={t("templates.editor.placeholders.name")}
                 className="text-base"
               />
             </div>
 
             <div className="grid gap-2">
-              <Label>Record as</Label>
+              <Label>{t("templates.editor.fields.recordAs")}</Label>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
@@ -250,9 +252,9 @@ export function TemplateEditorDialog({ open, onOpenChange, target, onSaved }: Pr
                       : "border-muted bg-muted/30 hover:bg-muted/50"
                   }`}
                 >
-                  <div className="text-sm font-semibold">Field intervention</div>
+                  <div className="text-sm font-semibold">{t("templates.editor.recordAs.interventionTitle")}</div>
                   <div className="mt-1 text-xs text-muted-foreground">
-                    On-site client work, installs, repairs.
+                    {t("templates.editor.recordAs.interventionBody")}
                   </div>
                 </button>
                 <button
@@ -264,9 +266,9 @@ export function TemplateEditorDialog({ open, onOpenChange, target, onSaved }: Pr
                       : "border-muted bg-muted/30 hover:bg-muted/50"
                   }`}
                 >
-                  <div className="text-sm font-semibold">Activity</div>
+                  <div className="text-sm font-semibold">{t("templates.editor.recordAs.activityTitle")}</div>
                   <div className="mt-1 text-xs text-muted-foreground">
-                    Office or remote work blocks.
+                    {t("templates.editor.recordAs.activityBody")}
                   </div>
                 </button>
               </div>
@@ -280,17 +282,17 @@ export function TemplateEditorDialog({ open, onOpenChange, target, onSaved }: Pr
                   onCheckedChange={(v) => setIsOfficeActivity(v === true)}
                 />
                 <Label htmlFor="tpl-office" className="cursor-pointer text-sm font-normal leading-snug">
-                  On-site office activity (unchecked = remote / home office)
+                  {t("templates.editor.officeActivityLabel")}
                 </Label>
               </div>
             ) : null}
 
             <div className="grid gap-2">
-              <Label>Job type</Label>
+              <Label>{t("templates.editor.fields.jobType")}</Label>
               <Input
                 value={jobType}
                 onChange={(e) => setJobType(e.target.value)}
-                placeholder="Custom label"
+                placeholder={t("templates.editor.placeholders.jobType")}
                 list="job-type-presets"
                 className="text-base"
               />
@@ -302,7 +304,7 @@ export function TemplateEditorDialog({ open, onOpenChange, target, onSaved }: Pr
             </div>
 
             <div className="grid gap-3 rounded-2xl border bg-muted/30 p-4">
-              <Label>Default client</Label>
+              <Label>{t("templates.editor.fields.defaultClient")}</Label>
               <div className="flex flex-wrap gap-2">
                 <Button
                   type="button"
@@ -311,7 +313,7 @@ export function TemplateEditorDialog({ open, onOpenChange, target, onSaved }: Pr
                   className="min-h-11 flex-1"
                   onClick={() => setClientMode("new")}
                 >
-                  New client each time
+                  {t("templates.editor.clientMode.new")}
                 </Button>
                 <Button
                   type="button"
@@ -320,30 +322,30 @@ export function TemplateEditorDialog({ open, onOpenChange, target, onSaved }: Pr
                   className="min-h-11 flex-1"
                   onClick={() => setClientMode("saved")}
                 >
-                  Fixed client
+                  {t("templates.editor.clientMode.saved")}
                 </Button>
               </div>
               {clientMode === "new" ? (
                 <div className="grid gap-2">
                   <Label className="text-xs font-normal text-muted-foreground">
-                    Optional suggested name (prefilled in the form)
+                    {t("templates.editor.clientHintLabel")}
                   </Label>
                   <Input
                     value={clientNameHint}
                     onChange={(e) => setClientNameHint(e.target.value)}
-                    placeholder="e.g. New walk-in"
+                    placeholder={t("templates.editor.placeholders.clientHint")}
                     className="text-base"
                   />
                 </div>
               ) : (
                 <div className="grid gap-2">
-                  <Label className="text-xs font-normal text-muted-foreground">Client</Label>
+                  <Label className="text-xs font-normal text-muted-foreground">{t("common.client")}</Label>
                   <select
                     className="h-12 w-full rounded-xl border bg-background px-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
                     value={defaultClientId}
                     onChange={(e) => setDefaultClientId(e.target.value)}
                   >
-                    <option value="">Select client…</option>
+                    <option value="">{t("templates.editor.placeholders.selectClient")}</option>
                     {(clients ?? []).map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name}
@@ -356,51 +358,55 @@ export function TemplateEditorDialog({ open, onOpenChange, target, onSaved }: Pr
 
             <div className="grid gap-2 sm:grid-cols-2">
               <div className="grid gap-2">
-                <Label>Default duration (minutes)</Label>
+                <Label>{t("templates.editor.fields.defaultDurationMinutes")}</Label>
                 <Input
                   inputMode="numeric"
                   value={defaultDurationMinutes}
                   onChange={(e) => setDefaultDurationMinutes(e.target.value)}
-                  placeholder="Optional"
+                  placeholder={t("templates.editor.placeholders.optional")}
                   className="text-base"
                 />
               </div>
               <div className="grid gap-2">
-                <Label>Default KM</Label>
+                <Label>{t("templates.editor.fields.defaultKm")}</Label>
                 <Input
                   inputMode="numeric"
                   value={km}
                   onChange={(e) => setKm(e.target.value)}
-                  placeholder="Optional"
+                  placeholder={t("templates.editor.placeholders.optional")}
                   className="text-base"
                 />
               </div>
             </div>
 
             <div className="grid gap-2">
-              <Label>Default notes</Label>
+              <Label>{t("templates.editor.fields.defaultNotes")}</Label>
               <Textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Internal checklist, access codes, special tools…"
+                placeholder={t("templates.editor.placeholders.defaultNotes")}
                 rows={4}
                 className="text-base"
               />
             </div>
 
-            <DynamicChecklistEditor value={checklist} onChange={setChecklist} label="Default checklist" />
+            <DynamicChecklistEditor
+              value={checklist}
+              onChange={setChecklist}
+              label={t("templates.editor.fields.defaultChecklist")}
+            />
 
             <div className="grid gap-2">
               <div className="flex items-center justify-between gap-2">
-                <Label>Default spare parts</Label>
+                <Label>{t("templates.editor.fields.defaultSpareParts")}</Label>
                 <Button type="button" variant="outline" size="sm" onClick={addSpareLine}>
                   <Plus className="h-4 w-4" />
-                  Add line
+                  {t("templates.editor.actions.addLine")}
                 </Button>
               </div>
               {spareLines.length === 0 ? (
                 <div className="rounded-xl border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
-                  No spare parts in this template.
+                  {t("templates.editor.emptySpareParts")}
                 </div>
               ) : (
                 <div className="grid gap-2">
@@ -416,7 +422,7 @@ export function TemplateEditorDialog({ open, onOpenChange, target, onSaved }: Pr
                           value={line.sparePartId}
                           onChange={(e) => updateSpareLine(idx, { sparePartId: e.target.value })}
                         >
-                          <option value="">Part…</option>
+                          <option value="">{t("templates.editor.placeholders.part")}</option>
                           {(spareParts ?? []).map((p) => (
                             <option key={p.id} value={p.id}>
                               {p.name}
@@ -427,14 +433,14 @@ export function TemplateEditorDialog({ open, onOpenChange, target, onSaved }: Pr
                           inputMode="numeric"
                           value={line.qty}
                           onChange={(e) => updateSpareLine(idx, { qty: e.target.value })}
-                          placeholder="Qty"
+                          placeholder={t("templates.editor.placeholders.qty")}
                         />
                         <Button type="button" variant="ghost" onClick={() => removeSpareLine(idx)}>
-                          Remove
+                          {t("common.remove")}
                         </Button>
                         {part ? (
                           <div className="text-xs text-muted-foreground sm:col-span-3">
-                            SKU {part.sku}
+                            {t("templates.editor.skuLine", { sku: part.sku })}
                           </div>
                         ) : null}
                       </div>
@@ -446,11 +452,11 @@ export function TemplateEditorDialog({ open, onOpenChange, target, onSaved }: Pr
 
             <div className="flex flex-wrap justify-end gap-2 border-t pt-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button type="button" disabled={!canSave || saving} onClick={save}>
                 <Save className="h-4 w-4" />
-                {saving ? "Saving…" : "Save template"}
+                {saving ? t("common.saving") : t("templates.editor.actions.save")}
               </Button>
             </div>
           </div>

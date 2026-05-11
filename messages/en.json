@@ -1,0 +1,1433 @@
+{
+  "common": {
+    "appName": "WorkFlow",
+    "language": "Language",
+    "italian": "Italian",
+    "english": "English",
+    "home": "Home",
+    "openApp": "Open app",
+    "signIn": "Sign in",
+    "signUp": "Create free account",
+    "backToHome": "Back to Home",
+    "thanks": "Thanks",
+    "client": "Client",
+    "noDate": "No date",
+    "noTime": "No time",
+    "or": "or",
+    "notNow": "Not now",
+    "install": "Install",
+    "duePrefix": "Due",
+    "overdue": "Overdue",
+    "activity": "Activity",
+    "activityPrefix": "Activity · ",
+    "intervention": "Intervention",
+    "km": "KM",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "deleting": "Deleting…",
+    "add": "Add",
+    "remove": "Remove",
+    "save": "Save",
+    "saving": "Saving…",
+    "now": "Now",
+    "back": "Back",
+    "edit": "Edit",
+    "pdf": "PDF",
+    "ticket": "Ticket",
+    "updateFailed": "Could not update",
+    "unknownError": "Unknown error",
+    "close": "Close",
+    "numericZero": "0",
+    "minutesShort": "{minutes}m"
+  },
+  "legal": {
+    "updatedAt": "Last updated: {date}.",
+    "updatedAtSite": "Last updated: {date}. This notice describes how personal data is processed on {site}.",
+    "privacy": {
+      "title": "Privacy Policy",
+      "s1": {
+        "title": "1) Data Controller",
+        "body": "The data controller is the owner of the site and the WorkFlow application (a personal tool used by a single technician). For privacy requests you can write to {email}."
+      },
+      "s2": {
+        "title": "2) Types of data processed",
+        "items": {
+          "account": "Account data: email and authentication identifiers (managed by Supabase Auth).",
+          "operational": "Operational data entered by the user: clients, interventions/activities, notes, checklists, spare parts, tickets, documents, photos and voice notes uploaded by the user.",
+          "technical": "Technical data: essential error logs and operational information (e.g. sync outcomes), required to keep the app stable.",
+          "cookies": "Cookies / similar technologies: only technical elements that are necessary (e.g. session/auth cookies). No profiling cookies or third‑party analytics are used."
+        }
+      },
+      "s3": {
+        "title": "3) Purposes",
+        "items": {
+          "auth": "Provide access to the app and maintain an authenticated session.",
+          "manage": "Enable management of interventions/activities, clients, documents and spare parts.",
+          "sync": "Synchronise data between devices and cloud when connectivity is available.",
+          "email": "Send technical emails at the user’s request (e.g. sending documents to support), if configured.",
+          "security": "Prevent abuse and ensure service security and integrity."
+        }
+      },
+      "s4": {
+        "title": "4) Legal basis",
+        "items": {
+          "contract": "Performance of a service (Art. 6(1)(b) GDPR): authentication and core features.",
+          "legitimate": "Legitimate interest (Art. 6(1)(f) GDPR): security, abuse prevention, stability and debugging.",
+          "consent": "Consent (Art. 6(1)(a) GDPR) only where required (e.g. browser notifications when enabled by the user)."
+        }
+      },
+      "s5": {
+        "title": "5) Processing and retention",
+        "p1": "WorkFlow is designed as an offline‑first PWA: a copy of data is stored locally on the device (IndexedDB) to allow usage without a network. When online, data can be synchronised to a Supabase backend (database and storage) for multi‑device continuity.",
+        "p2": "Data is retained for as long as necessary for the purposes above or until a deletion request. As a personal tool, no profiling is performed and data is not sold or shared for commercial purposes."
+      },
+      "s6": {
+        "title": "6) Recipients / processors",
+        "p1": "Data may be processed via essential technical providers:",
+        "items": {
+          "supabase": "Supabase (Auth, Database, Storage, Realtime) as cloud infrastructure.",
+          "resend": "Resend (if configured) for sending emails requested by the user."
+        },
+        "p2": "Data is not sold. No advertising or third‑party analytics tools are used."
+      },
+      "s7": {
+        "title": "7) Transfers outside the EU/EEA",
+        "body": "Some providers may process data in countries outside the EEA. Where applicable, transfers are carried out with GDPR safeguards (e.g. Standard Contractual Clauses)."
+      },
+      "s8": {
+        "title": "8) Data subject rights",
+        "p1": "You have the right to obtain: access, rectification, erasure, restriction, portability, objection, and to lodge a complaint with the Italian Data Protection Authority. To exercise your rights you can:",
+        "items": {
+          "settingsRights": "Use the “Your rights” section in Settings (export and data deletion).",
+          "email": "Write to {email}."
+        }
+      },
+      "s9": {
+        "title": "9) Minors",
+        "body": "WorkFlow is not intended for minors and is not designed to intentionally collect data relating to minors."
+      },
+      "s10": {
+        "title": "10) Contact",
+        "body": "For questions about this notice: {email}."
+      }
+    },
+    "terms": {
+      "title": "Terms of Service",
+      "s1": { "title": "1) Nature of the service", "body": "WorkFlow is a personal tool designed for use by a single technician. The site is publicly accessible, but actual use is intended for the owner. It is not a commercial SaaS service with an SLA, guaranteed support or enterprise features." },
+      "s2": { "title": "2) Account and authentication", "body": "Access is provided via authentication (Supabase). You are responsible for keeping credentials and devices secure. In case of unauthorised use, contact the controller." },
+      "s3": { "title": "3) Permitted use", "items": { "allowed": "Use the app to manage data and workflows related to technical interventions.", "security": "Do not attempt to compromise security, bypass protections or access unauthorised data.", "illegal": "Do not use the service for unlawful activities or to upload content infringing third‑party rights." } },
+      "s4": { "title": "4) Uploaded content and data", "body": "Data you enter (clients, interventions, documents, photos, voice notes, etc.) remains your responsibility. We recommend uploading only what is necessary and avoiding excessive data, especially special categories of data (Art. 9 GDPR) unless strictly necessary." },
+      "s5": { "title": "5) Availability and changes", "body": "The service may be changed, suspended or discontinued at any time. Temporary outages may occur (maintenance, network or provider issues). As a personal tool, operational continuity is not guaranteed." },
+      "s6": { "title": "6) Limitation of liability", "body": "To the extent permitted by law, the controller is not liable for indirect or consequential damages, data loss, loss of profits or business interruptions arising from use or inability to use WorkFlow. Use the export/backup features regularly." },
+      "s7": { "title": "7) Intellectual property and licence", "body": "The software and interface are protected by applicable laws. Use is granted for the controller’s personal/operational purposes. Unauthorised reproduction or distribution is not permitted." },
+      "s8": { "title": "8) Privacy", "body": "Personal data processing is governed by the Privacy Policy." },
+      "s9": { "title": "9) Contact", "body": "For communications related to these Terms: {email}." }
+    },
+    "accessibility": {
+      "title": "Accessibility statement",
+      "s1": { "title": "Conformance status", "body": "WorkFlow is a personal progressive web application (PWA). The goal is to provide an accessible experience aligned with WCAG 2.1 AA principles, within the realistic limits of a personal project." },
+      "s2": { "title": "Measures taken", "items": { "focus": "UI components with visible focus and keyboard navigation (Radix/shadcn patterns).", "contrast": "Good contrast in light/dark themes and text that is not overly small.", "labels": "Explicit labels for key controls and regions/navigation with aria-labels where appropriate.", "semantic": "Legal content rendered with semantic HTML (headings, sections, lists)." } },
+      "s3": { "title": "Known limitations", "items": { "dnd": "Some complex screens (e.g. drag & drop editors) may require additional ARIA refinements.", "pdf": "Exported PDFs are generated from an HTML view and may not be fully accessible to screen readers.", "maps": "Map-based features may be less usable without visual support." } },
+      "s4": { "title": "Feedback and contact", "body": "If you find an accessibility issue, describe the page and expected behaviour. It will be evaluated and fixed when feasible as the app evolves." }
+    }
+  },
+  "clients": {
+    "page": {
+      "title": "Clients",
+      "subtitle": "Search, filter, and open a client to see interventions. Syncs live with Supabase."
+    },
+    "detail": {
+      "loading": "Loading…",
+      "backToClients": "Back to clients",
+      "notFoundTitle": "Client not found",
+      "notFoundBody": "It may have been deleted on another device.",
+      "contactPrefix": "Contact:",
+      "lastVisitPrefix": "Last visit:",
+      "interventionsCount": "{count, plural, one {# intervention} other {# interventions}}",
+      "actions": {
+        "newIntervention": "New intervention",
+        "editClient": "Edit client"
+      },
+      "interventionsTitle": "Interventions",
+      "interventionsSubtitle": "Newest first. Tap to open the full record.",
+      "empty": "No interventions yet for this client."
+    },
+    "form": {
+      "titleNew": "New client",
+      "titleEdit": "Edit client",
+      "subtitle": "Practical fields for technicians. No fiscal codes or bank details.",
+      "fields": {
+        "name": "Name (company or person)",
+        "type": "Type",
+        "contactPerson": "Contact person (optional)",
+        "address": "Address",
+        "city": "City",
+        "postalCode": "Postal code",
+        "phone": "Phone",
+        "email": "Email",
+        "notes": "Notes"
+      },
+      "placeholders": {
+        "name": "e.g. Bar Centrale",
+        "contactPerson": "Who to ask for on site"
+      },
+      "confirmDelete": "Delete this client from this device and from the cloud when online? This cannot be undone (if you have no linked interventions).",
+      "toasts": {
+        "nameRequiredTitle": "Name required",
+        "nameRequiredBody": "Enter at least 2 characters for the client name.",
+        "savedTitle": "Client saved",
+        "savedBody": "Synced when you are online.",
+        "updatedTitle": "Client updated",
+        "updatedBody": "Changes will sync across devices.",
+        "missingClientTitle": "Missing client",
+        "saveFailedTitle": "Save failed",
+        "cannotDeleteTitle": "Cannot delete",
+        "cannotDeleteBody": "This client has {count, plural, one {# intervention} other {# interventions}}. Remove or reassign them first.",
+        "deleteFailedTitle": "Delete failed",
+        "deletedQueuedTitle": "Client removed (offline)",
+        "deletedQueuedBody": "Will be removed from the cloud on the next sync.",
+        "deletedTitle": "Client deleted",
+        "deletedBody": "Removed on this device and in the cloud."
+      }
+    },
+    "actions": {
+      "new": "New client"
+    },
+    "search": {
+      "placeholder": "Search name, city, phone…",
+      "aria": "Search clients"
+    },
+    "filters": {
+      "typeLabel": "Type",
+      "sortLabel": "Sort",
+      "allTypes": "All types"
+    },
+    "types": {
+      "company": "Company",
+      "private": "Private",
+      "restaurant": "Restaurant",
+      "shop": "Shop",
+      "other": "Other"
+    },
+    "sort": {
+      "name": "Name A–Z",
+      "lastVisit": "Last visit",
+      "count": "Most interventions"
+    },
+    "card": {
+      "lastPrefix": "Last:",
+      "interventionsCount": "{count, plural, one {# intervention} other {# interventions}}"
+    },
+    "empty": {
+      "title": "No clients yet",
+      "body": "Add your first client to speed up interventions and keep contact details in one place.",
+      "cta": "Add client"
+    },
+    "emptyFiltered": "No clients match your search or filters."
+  },
+  "mobileMenu": {
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "mainNavigation": "Main navigation",
+    "primaryNavigation": "Primary navigation",
+    "menuTitle": "Menu",
+    "menuSubtitle": "All sections",
+    "sections": {
+      "search": "Search",
+      "sync": "Sync",
+      "language": "Language"
+    }
+  },
+  "search": {
+    "global": {
+      "buttonPlaceholder": "Search… (⌘K)",
+      "dialogTitle": "Global search",
+      "inputPlaceholder": "Search interventions, clients, documents…",
+      "pages": "{count, plural, one {# page} other {# pages}}",
+      "emptyNoResults": "No results.",
+      "emptyTypeToSearch": "Type to search."
+    }
+  },
+  "support": {
+    "send": {
+      "dialogTitle": "Send document",
+      "dialogBody": "Review the details before sending. If you’re offline, we’ll queue it and send as soon as you’re back online.",
+      "toLabel": "To",
+      "toPlaceholder": "support@company.com",
+      "subjectLabel": "Subject",
+      "subjectDefault": "WorkFlow document - {title}",
+      "subjectHint": "The PDF will be attached automatically.",
+      "messageLabel": "Custom message (optional)",
+      "messagePlaceholder": "Write any details here…",
+      "offlineHint": "Offline: this email will be queued and sent automatically when you’re back online.",
+      "interventionRef": "Intervention: {ref}",
+      "actions": {
+        "send": "Send",
+        "queue": "Queue",
+        "sending": "Sending…"
+      },
+      "errors": {
+        "attachmentNotFound": "PDF attachment not found"
+      },
+      "toasts": {
+        "queuedTitle": "Queued",
+        "queuedBody": "Will send automatically when you’re online again.",
+        "sentTitle": "Sent",
+        "sentBody": "Document emailed to support.",
+        "sendFailedTitle": "Send failed",
+        "sendFailedBodyFallback": "Could not send"
+      }
+    }
+  },
+  "scanner": {
+    "title": "Document scanner",
+    "subtitle": "Capture multiple pages and save one high-quality PDF (offline-first).",
+    "fields": {
+      "title": "Title",
+      "pages": "Pages"
+    },
+    "add": {
+      "camera": "Add pages (camera)",
+      "library": "Add multiple (library)",
+      "hint": "Take a photo, then tap the camera input again to add another page. Reorder, rotate, delete, then save one PDF."
+    },
+    "enhance": {
+      "title": "Auto enhance",
+      "body": "Contrast boost for clearer scans."
+    },
+    "pagesCount": "{count, plural, one {# page} other {# pages}}",
+    "pagesHint": "Tap Rotate; reorder with the arrows (no drag).",
+    "pageLabel": "Page {index}",
+    "previewAlt": "Page {index} preview",
+    "empty": "No pages yet. Add at least 1 page.",
+    "uploading": "Uploading to cloud… {pct}%",
+    "actions": {
+      "up": "Up",
+      "down": "Down",
+      "rotate": "Rotate",
+      "adding": "Adding…",
+      "saving": "Saving…",
+      "uploadPct": "Upload {pct}%",
+      "savePdf": "Save PDF"
+    },
+    "errors": {
+      "imageLoadFailed": "Could not load image",
+      "canvasNotSupported": "Canvas not supported"
+    },
+    "toasts": {
+      "cloudUploadIncompleteTitle": "Cloud upload incomplete",
+      "cloudUploadIncompleteBodyFallback": "PDF is saved locally; will retry on next sync.",
+      "savedTitle": "Document saved",
+      "savedBody": "PDF stored locally and queued for sync.",
+      "scanFailedTitle": "Scan failed",
+      "scanFailedBodyFallback": "Could not create PDF"
+    }
+  },
+  "shortcuts": {
+    "button": "Shortcuts",
+    "title": "Keyboard shortcuts",
+    "items": {
+      "globalSearch": "Global search",
+      "openPanel": "Open this panel",
+      "reload": "Reload",
+      "browserFind": "Browser find on page"
+    },
+    "ipadTip": "Tip: on iPad, an external keyboard makes field work much faster."
+  },
+  "voice": {
+    "sectionTitle": "Voice notes",
+    "sectionSubtitle": "Fast audio memos stored locally.",
+    "recorder": {
+      "title": "Voice note",
+      "subtitle": "Record a short audio memo for this intervention.",
+      "uploading": "Uploading… {pct}%",
+      "actions": {
+        "record": "Record",
+        "pause": "Pause",
+        "resume": "Resume",
+        "stopAndSave": "Stop & save",
+        "stop": "Stop",
+        "discard": "Discard"
+      },
+      "state": {
+        "recording": "Recording…",
+        "noNewRecording": "No new recording."
+      },
+      "errors": {
+        "notSupported": "Audio recording is not supported on this device/browser.",
+        "mediaRecorderUnavailable": "MediaRecorder not available."
+      },
+      "toasts": {
+        "cannotRecordTitle": "Cannot record",
+        "cannotRecordBodyFallback": "Microphone permission or support issue",
+        "cloudUploadIncompleteTitle": "Cloud upload incomplete",
+        "cloudUploadIncompleteBodyFallback": "Audio saved locally; will retry on next sync.",
+        "savedTitle": "Voice note saved",
+        "savedBody": "Stored locally (offline-first).",
+        "saveFailedTitle": "Save failed",
+        "saveFailedBodyFallback": "Could not save voice note"
+      }
+    },
+    "list": {
+      "title": "Saved voice notes",
+      "empty": "No voice notes yet.",
+      "confirmDelete": "Delete this voice note from this device and from the cloud (when online)?",
+      "toasts": {
+        "deletedTitle": "Deleted",
+        "deletedBody": "Voice note removed.",
+        "deleteFailedTitle": "Delete failed",
+        "deleteFailedBodyFallback": "Could not delete"
+      }
+    }
+  },
+  "notes": {
+    "quick": {
+      "aria": "Quick note",
+      "title": "Quick note",
+      "textTitle": "Text",
+      "textPlaceholder": "Add a quick note…",
+      "saveText": "Save text",
+      "dashboardVoiceOnlyHint": "Dashboard quick note currently supports voice notes. Open an intervention to add a text quick note.",
+      "voiceTitle": "Voice",
+      "openInterventionForVoiceHint": "Open an intervention to attach voice notes to it.",
+      "errors": {
+        "interventionNotFound": "Intervention not found"
+      },
+      "toasts": {
+        "selectInterventionTitle": "Select an intervention",
+        "dashboardVoiceOnlyBody": "Quick Note on dashboard is voice-only for now.",
+        "noteSavedTitle": "Note saved",
+        "noteSavedBody": "Added to intervention notes.",
+        "saveFailedTitle": "Save failed",
+        "saveFailedBodyFallback": "Could not save"
+      }
+    }
+  },
+  "onlineIndicator": {
+    "online": "Online",
+    "offline": "Offline"
+  },
+  "clientPicker": {
+    "placeholder": "Search or type a name",
+    "hint": "Pick a saved client or type a new name — it will be created when you save."
+  },
+  "checklist": {
+    "editor": {
+      "title": "Checklist",
+      "dragToReorder": "Drag to reorder",
+      "itemPlaceholder": "Checklist item",
+      "newItemPlaceholder": "New item text",
+      "empty": "No checklist items yet. Add tasks above — drag the handle to reorder."
+    }
+  },
+  "route": {
+    "openNavigator": {
+      "button": "Open in navigator",
+      "toasts": {
+        "incompleteTitle": "Incomplete route",
+        "incompleteBody": "You need at least two stops with an address or coordinates."
+      }
+    },
+    "map": {
+      "markerStart": "Start",
+      "markerEnd": "End",
+      "empty": "Search and select a <start>start</start> address to show the map. Add an <end>end</end> address for the route line.",
+      "footerHint": "Pinch-zoom and drag · Driving path via OSRM when available · Tap markers for labels",
+      "errors": {
+        "loadFailed": "Map failed to load",
+        "osmTilesTitle": "Could not load OpenStreetMap tiles"
+      },
+      "fallbackAlt": "Route map (Google Static)",
+      "fallbackKeyHint": "Set <code>GOOGLE_MAPS_STATIC_KEY</code> for a static image fallback."
+    },
+    "location": {
+      "title": "Route & distance",
+      "startLabel": "Start location",
+      "endLabel": "End location",
+      "searchPlaceholder": "Search address…",
+      "noStopSelected": "No stop selected.",
+      "autoDistanceHint": "Auto distance (straight-line or driving if configured)",
+      "mapTitle": "Route map",
+      "actions": {
+        "currentLocation": "Current location",
+        "clear": "Clear",
+        "recalculate": "Recalculate"
+      },
+      "errors": {
+        "geolocationNotAvailable": "Geolocation not available"
+      }
+    },
+    "stops": {
+      "title": "Advanced route stops",
+      "stopsLabel": "Stops (drag to reorder)",
+      "dragToReorder": "Drag to reorder",
+      "labelPlaceholder": "Label (e.g. Start, Stop 1, Office)",
+      "searchAddressPlaceholder": "Search address…",
+      "selectedStopFallback": "Selected stop",
+      "noCoordinatesYet": "No coordinates yet.",
+      "stopN": "Stop {n}",
+      "returnLabel": "Return",
+      "roundTripLabels": {
+        "start": "Start",
+        "office": "Office",
+        "end": "End"
+      },
+      "actions": {
+        "current": "Current",
+        "roundTrip": "Round trip",
+        "addStop": "Add stop"
+      },
+      "empty": "No stops yet. Add a stop, pick an address, then drag to reorder.",
+      "totalHint": "Total (straight-line fallback)",
+      "drivingKmHint": "Driving KM per segment can be added next (Google Matrix / OSRM multi-leg).",
+      "mapPreviewTitle": "Map preview"
+    }
+  },
+  "syncStatus": {
+    "relative": {
+      "justNow": "just now",
+      "secondsAgo": "{seconds}s ago",
+      "minutesAgo": "{minutes} min ago",
+      "hoursAgo": "{hours} hr ago"
+    },
+    "headline": {
+      "offline": {
+        "title": "Offline",
+        "subtitleQueued": "{count, plural, one {# change queued — will sync when you reconnect} other {# changes queued — will sync when you reconnect}}",
+        "subtitleNoPending": "No pending changes"
+      },
+      "syncing": {
+        "title": "Syncing",
+        "subtitle": "Uploading and merging with the cloud…"
+      },
+      "catchingUp": {
+        "title": "Catching up",
+        "subtitle": "Finishing queued changes…"
+      },
+      "live": {
+        "title": "Live",
+        "subtitleJustNow": "Cloud updated just now",
+        "subtitleAgo": "Last cloud update {when}"
+      },
+      "synced": {
+        "title": "Synced",
+        "subtitleAgo": "Full sync {when}"
+      },
+      "ready": {
+        "title": "Ready",
+        "subtitle": "Signed in — sync runs in the background"
+      }
+    },
+    "actions": {
+      "syncNow": "Sync now",
+      "syncing": "Syncing…"
+    }
+  },
+  "debug": {
+    "reminders": {
+      "title": "Reminder debug",
+      "nextPollPrefix": "Next poll in",
+      "everySuffix": "(every {seconds}s)",
+      "notificationsPrefix": "Notifications:",
+      "lastPrefix": "Last:",
+      "prodPrefix": "Prod:",
+      "prodSuffix": "then reload. Allow notifications or set a default reminder email + Resend in Settings."
+    }
+  },
+  "footer": {
+    "personalTool": "Personal tool.",
+    "legalLinksAria": "Legal links",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "accessibility": "Accessibility statement"
+  },
+  "cookie": {
+    "title": "Cookies",
+    "regionAria": "Cookie notice",
+    "body": "WorkFlow uses only essential cookies/technologies for authentication and security. No tracking, no profiling, no ads.",
+    "cta": "Got it",
+    "privacyLink": "Read the Privacy Policy"
+  },
+  "logout": {
+    "title": "You’ve been signed out.",
+    "body": "Thanks for using WorkFlow.",
+    "signIn": "Sign in"
+  },
+  "landing": {
+    "metaTitle": "WorkFlow — Field work, organised",
+    "metaDescription": "Offline-first PWA for technicians: interventions, documents, reminders, multi-device sync and PDF reports. Data stays on-device and syncs securely when you’re back online.",
+    "badge": "Offline-first · PWA · Supabase",
+    "heroTitle": "WorkFlow — your personal assistant for technical visits",
+    "heroBody": "Plan, document and close field visits even without a connection. WorkFlow keeps data on the device and syncs it safely when you’re back online: less admin friction, more operational control.",
+    "ctaPrimary": "Create free account",
+    "ctaSecondary": "Sign in",
+    "ctaDashboard": "Go to dashboard",
+    "pillAuth": "Supabase session",
+    "pillMaps": "Geocoding and maps built in",
+    "pillTimer": "Work timer",
+    "value1Title": "Built for work on the move",
+    "value1Body": "Layouts and actions tuned for iPhone and iPad: fewer taps, clearer screens in real working conditions.",
+    "value2Title": "Local-first by design",
+    "value2Body": "No blank states when the network drops: write, attach, track time. Sync catches up when you’re online again.",
+    "value3Title": "Professional with customers",
+    "value3Body": "PDFs, documents and structured notes feel more reliable than scattered messages and photos.",
+    "featuresTitle": "Everything you need on site",
+    "featuresSubtitle": "One tool that ties interventions, light stock, customers and documentation together—without enterprise bloat.",
+    "testimonialsTitle": "Why operational teams use it",
+    "testimonialsSubtitle": "Clear goal: less admin overhead, more time on the actual job. Here’s what teams look for—and get—with WorkFlow.",
+    "ctaTitle": "Ready to get the field under control?",
+    "ctaBody": "Create an account, install the PWA and start with your first job—no card required to try the core flow.",
+    "ctaOpenApp": "Open WorkFlow",
+    "footer": {
+      "copyright": "© {year} WorkFlow. All rights reserved."
+    },
+    "features": {
+      "interventions": {
+        "title": "Interventions and activities",
+        "body": "Manage visits, on-site or remote activities, job status, notes and attachments in a flow designed for tablets."
+      },
+      "scanner": {
+        "title": "Document scanner",
+        "body": "Capture PDFs on site, attach them to a job and send to support when connectivity allows."
+      },
+      "reminders": {
+        "title": "Smart reminders",
+        "body": "Browser notifications and optional email reminders for due dates—fewer misses, better continuity with customers."
+      },
+      "sync": {
+        "title": "Sync across devices",
+        "body": "IndexedDB locally, Supabase in the cloud: work offline and pick up on your phone, iPad or desktop."
+      },
+      "pdf": {
+        "title": "PDF export",
+        "body": "Printable reports for customers or internal records, consistent with the job data."
+      },
+      "clients": {
+        "title": "Structured clients",
+        "body": "A proper customer directory with history tied to each visit."
+      },
+      "stock": {
+        "title": "Stock and spare parts",
+        "body": "Track stock movements linked to interventions: what was installed or taken out."
+      },
+      "tickets": {
+        "title": "Lightweight CRM tickets",
+        "body": "Issues and follow-ups without the overhead of an enterprise CRM—stay quick on the field."
+      },
+      "templates": {
+        "title": "Reusable templates",
+        "body": "Presets for recurring jobs: start pre-filled and save admin time."
+      },
+      "reports": {
+        "title": "Reports and stats",
+        "body": "Exports and operational numbers to understand workload, performance and priorities."
+      }
+    },
+    "testimonials": {
+      "one": {
+        "quote": "The biggest win is closing a job in a basement with no signal, then seeing everything synced when I’m back at the office.",
+        "role": "Field technician — professional equipment"
+      },
+      "two": {
+        "quote": "Scanning and PDFs replaced messy WhatsApp photo threads and lost paperwork. Customers receive something readable straight away.",
+        "role": "Service manager — retail"
+      },
+      "three": {
+        "quote": "Due-date reminders on iPad reduced delays on recurring work. The interface is calm and doesn’t get in the way.",
+        "role": "Operations coordinator"
+      }
+    }
+  }
+  ,
+  "nav": {
+    "dashboard": "Dashboard",
+    "interventions": "Interventions",
+    "templates": "Templates",
+    "documents": "Documents",
+    "crmTickets": "CRM tickets",
+    "clients": "Clients",
+    "spareParts": "Spare parts",
+    "reports": "Reports",
+    "statistics": "Statistics",
+    "settings": "Settings"
+  },
+  "protectedShell": {
+    "signedIn": "Signed in",
+    "signedInAs": "Signed in as {email}",
+    "offlineFirstNote": "Offline-first. Data stays on the device until it syncs.",
+    "keyboardHint": "Keyboard (iPad): ⌘K search • ⌘R reload",
+    "languageLabel": "Language"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Your daily overview, optimised for field work.",
+    "stats": {
+      "interventionsToday": {
+        "title": "Interventions (today)",
+        "hint": "Created locally, synced later"
+      },
+      "hoursThisMonth": {
+        "title": "Hours (this month)",
+        "hint": "Sum of durations"
+      },
+      "kmThisMonth": {
+        "title": "KM (this month)",
+        "hint": "Travel distance"
+      },
+      "pendingTickets": {
+        "title": "Pending CRM tickets",
+        "hintWithTotal": "{total} open/pending",
+        "hintFallback": "Reminders due"
+      }
+    },
+    "quickActions": {
+      "title": "Quick actions",
+      "subtitle": "Fast entry optimised for field work.",
+      "newIntervention": "New intervention",
+      "viewInterventions": "View interventions",
+      "manageSpareParts": "Manage spare parts"
+    },
+    "todayQuickActions": {
+      "title": "Today’s Quick Actions",
+      "subtitle": "Fast actions for field work.",
+      "newIntervention": "New intervention",
+      "scanDocument": "Scan document",
+      "findDocument": "Find a document"
+    },
+    "recent": {
+      "title": "Recent interventions",
+      "subtitle": "Tap an item to edit or add details.",
+      "empty": "No interventions yet."
+    },
+    "todaysFocus": {
+      "title": "Today’s Focus",
+      "subtitle": "Started or open interventions to close today.",
+      "empty": "Nothing pending for today."
+    },
+    "attention": {
+      "overdue": {
+        "title": "Overdue",
+        "subtitle": "Past the deadline and still open.",
+        "empty": "Nothing overdue."
+      },
+      "upcoming": {
+        "title": "Upcoming due",
+        "subtitle": "Next 7 days.",
+        "empty": "No upcoming deadlines."
+      },
+      "running": {
+        "title": "Running timers",
+        "subtitle": "Work timers currently counting.",
+        "empty": "No active timers."
+      }
+    }
+  },
+  "offline": {
+    "title": "Offline mode",
+    "body": "You can keep working. Changes are saved locally and will sync when you’re back online."
+  },
+  "pwa": {
+    "bannerTitle": "Install WorkFlow",
+    "bannerBody": "Add it to your Home Screen for a faster, app-like experience.",
+    "installStartedTitle": "Install started",
+    "installStartedBody": "Follow the prompt."
+  },
+  "documents": {
+    "page": {
+      "title": "Documents",
+      "subtitle": "Your scanned PDFs archive (offline-first)."
+    },
+    "detail": {
+      "notFound": "Document not found.",
+      "actions": {
+        "rename": "Rename",
+        "open": "Open",
+        "send": "Send"
+      },
+      "confirmDelete": "Delete this document from this device and from the cloud (when online)?",
+      "rename": {
+        "title": "Rename",
+        "subtitle": "Keep titles consistent for quick search."
+      },
+      "pagesLabel": "Pages{count, plural, =0 {} other { (#)}}",
+      "pageLabel": "Page {index}",
+      "pageAlt": "Page {index}",
+      "generatingThumbs": "Generating thumbnails…",
+      "pdfViewerTitle": "PDF viewer",
+      "pdfNotReady": "PDF not ready yet.",
+      "toasts": {
+        "previewFailedTitle": "PDF preview failed",
+        "deletedTitle": "Deleted",
+        "deletedBody": "Document removed.",
+        "deleteFailedTitle": "Delete failed",
+        "deleteFailedBodyFallback": "Could not delete",
+        "renamedTitle": "Renamed",
+        "renamedBody": "Document title updated."
+      }
+    },
+    "actions": {
+      "openPdf": "Open PDF",
+      "sendToSupport": "Send to Support"
+    },
+    "archive": {
+      "count": "{count, plural, one {# document} other {# documents}}",
+      "scanCta": "Scan document",
+      "searchPlaceholder": "Search documents…",
+      "table": {
+        "document": "Document",
+        "actions": "Actions"
+      },
+      "actions": {
+        "open": "Open",
+        "send": "Send"
+      },
+      "emptyTitle": "No documents yet",
+      "emptyBody": "Scan your first document from an intervention (offline-first).",
+      "offlineSendHint": "You’re offline. “Send to Support” will be available when you’re online."
+    },
+    "row": {
+      "meta": "{createdAt} • {pages, plural, one {# page} other {# pages}}"
+    },
+    "errors": {
+      "attachmentNotFound": "Attachment not found",
+      "pdfNotFound": "PDF not found"
+    },
+    "toasts": {
+      "sentTitle": "Sent",
+      "sentBody": "Emailed to support.",
+      "sendFailedTitle": "Send failed",
+      "openFailedTitle": "Open failed",
+      "openFailedBody": "Could not open"
+    },
+    "scan": {
+      "defaultTitle": "Scan - {date}"
+    }
+  },
+  "templates": {
+    "page": {
+      "title": "Templates",
+      "subtitle": "Full template library: job type, intervention vs activity, default client, checklist, spare parts, and one-tap creation."
+    },
+    "editor": {
+      "titleNew": "New template",
+      "titleEdit": "Edit template",
+      "titleDuplicate": "Duplicate template",
+      "subtitle": "Define defaults for new visits. Checklist and spare parts prefill the intervention form.",
+      "copyOf": "Copy of {name}",
+      "fields": {
+        "name": "Template name",
+        "recordAs": "Record as",
+        "jobType": "Job type",
+        "defaultClient": "Default client",
+        "defaultDurationMinutes": "Default duration (minutes)",
+        "defaultKm": "Default KM",
+        "defaultNotes": "Default notes",
+        "defaultChecklist": "Default checklist",
+        "defaultSpareParts": "Default spare parts"
+      },
+      "recordAs": {
+        "interventionTitle": "Field intervention",
+        "interventionBody": "On-site client work, installs, repairs.",
+        "activityTitle": "Activity",
+        "activityBody": "Office or remote work blocks."
+      },
+      "officeActivityLabel": "On-site office activity (unchecked = remote / home office)",
+      "clientMode": {
+        "new": "New client each time",
+        "saved": "Fixed client"
+      },
+      "clientHintLabel": "Optional suggested name (prefilled in the form)",
+      "placeholders": {
+        "name": "e.g. Quarterly HVAC — downtown route",
+        "jobType": "Custom label",
+        "clientHint": "e.g. New walk-in",
+        "selectClient": "Select client…",
+        "optional": "Optional",
+        "defaultNotes": "Internal checklist, access codes, special tools…",
+        "part": "Part…",
+        "qty": "Qty"
+      },
+      "actions": {
+        "addLine": "Add line",
+        "save": "Save template"
+      },
+      "emptySpareParts": "No spare parts in this template.",
+      "skuLine": "SKU {sku}",
+      "toasts": {
+        "notFoundTitle": "Template not found",
+        "savedTitle": "Template saved",
+        "saveFailedTitle": "Save failed"
+      }
+    },
+    "count": "{count, plural, one {# template} other {# templates}}",
+    "actions": {
+      "new": "New template",
+      "createFromTemplate": "Create from template",
+      "duplicate": "Duplicate"
+    },
+    "card": {
+      "savedClient": "Saved client",
+      "suggestedClient": "Suggested: {clientName}",
+      "newClientEachTime": "New client each time",
+      "defaultDuration": "Default duration · {minutes}m"
+    },
+    "confirmDelete": "Delete this template from this device and from the cloud when online?",
+    "empty": {
+      "title": "No templates yet",
+      "body": "Build a library of recurring visits with checklist, spare parts, and client defaults. Tap “New template” to start.",
+      "cta": "Create your first template"
+    },
+    "toasts": {
+      "deleteFailedTitle": "Delete failed",
+      "deletedTitle": "Deleted",
+      "deletedBody": "Template removed."
+    }
+  },
+  "tickets": {
+    "page": {
+      "title": "CRM tickets",
+      "subtitle": "Track follow-ups and reminders (offline-first)."
+    }
+    ,
+    "fields": {
+      "title": "Title",
+      "description": "Description",
+      "priority": "Priority",
+      "dueDate": "Due date"
+    },
+    "priority": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "actions": {
+      "create": "Create ticket",
+      "new": "New ticket"
+    },
+    "searchPlaceholder": "Search tickets…",
+    "filters": {
+      "statusAll": "All",
+      "priorityAll": "Any priority"
+    },
+    "status": {
+      "open": "Open",
+      "pending": "Pending",
+      "closed": "Closed"
+    },
+    "table": {
+      "ticket": "Ticket",
+      "status": "Status"
+    },
+    "reminderDue": "Reminder due",
+    "duePrefix": "Due:",
+    "empty": "No tickets yet. Create one for follow-ups and reminders.",
+    "dialog": {
+      "title": "New CRM ticket",
+      "subtitle": "Saved locally, sync later."
+    },
+    "createFromIntervention": {
+      "defaultTitle": "Follow-up",
+      "defaultTitleWithClient": "Follow-up: {clientName}"
+    },
+    "toasts": {
+      "createdTitle": "Ticket created",
+      "createdBody": "Linked to the intervention.",
+      "savedLocally": "Saved locally.",
+      "updatedTitle": "Ticket updated",
+      "updatedBody": "Status: {status}",
+      "createFailedTitle": "Failed to create ticket"
+    }
+  },
+  "reports": {
+    "page": {
+      "title": "Reports",
+      "subtitle": "Simple exports for CRM reporting (offline-first)."
+    },
+    "monthlyCrmExport": {
+      "title": "Monthly CRM export",
+      "subtitle": "Downloads JSON + CSV for the selected month.",
+      "actions": {
+        "exportMonth": "Export month"
+      },
+      "toasts": {
+        "exportedTitle": "Exported",
+        "exportedBody": "Monthly JSON + CSV downloaded.",
+        "exportFailedTitle": "Export failed",
+        "exportFailedBody": "Could not export month"
+      }
+    }
+  },
+  "settings": {
+    "appVersion": "{appName} • v{version}",
+    "profile": {
+      "title": "Profile",
+      "subtitle": "Supabase account information.",
+      "supabaseNotConfigured": "Supabase not configured.",
+      "techNameLabel": "Technician name (for PDF/CRM)",
+      "techNamePlaceholder": "e.g. Mario Rossi",
+      "supportEmailLabel": "Default support email",
+      "supportEmailPlaceholder": "support@company.com",
+      "supportEmailHint": "It will be pre-filled in the “To:” field when you send a document. It syncs to your profile when you’re online.",
+      "reminderEmailLabel": "Default reminder email",
+      "reminderEmailPlaceholder": "you@company.com",
+      "reminderEmailHint": "Used when an intervention enables reminders but leaves its own email blank. Requires Resend env on the server.",
+      "notificationsEnabledTitle": "Notifications enabled",
+      "notificationPermissionTitle": "Permission: {permission}",
+      "notificationsEnabledBody": "You will get local reminders while WorkFlow is open.",
+      "notificationPermissionBody": "You can change this in the browser site settings.",
+      "requestNotificationPermission": "Request browser notification permission",
+      "officeAddressLabel": "Default office address",
+      "officeAddressPlaceholder": "e.g. Via Roma 10, Milan",
+      "officeAddressHint": "Used by the Round trip button (Start → Office → Start) when creating an intervention. Synced to your user profile when online."
+    },
+    "sync": {
+      "title": "Cloud sync",
+      "subtitle": "Retry failed uploads, flush pending remote deletes, and pull the latest from Supabase.",
+      "actions": {
+        "syncNow": "Sync now",
+        "forceFullSync": "Force full sync"
+      },
+      "failures": {
+        "title": "Recent failures",
+        "empty": "No recorded failures. If sync struggles, they will appear here with timestamps.",
+        "dismissAria": "Dismiss",
+        "clear": "Clear failure list"
+      },
+      "toasts": {
+        "syncFinishedTitle": "Sync finished",
+        "syncFinishedBody": "Your data is up to date.",
+        "syncErrorTitle": "Sync error",
+        "forceSyncCompleteTitle": "Force sync complete",
+        "forceSyncCompleteBody": "Merged with the cloud.",
+        "forceSyncIssuesTitle": "Force sync finished with issues",
+        "forceSyncIssuesBodyFallback": "Check the failure list below.",
+        "forceSyncErrorTitle": "Force sync error"
+      }
+    },
+    "appearance": {
+      "title": "Appearance",
+      "subtitle": "Optimized for iPad, supports dark mode.",
+      "toggleDarkMode": "Toggle dark mode (now: {theme})",
+      "installPwa": "Install PWA",
+      "tip": "Tip: on iPad Safari you can also use Share → “Add to Home Screen”.",
+      "toasts": {
+        "installStartedTitle": "Install started",
+        "installStartedBody": "Follow the iPad prompt."
+      }
+    },
+    "offlineData": {
+      "title": "Offline data",
+      "subtitle": "Backup and maintenance for local IndexedDB.",
+      "filenames": {
+        "fullBackup": "workflow-full-backup-{date}.json"
+      },
+      "actions": {
+        "exportFullBackup": "Export full backup",
+        "importBackup": "Import backup",
+        "clearLocalDb": "Clear local database"
+      },
+      "confirmImport": "Import backup and replace ALL local data? This cannot be undone.",
+      "confirmClearLocal": "Clear ALL local data? This cannot be undone.",
+      "keyboardHint": "Keyboard hint (iPad): use an external keyboard for faster entry. Common shortcuts: Cmd+K global search, Cmd+F browser find, Cmd+R reload.",
+      "toasts": {
+        "backupExportedTitle": "Backup exported",
+        "backupExportedBody": "Full JSON (incl. attachments) downloaded.",
+        "exportFailedTitle": "Export failed",
+        "exportFailedBody": "Could not export data",
+        "importCompleteTitle": "Import complete",
+        "importCompleteBody": "Local data replaced. Reloading…",
+        "importFailedTitle": "Import failed",
+        "importFailedBody": "Could not import backup",
+        "localClearedTitle": "Local data cleared",
+        "localClearedBody": "Reloading…"
+      }
+    },
+    "rights": {
+      "title": "Your rights",
+      "subtitle": "Export and deletion of data (portability and erasure).",
+      "filenames": {
+        "export": "workflow-export-{date}.json"
+      },
+      "actions": {
+        "exportAllJson": "Export all my data (JSON)",
+        "deleteAll": "Delete all my data"
+      },
+      "confirmDeleteAll": "Do you want to delete ALL your data?\n\n- It will be removed from this device.\n- If you are online, it will also be deleted from the cloud.\n\nThis cannot be undone.",
+      "note": "Note: if you’re offline, the cloud deletion will be retried when you’re back online (local data is deleted immediately).",
+      "toasts": {
+        "exportReadyTitle": "Export ready",
+        "exportReadyBody": "JSON file downloaded to your device.",
+        "exportFailedTitle": "Export failed",
+        "exportFailedBody": "Could not export data",
+        "deletedTitle": "Data deleted",
+        "deletedBody": "Session ended. Returning to Home…",
+        "deleteFailedTitle": "Deletion failed",
+        "deleteFailedBody": "Could not complete deletion"
+      }
+    }
+  },
+  "statistics": {
+    "page": {
+      "title": "Statistics",
+      "subtitle": "Monthly overview for CRM traceability."
+    },
+    "monthLabel": "Month",
+    "actions": {
+      "export": "Export JSON + CSV"
+    },
+    "toasts": {
+      "exportedTitle": "Exported",
+      "exportedBody": "Monthly JSON + CSV downloaded.",
+      "exportFailedTitle": "Export failed",
+      "exportFailedBody": "Could not export"
+    },
+    "cards": {
+      "interventions": "Interventions",
+      "hoursWorked": "Hours worked",
+      "kmTraveled": "KM traveled"
+    },
+    "topClients": {
+      "title": "Top clients",
+      "subtitle": "By number of interventions (then hours).",
+      "rowMeta": "{count, plural, one {# intervention} other {# interventions}} • {hours} h • {km} km",
+      "empty": "No data for this month yet."
+    }
+  },
+  "spareParts": {
+    "page": {
+      "title": "Spare parts",
+      "subtitle": "Local warehouse: stock levels update instantly offline."
+    },
+    "list": {
+      "count": "{count, plural, one {# part} other {# parts}}"
+    },
+    "table": {
+      "part": "Spare part",
+      "stock": "Stock",
+      "actions": "Actions"
+    },
+    "row": {
+      "meta": "SKU: {sku} • Unit: {unit}",
+      "min": "Min: {min}"
+    },
+    "fields": {
+      "sku": "SKU",
+      "name": "Name",
+      "unit": "Unit",
+      "minStock": "Min stock (optional)",
+      "movementType": "Type",
+      "quantity": "Quantity",
+      "reason": "Reason"
+    },
+    "movementTypes": {
+      "in": "in",
+      "out": "out",
+      "adjust": "adjust"
+    },
+    "reasonPlaceholder": "Inventory correction",
+    "actions": {
+      "addPart": "Add part",
+      "adjust": "Adjust",
+      "saveMovement": "Save movement"
+    },
+    "empty": "No spare parts yet. Add your first part to start tracking stock.",
+    "dialogs": {
+      "add": {
+        "title": "Add spare part",
+        "subtitle": "Saved locally. Sync later."
+      },
+      "adjust": {
+        "title": "Adjust stock",
+        "subtitle": "Create a stock movement (in/out/adjust). This is offline-first."
+      }
+    }
+  },
+  "pdf": {
+    "photoAlt": "Photo",
+    "companyNamePlaceholder": "Company name (if needed)",
+    "interventionReport": "Intervention report",
+    "dueInline": "Due {when}",
+    "workCategory": {
+      "activity": "ACTIVITY",
+      "intervention": "INTERVENTION"
+    },
+    "summary": "Summary",
+    "technician": "Technician",
+    "technicianPlaceholder": "Technician name",
+    "duration": "Duration",
+    "status": "Status",
+    "due": "Due",
+    "routeAutoKm": "Route auto KM",
+    "notes": "Notes",
+    "checklist": "Checklist",
+    "sparePartsUsed": "Spare parts used",
+    "part": "Part",
+    "qty": "Qty",
+    "photos": "Photos",
+    "footerPlaceholder": "Company name • Address/Phone • Generated by WorkFlow"
+  },
+  "interventions": {
+    "page": {
+      "title": "Interventions",
+      "subtitle": "Offline-first list with quick filters."
+    },
+    "list": {
+      "searchPlaceholder": "Search by client, type, notes, due…",
+      "scopes": {
+        "all": "All",
+        "today": "Today",
+        "overdue": "Overdue",
+        "interventions": "Interventions",
+        "activities": "Activities"
+      },
+      "statusFilters": {
+        "all": "All statuses",
+        "open": "Open",
+        "completed": "Completed"
+      },
+      "table": {
+        "title": "Intervention"
+      },
+      "deleteAria": "Delete intervention for {clientName}",
+      "empty": "No interventions in this view.",
+      "newCta": "New intervention"
+    },
+    "status": {
+      "open": "Open",
+      "inProgress": "In progress",
+      "overdue": "Overdue",
+      "completed": "Completed"
+    },
+    "timer": {
+      "title": "Work timer",
+      "state": {
+        "running": "Running — pause to freeze, stop to complete the visit and save the duration.",
+        "paused": "Paused — resume continues counting.",
+        "idle": "Idle — start when you begin work."
+      },
+      "actions": {
+        "start": "Start",
+        "pause": "Pause",
+        "resume": "Resume",
+        "stopAndComplete": "Stop & complete"
+      },
+      "toasts": {
+        "started": "Timer started",
+        "pausedTitle": "Paused",
+        "pausedBody": "Timer frozen at the current total.",
+        "resumed": "Resumed",
+        "completedTitle": "Visit completed",
+        "completedBodyWithDuration": "Duration saved: {duration}",
+        "completedBodyFromTracked": "Duration saved from tracked time."
+      }
+    },
+    "form": {
+      "titleNew": "New intervention",
+      "titleEdit": "Edit intervention",
+      "subtitle": "Offline-first. Everything is saved locally; sync comes later.",
+      "recordAs": "Record as",
+      "recordAsInterventionHint": "Field visit at a client.",
+      "recordAsActivityHint": "Office or remote work.",
+      "onSiteOfficeLabel": "On-site office (unchecked = remote)",
+      "jobType": "Job type",
+      "jobTypePlaceholder": "e.g. maintenance, site visit…",
+      "start": "Start",
+      "end": "End",
+      "startHint": "Optional. Leave empty to create a reminder-only task with just a due date.",
+      "autoDuration": "Auto duration",
+      "durationOverride": "Duration override (minutes)",
+      "durationOverridePlaceholder": "Leave empty to auto-calc from start/end",
+      "durationOverrideHint": "Use this if you need to correct the calculated duration for CRM traceability.",
+      "mustCompleteBy": "Must complete by",
+      "mustCompleteByHint": "Used for countdown, overdue status, and reminder scheduling.",
+      "remindersTitle": "Reminders (push + email when the app can send)",
+      "reminderWhen": "When to remind (before due)",
+      "reminderPresets": {
+        "oneDay": "1 day",
+        "twoHours": "2 hours",
+        "thirtyMinutes": "30 min",
+        "custom": "Custom"
+      },
+      "customReminderTime": "Custom reminder time",
+      "reminderEmailLabel": "Email for this visit (optional)",
+      "reminderEmailPlaceholder": "Defaults from Settings if empty",
+      "reminderEmailHint": "Browser notifications work while the app is open; email uses your server (Resend) when online. WhatsApp delivery is planned for a later release.",
+      "officeFallback": "Office",
+      "roundTrip": {
+        "title": "Round trip",
+        "subtitle": "Start → Office (from Settings) → Start. Perfect for quick field visits."
+      },
+      "roundTripCta": "Round trip",
+      "roundTripEstimate": "Route total (air, estimate)",
+      "kmManual": "KM (manual)",
+      "useAutoKm": "Use auto ({km} km)",
+      "autoFromRouteKm": "Auto from route ≈ {km} km",
+      "notes": "Notes",
+      "notesPlaceholder": "What was done, issues found…",
+      "sparePartsUsed": "Spare parts used",
+      "noSpareParts": "No spare parts added.",
+      "selectSparePart": "Select spare part…",
+      "availableSparePart": "Available: {available} {unit}",
+      "qty": "Qty",
+      "checklist": "Checklist",
+      "stockReasonUsedInIntervention": "Used in intervention",
+      "errors": {
+        "saveFailed": "Failed to save intervention"
+      },
+      "toasts": {
+        "stillLoadingTitle": "Still loading",
+        "stillLoadingBody": "Wait for the intervention to load, then try again.",
+        "reminderNeedsDueTitle": "Reminder needs a due date",
+        "reminderNeedsDueBody": "Set “Must complete by” (due date) or turn reminders off.",
+        "savedTitleNew": "Intervention saved",
+        "savedTitleEdit": "Intervention updated",
+        "savedBodyNew": "Opening details…",
+        "savedBodyEdit": "Saved locally (offline-first).",
+        "saveFailedTitle": "Save failed"
+      }
+    },
+    "detail": {
+      "notFound": "Intervention not found.",
+      "mustCompleteByPrefix": "Must complete by",
+      "actions": {
+        "exportForCrm": "Export for CRM",
+        "markComplete": "Mark complete",
+        "saveTemplate": "Save template"
+      },
+      "toasts": {
+        "crmExportedTitle": "Exported for CRM",
+        "crmExportedBody": "JSON + CSV downloaded.",
+        "crmExportFailedTitle": "CRM export failed",
+        "crmExportFailedBody": "Could not export",
+        "markedCompleteTitle": "Marked complete",
+        "markedCompleteBodyWithTimer": "Visit closed and duration saved from the timer.",
+        "markedCompleteBody": "Visit closed."
+      },
+      "summary": {
+        "work": "Work",
+        "onSiteOffice": "On-site office",
+        "remote": "Remote",
+        "jobType": "Job type",
+        "duration": "Duration",
+        "km": "KM",
+        "timerPrefix": "Timer {state}",
+        "spareParts": "Spare parts"
+      },
+      "timerClosed": {
+        "completed": "This visit is completed. Use Edit to adjust details; the timer is closed.",
+        "noStart": "No start time set yet — add a start time to use the work timer."
+      }
+      "route": {
+        "navigatorTitle": "Navigation",
+        "navigatorHint": "On iPad, Apple Maps opens with all stops; on other devices, Google Maps may be used if it’s a better fit."
+      },
+      "routeCard": {
+        "title": "Route",
+        "subtitle": "Start/end stops and auto distance.",
+        "start": "Start",
+        "end": "End",
+        "kmLine": "Auto route ≈ {autoKm} km · Manual KM: {manualKm}"
+      },
+      "advancedRoute": {
+        "title": "Advanced route (multi-stop)",
+        "subtitle": "Realtime stops list shared across devices."
+      },
+      "documentsCard": {
+        "title": "Documents",
+        "subtitle": "Scan paperwork into a single PDF per intervention.",
+        "scanCta": "Scan document"
+      },
+      "photoDialog": {
+        "title": "Photo",
+        "subtitle": "Tap outside to close.",
+        "previewAlt": "Photo preview"
+      },
+      "scan": {
+        "defaultTitle": "{clientName} - {date}"
+      },
+      "supportRef": "{clientName} • {date}",
+      "pdfDialog": {
+        "title": "PDF export",
+        "subtitle": "Preview is generated locally from your offline data.",
+        "download": "Download PDF"
+      },
+      "ticketDialog": {
+        "title": "Create ticket from intervention",
+        "subtitle": "Creates a CRM ticket linked to this intervention (offline-first)."
+      },
+      "templateDialog": {
+        "title": "Save as template",
+        "subtitle": "Creates a reusable template from this intervention (no documents/photos).",
+        "nameLabel": "Template name",
+        "namePlaceholder": "Template name"
+      },
+      "deleteDialogBody": "When you are online, this also removes the intervention from your Supabase account (documents, attachments, and queued emails in the cloud). CRM tickets stay but are unlinked. This cannot be undone.",
+      "documents": {
+        "empty": "No scanned documents yet."
+      },
+      "sections": {
+        "notesTitle": "Notes",
+        "notesSubtitle": "What was done, observations, follow-ups.",
+        "photosTitle": "Photos",
+        "photosSubtitle": "Tap a photo to enlarge.",
+        "photosEmpty": "No photos attached.",
+        "photosAlt": "Photo"
+      },
+      "toasts": {
+        "pdfReadyTitle": "PDF ready",
+        "pdfReadyBody": "Downloaded to your device.",
+        "pdfFailedTitle": "PDF export failed",
+        "pdfFailedBody": "Could not generate PDF",
+        "templateSavedTitle": "Template saved",
+        "templateSavedBody": "Available in Templates.",
+        "templateSaveFailedTitle": "Failed to save template"
+      }
+    },
+    "deleteDialog": {
+      "title": "Delete intervention?",
+      "body": "Remove “{label}” from this device and from the cloud when you are online, including linked documents, photos, voice notes, and stock movements for this visit. Tickets are only unlinked. You cannot undo this."
+    },
+    "toasts": {
+      "deleteCloudFailedTitle": "Could not delete in the cloud",
+      "deletedTitle": "Intervention deleted",
+      "deletedQueuedBody": "Deleted locally. Will be removed from the cloud when you are online.",
+      "deletedNowBody": "Deleted from all devices.",
+      "deleteFailedTitle": "Could not delete"
+    }
+  },
+  "auth": {
+    "envMissing": "Supabase environment variables are missing. Configure .env.local first.",
+    "supabaseNotConfigured": "Supabase isn’t configured yet. Copy",
+    "supabaseNotConfiguredSteps": "Supabase isn’t configured yet. Copy <envExample>.env.local.example</envExample> to <envLocal>.env.local</envLocal> and fill in the variables.",
+    "supabaseNotConfiguredTail": "and fill in the variables.",
+    "fields": {
+      "email": "Email",
+      "password": "Password"
+    },
+    "oauthError": "OAuth sign-in failed.",
+    "register": {
+      "title": "Create account",
+      "subtitle": "You’ll receive an email to confirm your address.",
+      "supabaseMissing": "Supabase isn’t configured yet. Copy {envExample} to {envLocal} and fill in the variables.",
+      "checkInbox": "Check your inbox to confirm your email, then come back to sign in.",
+      "goToSignIn": "Go to sign in",
+      "passwordHint": "Minimum 8 characters.",
+      "creating": "Creating…",
+      "createAccount": "Create account",
+      "haveAccount": "Already have an account?",
+      "signIn": "Sign in"
+    },
+    "signIn": {
+      "title": "Sign in",
+      "subtitle": "Secure access to WorkFlow.",
+      "cta": "Sign in",
+      "loading": "Signing in…",
+      "error": "Sign-in failed.",
+      "google": "Continue with Google",
+      "apple": "Continue with Apple",
+      "noAccount": "No account?",
+      "createOne": "Create one"
+    }
+  }
+}
+

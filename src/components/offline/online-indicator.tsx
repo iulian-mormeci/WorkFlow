@@ -1,8 +1,10 @@
 "use client";
 
 import { useOnlineStatus } from "@/hooks/use-online-status";
+import { useTranslations } from "next-intl";
 
 export function OnlineIndicator() {
+  const t = useTranslations();
   const online = useOnlineStatus();
   return (
     <span className="inline-flex items-center gap-2">
@@ -13,7 +15,7 @@ export function OnlineIndicator() {
         ].join(" ")}
         aria-hidden="true"
       />
-      <span>{online ? "Online" : "Offline"}</span>
+      <span>{online ? t("onlineIndicator.online") : t("onlineIndicator.offline")}</span>
     </span>
   );
 }

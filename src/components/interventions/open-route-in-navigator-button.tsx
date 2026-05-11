@@ -4,6 +4,7 @@ import { Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { openRouteInNavigator, type RouteStopForMaps } from "@/lib/navigation/multi-stop-maps";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslations } from "next-intl";
 
 type Props = {
   stops: RouteStopForMaps[];
@@ -14,8 +15,9 @@ type Props = {
 export function OpenRouteInNavigatorButton({
   stops,
   className,
-  label = "Apri nel Navigatore"
+  label
 }: Props) {
+  const t = useTranslations();
   const { toast } = useToast();
   const usable = stops.filter(
     (s) =>
@@ -33,15 +35,15 @@ export function OpenRouteInNavigatorButton({
         const ok = openRouteInNavigator(usable);
         if (!ok) {
           toast({
-            title: "Percorso incompleto",
-            description: "Servono almeno due fermate con indirizzo o coordinate.",
+            title: t("route.openNavigator.toasts.incompleteTitle"),
+            description: t("route.openNavigator.toasts.incompleteBody"),
             variant: "destructive"
           });
         }
       }}
     >
       <Navigation className="mr-2 h-5 w-5" />
-      {label}
+      {label ?? t("route.openNavigator.button")}
     </Button>
   );
 }

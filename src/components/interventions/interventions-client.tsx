@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Plus, Search, Timer, Trash2 } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useSearchParams } from "next/navigation";
 import { db } from "@/lib/db/workflow-db";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { performInterventionCloudSyncDelete } from "@/lib/sync/cloud-delete";
 import { scheduleWorkflowSync } from "@/lib/sync/sync-engine";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslations } from "next-intl";
 import {
   formatElapsedHms,
   getTimerElapsedSeconds,
@@ -36,7 +37,8 @@ import {
 type ListScope = "all" | "today" | "overdue" | "interventions" | "activities";
 type StatusFilter = "all" | "open" | "completed";
 
-function formatTime(iso: string) {
+function formatTime(iso?: string) {
+  if (!iso) return null;
   const d = new Date(iso);
   return d.toLocaleString(undefined, {
     weekday: "short",
@@ -48,6 +50,7 @@ function formatTime(iso: string) {
 }
 
 export function InterventionsClient() {
+  const t = useTranslations();
   const { toast } = useToast();
   const liveEpoch = useWorkflowLiveEpoch();
   const tick = useSecondTicker(1000);
@@ -81,11 +84,17 @@ export function InterventionsClient() {
       const now = clock;
       const todayStart = startOfDay(new Date(now)).getTime();
       if (scope === "today") {
-        list = list.filter((it) => new Date(it.startAt).getTime() >= todayStart);
+        // Treat rows without a start time as “unscheduled” tasks: keep them visible in Today.
+        list = list.filter((it) => {
+          if (!it.startAt) return true;
+          return new Date(it.startAt).getTime() >= todayStart;
+        });
       } else if (scope === "overdue") {
         list = list.filter(
           (it) =>
-            !isInterventionCompleted(it) && it.dueAt && new Date(it.dueAt).getTime() < now
+            !isInterventionCompleted(it) &&
+            it.dueAt &&
+            new Date(it.dueAt).getTime() < now
         );
       }
     }
@@ -133,7 +142,7 @@ export function InterventionsClient() {
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search by client, type, notes, due…"
+            placeholder={t("interventions.list.searchPlaceholder")}
             className="min-h-12 pl-9 text-base"
           />
         </div>
@@ -142,11 +151,11 @@ export function InterventionsClient() {
       <div className="mt-3 flex flex-wrap gap-2">
         {(
           [
-            ["all", "All"],
-            ["today", "Today"],
-            ["overdue", "Overdue"],
-            ["interventions", "Interventions"],
-            ["activities", "Activities"]
+            ["all", t("interventions.list.scopes.all")],
+            ["today", t("interventions.list.scopes.today")],
+            ["overdue", t("interventions.list.scopes.overdue")],
+            ["interventions", t("interventions.list.scopes.interventions")],
+            ["activities", t("interventions.list.scopes.activities")]
           ] as const
         ).map(([k, label]) => (
           <Button
@@ -169,24 +178,30 @@ export function InterventionsClient() {
             className="min-h-10 touch-manipulation"
             onClick={() => setStatus(s)}
           >
-            {s === "all" ? "All statuses" : s === "open" ? "Open" : "Completed"}
+            {s === "all"
+              ? t("interventions.list.statusFilters.all")
+              : s === "open"
+                ? t("interventions.list.statusFilters.open")
+                : t("interventions.list.statusFilters.completed")}
           </Button>
         ))}
       </div>
 
       <div className="mt-4 overflow-hidden rounded-2xl border">
         <div className="grid grid-cols-[1fr_auto] gap-3 border-b bg-muted px-4 py-3 text-sm font-medium sm:grid-cols-[1fr_auto_auto]">
-          <div>Intervention</div>
-          <div className="text-right">KM</div>
+          <div>{t("interventions.list.table.title")}</div>
+            <div className="text-right">{t("common.km")}</div>
           <div className="hidden w-11 shrink-0 sm:block" aria-hidden />
         </div>
 
         <div className="divide-y">
           {(interventions ?? []).map((it) => {
             const clientName =
-              clients?.find((c) => c.id === it.clientId)?.name ?? "Client";
+              clients?.find((c) => c.id === it.clientId)?.name ?? t("common.client");
             const duration =
-              it.durationMinutes != null ? `${it.durationMinutes} min` : "—";
+              it.durationMinutes != null
+                ? t("common.minutesShort", { minutes: it.durationMinutes })
+                : "—";
             const overdue = clock != null && isInterventionOverdue(it, clock);
             const tState = normalizeTimerRunState(it);
             const timerNow =
@@ -213,11 +228,13 @@ export function InterventionsClient() {
                           : "border-muted-foreground/25 bg-muted/50 text-foreground"
                       }
                     >
-                      {(it.workCategory ?? "intervention") === "activity" ? "Activity" : "Intervention"}
+                      {(it.workCategory ?? "intervention") === "activity"
+                        ? t("common.activity")
+                        : t("common.intervention")}
                     </Badge>
                     {overdue ? (
                       <span className="rounded-full bg-destructive/15 px-2 py-0.5 font-medium text-destructive">
-                        Overdue
+                        {t("common.overdue")}
                       </span>
                     ) : null}
                     {tState === "running" ? (
@@ -227,7 +244,9 @@ export function InterventionsClient() {
                       </span>
                     ) : null}
                     <span className="rounded-full border bg-background px-2 py-0.5">{it.type}</span>
-                    <span suppressHydrationWarning>{formatTime(it.startAt)}</span>
+                    <span suppressHydrationWarning>
+                      {formatTime(it.startAt) ?? t("common.noDate")}
+                    </span>
                     <span>{duration}</span>
                     {it.dueAt && !isInterventionCompleted(it) ? (
                       <span className={overdue ? "text-destructive" : ""}>
@@ -249,7 +268,7 @@ export function InterventionsClient() {
                   variant="ghost"
                   size="icon"
                   className="hidden shrink-0 text-destructive hover:text-destructive sm:inline-flex"
-                  aria-label={`Delete intervention for ${clientName}`}
+                  aria-label={t("interventions.list.deleteAria", { clientName })}
                   onClick={(e) => {
                     e.preventDefault();
                     setDeleteTarget({ id: it.id, label: clientName });
@@ -263,7 +282,7 @@ export function InterventionsClient() {
 
           {(interventions ?? []).length === 0 ? (
             <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-              No interventions in this view.
+              {t("interventions.list.empty")}
             </div>
           ) : null}
         </div>
@@ -276,7 +295,7 @@ export function InterventionsClient() {
           onClick={() => setOpen(true)}
         >
           <Plus className="h-5 w-5" />
-          New Intervention
+          {t("interventions.list.newCta")}
         </Button>
       </div>
 
@@ -288,10 +307,10 @@ export function InterventionsClient() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete intervention?</DialogTitle>
+            <DialogTitle>{t("interventions.deleteDialog.title")}</DialogTitle>
             <DialogDescription>
               {deleteTarget
-                ? `Remove “${deleteTarget.label}” from this device and from the cloud when you are online, including linked documents, photos, voice notes, and stock movements for this visit. Tickets are only unlinked. You cannot undo this.`
+                ? t("interventions.deleteDialog.body", { label: deleteTarget.label })
                 : null}
             </DialogDescription>
           </DialogHeader>
@@ -302,7 +321,7 @@ export function InterventionsClient() {
               disabled={listDeleting}
               onClick={() => setDeleteTarget(null)}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               type="button"
@@ -323,24 +342,24 @@ export function InterventionsClient() {
                   });
                   if (!res.ok) {
                     toast({
-                      title: "Could not delete in the cloud",
+                      title: t("interventions.toasts.deleteCloudFailedTitle"),
                       description: res.message,
                       variant: "destructive"
                     });
                     return;
                   }
                   toast({
-                    title: "Intervention deleted",
+                    title: t("interventions.toasts.deletedTitle"),
                     description:
                       res.mode === "queued"
-                        ? "Deleted locally. Will be removed from the cloud when you are online."
-                        : "Deleted from all devices."
+                        ? t("interventions.toasts.deletedQueuedBody")
+                        : t("interventions.toasts.deletedNowBody")
                   });
                   scheduleWorkflowSync();
                   setDeleteTarget(null);
                 } catch (e: unknown) {
                   toast({
-                    title: "Could not delete",
+                    title: t("interventions.toasts.deleteFailedTitle"),
                     description: e instanceof Error ? e.message : String(e),
                     variant: "destructive"
                   });
@@ -349,7 +368,7 @@ export function InterventionsClient() {
                 }
               }}
             >
-              {listDeleting ? "Deleting…" : "Delete"}
+              {listDeleting ? t("common.deleting") : t("common.delete")}
             </Button>
           </div>
         </DialogContent>

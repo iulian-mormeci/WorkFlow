@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { Plus, Scan, Search, StickyNote } from "lucide-react";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,8 +8,10 @@ import { InterventionFormDialog } from "@/components/interventions/intervention-
 import { DocumentScannerDialog } from "@/components/documents/document-scanner-dialog";
 import { useState } from "react";
 import { IconBubble } from "@/components/ui/icon";
+import { useTranslations } from "next-intl";
 
 export function TodaysQuickActions() {
+  const t = useTranslations();
   const [newOpen, setNewOpen] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
 
@@ -18,8 +20,8 @@ export function TodaysQuickActions() {
       <CardHeader className="space-y-2">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <CardTitle className="text-base">Today’s Quick Actions</CardTitle>
-            <CardDescription>Fast actions for field work.</CardDescription>
+            <CardTitle className="text-base">{t("dashboard.todayQuickActions.title")}</CardTitle>
+            <CardDescription>{t("dashboard.todayQuickActions.subtitle")}</CardDescription>
           </div>
           <IconBubble icon={StickyNote} />
         </div>
@@ -29,16 +31,16 @@ export function TodaysQuickActions() {
         <div className="grid gap-2">
           <Button size="lg" onClick={() => setNewOpen(true)}>
             <Plus className="h-5 w-5" />
-            New intervention
+            {t("dashboard.todayQuickActions.newIntervention")}
           </Button>
           <Button size="lg" variant="outline" onClick={() => setScanOpen(true)}>
             <Scan className="h-5 w-5" />
-            Scan document
+            {t("dashboard.todayQuickActions.scanDocument")}
           </Button>
           <Button size="lg" variant="outline" asChild>
             <Link href="/documents">
               <Search className="h-5 w-5" />
-              Find a document
+              {t("dashboard.todayQuickActions.findDocument")}
             </Link>
           </Button>
         </div>
@@ -48,7 +50,7 @@ export function TodaysQuickActions() {
       <DocumentScannerDialog
         open={scanOpen}
         onOpenChange={setScanOpen}
-        defaultTitle={`Scan - ${new Date().toLocaleDateString()}`}
+        defaultTitle={t("documents.scan.defaultTitle", { date: new Date().toLocaleDateString() })}
       />
     </Card>
   );

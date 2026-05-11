@@ -1,0 +1,1434 @@
+{
+  "common": {
+    "appName": "WorkFlow",
+    "language": "Lingua",
+    "italian": "Italiano",
+    "english": "Inglese",
+    "home": "Home",
+    "openApp": "Apri app",
+    "signIn": "Accedi",
+    "signUp": "Crea account gratuito",
+    "backToHome": "Torna alla Home",
+    "thanks": "Grazie",
+    "client": "Cliente",
+    "noDate": "Senza data",
+    "noTime": "Senza orario",
+    "or": "oppure",
+    "notNow": "Non ora",
+    "install": "Installa",
+    "duePrefix": "Scade",
+    "overdue": "In ritardo",
+    "activity": "Attività",
+    "activityPrefix": "Attività · ",
+    "intervention": "Intervento",
+    "km": "KM",
+    "cancel": "Annulla",
+    "delete": "Elimina",
+    "deleting": "Eliminazione…",
+    "add": "Aggiungi",
+    "remove": "Rimuovi",
+    "save": "Salva",
+    "saving": "Salvataggio…",
+    "now": "Ora",
+    "back": "Indietro",
+    "edit": "Modifica",
+    "pdf": "PDF",
+    "ticket": "Ticket",
+    "updateFailed": "Impossibile aggiornare",
+    "unknownError": "Errore sconosciuto",
+    "close": "Chiudi",
+    "numericZero": "0",
+    "minutesShort": "{minutes} min"
+  },
+  "legal": {
+    "updatedAt": "Ultimo aggiornamento: {date}.",
+    "updatedAtSite": "Ultimo aggiornamento: {date}. Questa informativa descrive come vengono trattati i dati personali su {site}.",
+    "privacy": {
+      "title": "Privacy Policy",
+      "s1": {
+        "title": "1) Titolare del trattamento",
+        "body": "Il titolare del trattamento è il proprietario del sito e dell’applicazione WorkFlow (strumento personale ad uso di un singolo tecnico). Per richieste privacy puoi scrivere a {email}."
+      },
+      "s2": {
+        "title": "2) Tipologie di dati trattati",
+        "items": {
+          "account": "Dati di account: email, identificativi di autenticazione (gestiti da Supabase Auth).",
+          "operational": "Dati operativi inseriti dall’utente: clienti, interventi/attività, note, checklist, ricambi, ticket, documenti, foto e note vocali caricati dall’utente.",
+          "technical": "Dati tecnici: log di errore essenziali e informazioni di funzionamento (es. esiti di sincronizzazione), necessari per mantenere l’app stabile.",
+          "cookies": "Cookie / tecnologie simili: solo elementi tecnici necessari (es. cookie di sessione/auth). Non sono presenti cookie di profilazione o analytics di terze parti."
+        }
+      },
+      "s3": {
+        "title": "3) Finalità del trattamento",
+        "items": {
+          "auth": "Fornire l’accesso all’app e mantenere la sessione autenticata.",
+          "manage": "Consentire la gestione di interventi/attività, clienti, documenti e ricambi.",
+          "sync": "Sincronizzare i dati tra dispositivi e cloud quando la connessione è disponibile.",
+          "email": "Inviare email tecniche su richiesta dell’utente (es. invio documenti al supporto), se configurato.",
+          "security": "Prevenire abusi e garantire sicurezza e integrità del servizio."
+        }
+      },
+      "s4": {
+        "title": "4) Base giuridica",
+        "items": {
+          "contract": "Esecuzione di un servizio (art. 6(1)(b) GDPR): autenticazione e funzionalità core.",
+          "legitimate": "Legittimo interesse (art. 6(1)(f) GDPR): sicurezza, prevenzione abusi, stabilità e debugging.",
+          "consent": "Consenso (art. 6(1)(a) GDPR) solo dove richiesto (es. notifiche del browser quando abilitate dall’utente)."
+        }
+      },
+      "s5": {
+        "title": "5) Modalità di trattamento e conservazione",
+        "p1": "WorkFlow è progettato come PWA “offline-first”: una copia dei dati è salvata localmente sul dispositivo (IndexedDB) per consentire l’uso anche senza rete. Quando l’utente è online, i dati possono essere sincronizzati su un backend Supabase (database e storage) per avere continuità multi-dispositivo.",
+        "p2": "I dati sono conservati per il tempo necessario alle finalità sopra indicate o fino a richiesta di cancellazione. Essendo uno strumento personale, non viene effettuata profilazione né cessione a terzi per finalità commerciali."
+      },
+      "s6": {
+        "title": "6) Destinatari e responsabili del trattamento",
+        "p1": "I dati possono essere trattati tramite fornitori tecnici indispensabili:",
+        "items": {
+          "supabase": "Supabase (Auth, Database, Storage, Realtime) come infrastruttura cloud.",
+          "resend": "Resend (se configurato) per l’invio di email richieste dall’utente."
+        },
+        "p2": "Non vengono venduti i dati. Non vengono utilizzati strumenti di advertising o analytics di terze parti."
+      },
+      "s7": {
+        "title": "7) Trasferimenti extra UE",
+        "body": "Alcuni fornitori potrebbero trattare dati in Paesi extra SEE. In tali casi il trasferimento avviene secondo le garanzie previste dal GDPR (es. Clausole Contrattuali Standard), dove applicabile."
+      },
+      "s8": {
+        "title": "8) Diritti dell’interessato",
+        "p1": "Hai diritto di ottenere: accesso, rettifica, cancellazione, limitazione, portabilità, opposizione, nonché di proporre reclamo al Garante per la protezione dei dati personali. Per esercitare i diritti puoi:",
+        "items": {
+          "settingsRights": "Usare la sezione “I tuoi diritti” nelle Impostazioni (export e cancellazione dati).",
+          "email": "Scrivere a {email}."
+        }
+      },
+      "s9": {
+        "title": "9) Minori",
+        "body": "WorkFlow non è destinato a minori e non è progettato per la raccolta intenzionale di dati di minori."
+      },
+      "s10": {
+        "title": "10) Contatti",
+        "body": "Per domande su questa informativa: {email}."
+      }
+    },
+    "terms": {
+      "title": "Termini di servizio",
+      "s1": { "title": "1) Natura del servizio", "body": "WorkFlow è uno strumento personale progettato per l’uso da parte di un singolo tecnico. Il sito è pubblicamente accessibile, ma l’uso effettivo è destinato al proprietario. Non si tratta di un servizio SaaS commerciale con SLA, assistenza garantita o funzionalità enterprise." },
+      "s2": { "title": "2) Account e autenticazione", "body": "L’accesso avviene tramite autenticazione (Supabase). Sei responsabile della riservatezza delle credenziali e dell’accesso ai tuoi dispositivi. In caso di uso non autorizzato, contatta il titolare." },
+      "s3": { "title": "3) Uso consentito", "items": { "allowed": "Usare l’app per gestire dati e flussi di lavoro legati ad interventi tecnici.", "security": "Non tentare di compromettere la sicurezza, aggirare protezioni o accedere a dati non autorizzati.", "illegal": "Non usare il servizio per attività illecite o per caricare contenuti in violazione di diritti altrui." } },
+      "s4": { "title": "4) Contenuti e dati caricati", "body": "I dati inseriti (clienti, interventi, documenti, foto, note vocali, ecc.) restano sotto la tua responsabilità. Ti raccomandiamo di caricare solo ciò che è necessario e di evitare dati eccedenti, in particolare categorie particolari di dati (art. 9 GDPR) salvo stretta necessità." },
+      "s5": { "title": "5) Disponibilità e modifiche", "body": "Il servizio può essere modificato, sospeso o interrotto in qualsiasi momento. Potrebbero verificarsi indisponibilità temporanee (es. manutenzione, problemi di rete o del provider). Trattandosi di un tool personale, non è garantita una continuità operativa." },
+      "s6": { "title": "6) Limitazione di responsabilità", "body": "Nei limiti consentiti dalla legge, il titolare non sarà responsabile per danni indiretti o consequenziali, perdita di dati, perdita di profitti o interruzioni di attività derivanti dall’uso o dall’impossibilità di usare WorkFlow. Ti invitiamo a usare regolarmente le funzioni di export/backup." },
+      "s7": { "title": "7) Proprietà intellettuale e licenza", "body": "Il software e l’interfaccia sono protetti dalle norme applicabili. L’uso è concesso per finalità personali/operative del titolare. Non è consentita la riproduzione o distribuzione non autorizzata dei contenuti del sito/app." },
+      "s8": { "title": "8) Privacy", "body": "Il trattamento dei dati personali è disciplinato dalla Privacy Policy." },
+      "s9": { "title": "9) Contatti", "body": "Per comunicazioni relative a questi Termini: {email}." }
+    },
+    "accessibility": {
+      "title": "Dichiarazione di accessibilità",
+      "s1": { "title": "Stato di conformità", "body": "WorkFlow è un’applicazione web progressiva (PWA) ad uso personale. L’obiettivo è garantire un’esperienza accessibile e coerente con i principi WCAG 2.1 livello AA, nei limiti realistici di un progetto personale." },
+      "s2": { "title": "Misure adottate", "items": { "focus": "Componenti UI con focus visibile e navigazione da tastiera (pattern Radix/shadcn).", "contrast": "Contrasto elevato in tema chiaro/scuro e testo non troppo piccolo.", "labels": "Etichette esplicite per i controlli principali e regioni/navigazioni con aria-label dove opportuno.", "semantic": "Contenuti legali in HTML semantico (titoli, sezioni, liste)." } },
+      "s3": { "title": "Limiti noti", "items": { "dnd": "Alcune schermate complesse (es. editor con drag&drop) possono richiedere ulteriori affinamenti ARIA.", "pdf": "I PDF esportati sono generati da una vista HTML e potrebbero non essere totalmente accessibili ai lettori.", "maps": "Funzioni basate su mappe possono risultare meno fruibili senza supporto visivo." } },
+      "s4": { "title": "Feedback e contatti", "body": "Se trovi un problema di accessibilità, descrivi la pagina e il comportamento atteso: verrà valutato e corretto compatibilmente con l’evoluzione dell’app." }
+    }
+  },
+  "clients": {
+    "page": {
+      "title": "Clienti",
+      "subtitle": "Cerca, filtra e apri un cliente per vedere lo storico interventi. Sync live con Supabase."
+    },
+    "detail": {
+      "loading": "Caricamento…",
+      "backToClients": "Torna ai clienti",
+      "notFoundTitle": "Cliente non trovato",
+      "notFoundBody": "Potrebbe essere stato eliminato su un altro dispositivo.",
+      "contactPrefix": "Referente:",
+      "lastVisitPrefix": "Ultima visita:",
+      "interventionsCount": "{count, plural, one {# intervento} other {# interventi}}",
+      "actions": {
+        "newIntervention": "Nuovo intervento",
+        "editClient": "Modifica cliente"
+      },
+      "interventionsTitle": "Interventi",
+      "interventionsSubtitle": "Dal più recente. Tocca per aprire la scheda completa.",
+      "empty": "Nessun intervento ancora per questo cliente."
+    },
+    "form": {
+      "titleNew": "Nuovo cliente",
+      "titleEdit": "Modifica cliente",
+      "subtitle": "Campi pratici per tecnici. Niente codici fiscali o dati bancari.",
+      "fields": {
+        "name": "Nome (azienda o persona)",
+        "type": "Tipo",
+        "contactPerson": "Referente (opzionale)",
+        "address": "Indirizzo",
+        "city": "Città",
+        "postalCode": "CAP",
+        "phone": "Telefono",
+        "email": "Email",
+        "notes": "Note"
+      },
+      "placeholders": {
+        "name": "es. Bar Centrale",
+        "contactPerson": "Chi chiedere sul posto"
+      },
+      "confirmDelete": "Eliminare questo cliente da questo dispositivo e dal cloud quando sei online? Non puoi annullare (se non hai interventi collegati).",
+      "toasts": {
+        "nameRequiredTitle": "Nome obbligatorio",
+        "nameRequiredBody": "Inserisci almeno 2 caratteri per il nome cliente.",
+        "savedTitle": "Cliente salvato",
+        "savedBody": "Sincronizzo quando torni online.",
+        "updatedTitle": "Cliente aggiornato",
+        "updatedBody": "Le modifiche si sincronizzeranno tra dispositivi.",
+        "missingClientTitle": "Cliente mancante",
+        "saveFailedTitle": "Salvataggio non riuscito",
+        "cannotDeleteTitle": "Impossibile eliminare",
+        "cannotDeleteBody": "Questo cliente ha {count, plural, one {# intervento} other {# interventi}}. Rimuovili o riassegnali prima.",
+        "deleteFailedTitle": "Eliminazione non riuscita",
+        "deletedQueuedTitle": "Cliente rimosso (offline)",
+        "deletedQueuedBody": "Verrà rimosso dal cloud alla prossima sync.",
+        "deletedTitle": "Cliente eliminato",
+        "deletedBody": "Rimosso su questo dispositivo e nel cloud."
+      }
+    },
+    "actions": {
+      "new": "Nuovo cliente"
+    },
+    "search": {
+      "placeholder": "Cerca nome, città, telefono…",
+      "aria": "Cerca clienti"
+    },
+    "filters": {
+      "typeLabel": "Tipo",
+      "sortLabel": "Ordina",
+      "allTypes": "Tutti i tipi"
+    },
+    "types": {
+      "company": "Azienda",
+      "private": "Privato",
+      "restaurant": "Ristorante",
+      "shop": "Negozio",
+      "other": "Altro"
+    },
+    "sort": {
+      "name": "Nome A–Z",
+      "lastVisit": "Ultima visita",
+      "count": "Più interventi"
+    },
+    "card": {
+      "lastPrefix": "Ultimo:",
+      "interventionsCount": "{count, plural, one {# intervento} other {# interventi}}"
+    },
+    "empty": {
+      "title": "Nessun cliente ancora",
+      "body": "Aggiungi il primo cliente per velocizzare gli interventi e tenere i contatti in un unico posto.",
+      "cta": "Aggiungi cliente"
+    },
+    "emptyFiltered": "Nessun cliente corrisponde alla ricerca o ai filtri."
+  },
+  "mobileMenu": {
+    "openMenu": "Apri menu",
+    "closeMenu": "Chiudi menu",
+    "mainNavigation": "Navigazione principale",
+    "primaryNavigation": "Navigazione primaria",
+    "menuTitle": "Menu",
+    "menuSubtitle": "Tutte le sezioni",
+    "sections": {
+      "search": "Cerca",
+      "sync": "Sync",
+      "language": "Lingua"
+    }
+  },
+  "search": {
+    "global": {
+      "buttonPlaceholder": "Cerca… (⌘K)",
+      "dialogTitle": "Ricerca globale",
+      "inputPlaceholder": "Cerca interventi, clienti, documenti…",
+      "pages": "{count, plural, one {# pagina} other {# pagine}}",
+      "emptyNoResults": "Nessun risultato.",
+      "emptyTypeToSearch": "Inizia a scrivere per cercare."
+    }
+  },
+  "support": {
+    "send": {
+      "dialogTitle": "Invia documento",
+      "dialogBody": "Controlla i dettagli prima di inviare. Se sei offline, lo mettiamo in coda e lo inviamo appena torni online.",
+      "toLabel": "A",
+      "toPlaceholder": "support@azienda.com",
+      "subjectLabel": "Oggetto",
+      "subjectDefault": "Documento WorkFlow - {title}",
+      "subjectHint": "Il PDF verrà allegato automaticamente.",
+      "messageLabel": "Messaggio personalizzato (opzionale)",
+      "messagePlaceholder": "Scrivi qui eventuali dettagli…",
+      "offlineHint": "Offline: questa email verrà messa in coda e inviata automaticamente appena torni online.",
+      "interventionRef": "Intervento: {ref}",
+      "actions": {
+        "send": "Invia",
+        "queue": "Metti in coda",
+        "sending": "Invio…"
+      },
+      "errors": {
+        "attachmentNotFound": "Allegato PDF non trovato"
+      },
+      "toasts": {
+        "queuedTitle": "In coda",
+        "queuedBody": "Invierò automaticamente quando torni online.",
+        "sentTitle": "Inviato",
+        "sentBody": "Documento inviato via email al supporto.",
+        "sendFailedTitle": "Invio non riuscito",
+        "sendFailedBodyFallback": "Impossibile inviare"
+      }
+    }
+  },
+  "scanner": {
+    "title": "Scanner documenti",
+    "subtitle": "Acquisisci più pagine e salva un unico PDF di qualità (offline-first).",
+    "fields": {
+      "title": "Titolo",
+      "pages": "Pagine"
+    },
+    "add": {
+      "camera": "Aggiungi pagine (camera)",
+      "library": "Aggiungi multiple (libreria)",
+      "hint": "Scatta una foto, poi tocca di nuovo l’input camera per aggiungere un’altra pagina. Riordina, ruota, elimina e salva un solo PDF."
+    },
+    "enhance": {
+      "title": "Migliora automaticamente",
+      "body": "Aumenta il contrasto per scansioni più leggibili."
+    },
+    "pagesCount": "{count, plural, one {# pagina} other {# pagine}}",
+    "pagesHint": "Tocca Ruota; riordina con le frecce (senza drag).",
+    "pageLabel": "Pagina {index}",
+    "previewAlt": "Anteprima pagina {index}",
+    "empty": "Nessuna pagina ancora. Aggiungine almeno 1.",
+    "uploading": "Caricamento in cloud… {pct}%",
+    "actions": {
+      "up": "Su",
+      "down": "Giù",
+      "rotate": "Ruota",
+      "adding": "Aggiunta…",
+      "saving": "Salvataggio…",
+      "uploadPct": "Upload {pct}%",
+      "savePdf": "Salva PDF"
+    },
+    "errors": {
+      "imageLoadFailed": "Impossibile caricare l’immagine",
+      "canvasNotSupported": "Canvas non supportato"
+    },
+    "toasts": {
+      "cloudUploadIncompleteTitle": "Upload cloud incompleto",
+      "cloudUploadIncompleteBodyFallback": "PDF salvato in locale; riprovo alla prossima sync.",
+      "savedTitle": "Documento salvato",
+      "savedBody": "PDF salvato in locale e messo in coda per la sync.",
+      "scanFailedTitle": "Scansione non riuscita",
+      "scanFailedBodyFallback": "Impossibile creare il PDF"
+    }
+  },
+  "shortcuts": {
+    "button": "Scorciatoie",
+    "title": "Scorciatoie da tastiera",
+    "items": {
+      "globalSearch": "Ricerca globale",
+      "openPanel": "Apri questo pannello",
+      "reload": "Ricarica",
+      "browserFind": "Trova nella pagina (browser)"
+    },
+    "ipadTip": "Suggerimento: su iPad, una tastiera esterna rende il lavoro sul campo molto più veloce."
+  },
+  "voice": {
+    "sectionTitle": "Note vocali",
+    "sectionSubtitle": "Memo audio rapidi salvati in locale.",
+    "recorder": {
+      "title": "Nota vocale",
+      "subtitle": "Registra un breve memo audio per questo intervento.",
+      "uploading": "Caricamento… {pct}%",
+      "actions": {
+        "record": "Registra",
+        "pause": "Pausa",
+        "resume": "Riprendi",
+        "stopAndSave": "Stop e salva",
+        "stop": "Stop",
+        "discard": "Scarta"
+      },
+      "state": {
+        "recording": "Registrazione…",
+        "noNewRecording": "Nessuna nuova registrazione."
+      },
+      "errors": {
+        "notSupported": "Registrazione audio non supportata su questo dispositivo/browser.",
+        "mediaRecorderUnavailable": "MediaRecorder non disponibile."
+      },
+      "toasts": {
+        "cannotRecordTitle": "Impossibile registrare",
+        "cannotRecordBodyFallback": "Permesso microfono o supporto non disponibile",
+        "cloudUploadIncompleteTitle": "Upload cloud incompleto",
+        "cloudUploadIncompleteBodyFallback": "Audio salvato in locale; riprovo alla prossima sync.",
+        "savedTitle": "Nota vocale salvata",
+        "savedBody": "Salvata in locale (offline-first).",
+        "saveFailedTitle": "Salvataggio non riuscito",
+        "saveFailedBodyFallback": "Impossibile salvare la nota vocale"
+      }
+    },
+    "list": {
+      "title": "Note vocali salvate",
+      "empty": "Nessuna nota vocale ancora.",
+      "confirmDelete": "Eliminare questa nota vocale da questo dispositivo e dal cloud quando sei online?",
+      "toasts": {
+        "deletedTitle": "Eliminata",
+        "deletedBody": "Nota vocale rimossa.",
+        "deleteFailedTitle": "Eliminazione non riuscita",
+        "deleteFailedBodyFallback": "Impossibile eliminare"
+      }
+    }
+  },
+  "notes": {
+    "quick": {
+      "aria": "Nota rapida",
+      "title": "Nota rapida",
+      "textTitle": "Testo",
+      "textPlaceholder": "Aggiungi una nota rapida…",
+      "saveText": "Salva testo",
+      "dashboardVoiceOnlyHint": "La Nota rapida in dashboard supporta al momento solo note vocali. Apri un intervento per aggiungere una nota testuale.",
+      "voiceTitle": "Voce",
+      "openInterventionForVoiceHint": "Apri un intervento per collegare note vocali.",
+      "errors": {
+        "interventionNotFound": "Intervento non trovato"
+      },
+      "toasts": {
+        "selectInterventionTitle": "Seleziona un intervento",
+        "dashboardVoiceOnlyBody": "La Nota rapida in dashboard è solo voce per ora.",
+        "noteSavedTitle": "Nota salvata",
+        "noteSavedBody": "Aggiunta alle note dell’intervento.",
+        "saveFailedTitle": "Salvataggio non riuscito",
+        "saveFailedBodyFallback": "Impossibile salvare"
+      }
+    }
+  },
+  "onlineIndicator": {
+    "online": "Online",
+    "offline": "Offline"
+  },
+  "clientPicker": {
+    "placeholder": "Cerca o scrivi un nome",
+    "hint": "Scegli un cliente salvato oppure scrivi un nuovo nome — verrà creato quando salvi."
+  },
+  "checklist": {
+    "editor": {
+      "title": "Checklist",
+      "dragToReorder": "Trascina per riordinare",
+      "itemPlaceholder": "Voce checklist",
+      "newItemPlaceholder": "Testo nuovo elemento",
+      "empty": "Nessuna voce checklist ancora. Aggiungi attività qui sopra — trascina la maniglia per riordinare."
+    }
+  },
+  "route": {
+    "openNavigator": {
+      "button": "Apri nel navigatore",
+      "toasts": {
+        "incompleteTitle": "Percorso incompleto",
+        "incompleteBody": "Servono almeno due fermate con indirizzo o coordinate."
+      }
+    },
+    "map": {
+      "markerStart": "Partenza",
+      "markerEnd": "Arrivo",
+      "empty": "Cerca e seleziona un indirizzo di <start>partenza</start> per vedere la mappa. Aggiungi l’<end>arrivo</end> per la linea del percorso.",
+      "footerHint": "Pinch-zoom e trascina · Percorso auto via OSRM quando disponibile · Tocca i marker per le etichette",
+      "errors": {
+        "loadFailed": "Impossibile caricare la mappa",
+        "osmTilesTitle": "Impossibile caricare le tile OpenStreetMap"
+      },
+      "fallbackAlt": "Mappa percorso (Google Static)",
+      "fallbackKeyHint": "Imposta <code>GOOGLE_MAPS_STATIC_KEY</code> per un fallback con immagine statica."
+    },
+    "location": {
+      "title": "Percorso e distanza",
+      "startLabel": "Punto di partenza",
+      "endLabel": "Punto di arrivo",
+      "searchPlaceholder": "Cerca indirizzo…",
+      "noStopSelected": "Nessuna fermata selezionata.",
+      "autoDistanceHint": "Distanza automatica (linea d’aria o guida se configurato)",
+      "mapTitle": "Mappa percorso",
+      "actions": {
+        "currentLocation": "Posizione attuale",
+        "clear": "Svuota",
+        "recalculate": "Ricalcola"
+      },
+      "errors": {
+        "geolocationNotAvailable": "Geolocalizzazione non disponibile"
+      }
+    },
+    "stops": {
+      "title": "Fermate avanzate",
+      "stopsLabel": "Fermate (trascina per riordinare)",
+      "dragToReorder": "Trascina per riordinare",
+      "labelPlaceholder": "Etichetta (es. Partenza, Fermata 1, Ufficio)",
+      "searchAddressPlaceholder": "Cerca indirizzo…",
+      "selectedStopFallback": "Fermata selezionata",
+      "noCoordinatesYet": "Nessuna coordinata ancora.",
+      "stopN": "Fermata {n}",
+      "returnLabel": "Ritorno",
+      "roundTripLabels": {
+        "start": "Partenza",
+        "office": "Ufficio",
+        "end": "Ritorno"
+      },
+      "actions": {
+        "current": "Attuale",
+        "roundTrip": "Andata e ritorno",
+        "addStop": "Aggiungi fermata"
+      },
+      "empty": "Nessuna fermata ancora. Aggiungi una fermata, scegli un indirizzo e poi trascina per riordinare.",
+      "totalHint": "Totale (fallback linea d’aria)",
+      "drivingKmHint": "In futuro: KM di guida per tratta (Google Matrix / OSRM multi-leg).",
+      "mapPreviewTitle": "Anteprima mappa"
+    }
+  },
+  "syncStatus": {
+    "relative": {
+      "justNow": "proprio ora",
+      "secondsAgo": "{seconds}s fa",
+      "minutesAgo": "{minutes} min fa",
+      "hoursAgo": "{hours} h fa"
+    },
+    "headline": {
+      "offline": {
+        "title": "Offline",
+        "subtitleQueued": "{count, plural, one {# modifica in coda — sincronizzo quando torni online} other {# modifiche in coda — sincronizzo quando torni online}}",
+        "subtitleNoPending": "Nessuna modifica in coda"
+      },
+      "syncing": {
+        "title": "Sincronizzazione",
+        "subtitle": "Upload e merge con il cloud…"
+      },
+      "catchingUp": {
+        "title": "Allineamento",
+        "subtitle": "Completo le modifiche in coda…"
+      },
+      "live": {
+        "title": "Live",
+        "subtitleJustNow": "Cloud aggiornato ora",
+        "subtitleAgo": "Ultimo aggiornamento cloud {when}"
+      },
+      "synced": {
+        "title": "Sincronizzato",
+        "subtitleAgo": "Sync completa {when}"
+      },
+      "ready": {
+        "title": "Pronto",
+        "subtitle": "Accesso effettuato — la sync gira in background"
+      }
+    },
+    "actions": {
+      "syncNow": "Sincronizza ora",
+      "syncing": "Sincronizzazione…"
+    }
+  },
+  "debug": {
+    "reminders": {
+      "title": "Debug promemoria",
+      "nextPollPrefix": "Prossimo controllo tra",
+      "everySuffix": "(ogni {seconds}s)",
+      "notificationsPrefix": "Notifiche:",
+      "lastPrefix": "Ultimo:",
+      "prodPrefix": "Prod:",
+      "prodSuffix": "poi ricarica. Consenti le notifiche oppure imposta un’email promemoria di default + Resend in Impostazioni."
+    }
+  },
+  "footer": {
+    "personalTool": "Strumento personale.",
+    "legalLinksAria": "Link legali",
+    "privacy": "Privacy Policy",
+    "terms": "Termini di servizio",
+    "accessibility": "Dichiarazione di accessibilità"
+  },
+  "cookie": {
+    "title": "Cookie",
+    "regionAria": "Informativa cookie",
+    "body": "WorkFlow usa solo cookie/tecnologie necessarie per autenticazione e sicurezza. Nessun tracciamento, nessuna profilazione, nessuna pubblicità.",
+    "cta": "Ho capito",
+    "privacyLink": "Leggi la Privacy Policy"
+  },
+  
+  "logout": {
+    "title": "Sei stato disconnesso.",
+    "body": "Grazie per aver usato WorkFlow.",
+    "signIn": "Accedi"
+  },
+  "landing": {
+    "metaTitle": "WorkFlow — Interventi sul campo, organizzati",
+    "metaDescription": "PWA offline-first per tecnici: interventi, documenti, promemoria, sync multi-dispositivo e report PDF. I tuoi dati restano sul dispositivo e si aggiornano in cloud quando c’è rete.",
+    "badge": "Offline-first · PWA · Supabase",
+    "heroTitle": "WorkFlow — il tuo assistente personale per interventi tecnici",
+    "heroBody": "Pianifica, documenta e chiudi le visite sul campo anche senza connessione. WorkFlow tiene i dati sul dispositivo e li sincronizza in modo sicuro quando torni online: meno attrito, più controllo operativo.",
+    "ctaPrimary": "Crea account gratuito",
+    "ctaSecondary": "Accedi",
+    "ctaDashboard": "Vai alla dashboard",
+    "pillAuth": "Sessione Supabase",
+    "pillMaps": "Geocoding e mappe integrate",
+    "pillTimer": "Timer intervento",
+    "value1Title": "Pensato per chi sta in movimento",
+    "value1Body": "Layout e azioni ottimizzati per iPhone e iPad: meno tap, più chiarezza sotto il sole o in cabina ascensore.",
+    "value2Title": "Dati prima in locale",
+    "value2Body": "Niente schermate vuote in assenza di rete: scrivi, allega, cronometra. La sync riallinea tutto al ritorno della linea.",
+    "value3Title": "Professionale verso il cliente",
+    "value3Body": "PDF, documenti e comunicazioni strutturate trasmettono ordine e affidabilità rispetto a messaggi sparsi.",
+    "featuresTitle": "Tutto ciò che serve sul campo",
+    "featuresSubtitle": "Un solo strumento per collegare interventi, magazzino leggero, clienti e documentazione: senza sovraccaricare il team con complessità inutili.",
+    "testimonialsTitle": "Perché i team operativi lo usano",
+    "testimonialsSubtitle": "Obiettivo chiaro: meno attrito amministrativo, più tempo sul problema tecnico. Ecco cosa cercano — e trovano — in WorkFlow.",
+    "ctaTitle": "Pronto a organizzare il campo?",
+    "ctaBody": "Crea un account, installa la PWA e inizia dal primo intervento: nessun credito richiesto per provare il flusso base.",
+    "ctaOpenApp": "Apri WorkFlow",
+    "footer": {
+      "copyright": "© {year} WorkFlow. Tutti i diritti riservati."
+    },
+    "features": {
+      "interventions": {
+        "title": "Interventi e attività",
+        "body": "Gestisci visite, attività in sede o da remoto, stato lavori, note e allegati in un unico flusso pensato per il tablet."
+      },
+      "scanner": {
+        "title": "Scanner documenti",
+        "body": "Acquisisci PDF sul posto, collegali all’intervento e inviali al supporto quando la connessione lo consente."
+      },
+      "reminders": {
+        "title": "Promemoria intelligenti",
+        "body": "Notifiche nel browser e opzionale invio email per scadenze: meno dimenticanze, più continuità con il cliente."
+      },
+      "sync": {
+        "title": "Sync e multi-dispositivo",
+        "body": "IndexedDB in locale, Supabase in cloud: lavori offline e ritrovi tutto su telefono, iPad o desktop."
+      },
+      "pdf": {
+        "title": "Export PDF",
+        "body": "Report stampabili per consegna al cliente o archivio interno, coerenti con i dati dell’intervento."
+      },
+      "clients": {
+        "title": "Clienti strutturati",
+        "body": "Rubrica con anagrafica, tipologia attività e storico collegato alle visite."
+      },
+      "stock": {
+        "title": "Ricambi e magazzino",
+        "body": "Movimenti di stock legati agli interventi: traccia cosa è stato installato o prelevato."
+      },
+      "tickets": {
+        "title": "Ticket CRM leggeri",
+        "body": "Segnalazioni e follow-up senza la pesantezza di un CRM enterprise: resti agile sul campo."
+      },
+      "templates": {
+        "title": "Modelli ripetibili",
+        "body": "Template per tipologie di intervento ricorrenti: parti già impostato e risparmi tempo amministrativo."
+      },
+      "reports": {
+        "title": "Report e statistiche",
+        "body": "Esportazioni e numeri operativi per capire carico di lavoro, andamento e priorità."
+      }
+    },
+    "testimonials": {
+      "one": {
+        "quote": "Il punto di forza è poter chiudere un intervento in cantina senza rete, e vedere tutto allineato quando torno in ufficio.",
+        "role": "Tecnico manutentore — impianti professionali"
+      },
+      "two": {
+        "quote": "Scanner e PDF ci hanno tolto il giro di foto su WhatsApp e fogli persi. Il cliente riceve qualcosa di leggibile subito.",
+        "role": "Responsabile assistenza — retail"
+      },
+      "three": {
+        "quote": "Promemoria e scadenze su tablet hanno ridotto i ritardi sulle commesse ricorrenti. L’interfaccia è sobria, non distrae.",
+        "role": "Coordinatore team sul territorio"
+      }
+    }
+  }
+  ,
+  "nav": {
+    "dashboard": "Dashboard",
+    "interventions": "Interventi",
+    "templates": "Modelli",
+    "documents": "Documenti",
+    "crmTickets": "Ticket CRM",
+    "clients": "Clienti",
+    "spareParts": "Ricambi",
+    "reports": "Report",
+    "statistics": "Statistiche",
+    "settings": "Impostazioni"
+  },
+  "protectedShell": {
+    "signedIn": "Accesso effettuato",
+    "signedInAs": "Accesso come {email}",
+    "offlineFirstNote": "Offline-first. I dati restano sul dispositivo finché non vengono sincronizzati.",
+    "keyboardHint": "Tastiera (iPad): ⌘K ricerca • ⌘R ricarica",
+    "languageLabel": "Lingua"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Panoramica della giornata, ottimizzata per il lavoro sul campo.",
+    "stats": {
+      "interventionsToday": {
+        "title": "Interventi (oggi)",
+        "hint": "Creati in locale, sincronizzati dopo"
+      },
+      "hoursThisMonth": {
+        "title": "Ore (questo mese)",
+        "hint": "Somma delle durate"
+      },
+      "kmThisMonth": {
+        "title": "KM (questo mese)",
+        "hint": "Distanza percorsa"
+      },
+      "pendingTickets": {
+        "title": "Ticket CRM in sospeso",
+        "hintWithTotal": "{total} aperti/in attesa",
+        "hintFallback": "Promemoria in scadenza"
+      }
+    },
+    "quickActions": {
+      "title": "Azioni rapide",
+      "subtitle": "Inserimento veloce pensato per il lavoro sul campo.",
+      "newIntervention": "Nuovo intervento",
+      "viewInterventions": "Vedi interventi",
+      "manageSpareParts": "Gestisci ricambi"
+    },
+    "todayQuickActions": {
+      "title": "Azioni rapide di oggi",
+      "subtitle": "Comandi veloci per il lavoro sul campo.",
+      "newIntervention": "Nuovo intervento",
+      "scanDocument": "Scansiona documento",
+      "findDocument": "Trova un documento"
+    },
+    "recent": {
+      "title": "Interventi recenti",
+      "subtitle": "Tocca un elemento per modificare o aggiungere dettagli.",
+      "empty": "Nessun intervento ancora."
+    },
+    "todaysFocus": {
+      "title": "Focus di oggi",
+      "subtitle": "Interventi avviati o aperti da chiudere oggi.",
+      "empty": "Niente in sospeso per oggi."
+    },
+    "attention": {
+      "overdue": {
+        "title": "In ritardo",
+        "subtitle": "Oltre la scadenza e ancora aperti.",
+        "empty": "Nessun elemento in ritardo."
+      },
+      "upcoming": {
+        "title": "Scadenze in arrivo",
+        "subtitle": "Prossimi 7 giorni.",
+        "empty": "Nessuna scadenza imminente."
+      },
+      "running": {
+        "title": "Timer attivi",
+        "subtitle": "Cronometri attualmente in esecuzione.",
+        "empty": "Nessun timer attivo."
+      }
+    }
+  },
+  "offline": {
+    "title": "Modalità offline",
+    "body": "Puoi continuare a lavorare. Le modifiche vengono salvate in locale e si sincronizzano quando torni online."
+  },
+  "pwa": {
+    "bannerTitle": "Installa WorkFlow",
+    "bannerBody": "Aggiungilo alla Home per un’esperienza più veloce, simile a un’app.",
+    "installStartedTitle": "Installazione avviata",
+    "installStartedBody": "Segui il prompt sullo schermo."
+  },
+  "documents": {
+    "page": {
+      "title": "Documenti",
+      "subtitle": "Archivio dei PDF scansionati (offline-first)."
+    },
+    "detail": {
+      "notFound": "Documento non trovato.",
+      "actions": {
+        "rename": "Rinomina",
+        "open": "Apri",
+        "send": "Invia"
+      },
+      "confirmDelete": "Eliminare questo documento da questo dispositivo e dal cloud quando sei online?",
+      "rename": {
+        "title": "Rinomina",
+        "subtitle": "Mantieni titoli coerenti per una ricerca più veloce."
+      },
+      "pagesLabel": "Pagine{count, plural, =0 {} other { (#)}}",
+      "pageLabel": "Pagina {index}",
+      "pageAlt": "Pagina {index}",
+      "generatingThumbs": "Genero miniature…",
+      "pdfViewerTitle": "Visualizzatore PDF",
+      "pdfNotReady": "PDF non ancora pronto.",
+      "toasts": {
+        "previewFailedTitle": "Anteprima PDF non riuscita",
+        "deletedTitle": "Eliminato",
+        "deletedBody": "Documento rimosso.",
+        "deleteFailedTitle": "Eliminazione non riuscita",
+        "deleteFailedBodyFallback": "Impossibile eliminare",
+        "renamedTitle": "Rinominato",
+        "renamedBody": "Titolo documento aggiornato."
+      }
+    },
+    "actions": {
+      "openPdf": "Apri PDF",
+      "sendToSupport": "Invia al supporto"
+    },
+    "archive": {
+      "count": "{count, plural, one {# documento} other {# documenti}}",
+      "scanCta": "Scansiona documento",
+      "searchPlaceholder": "Cerca documenti…",
+      "table": {
+        "document": "Documento",
+        "actions": "Azioni"
+      },
+      "actions": {
+        "open": "Apri",
+        "send": "Invia"
+      },
+      "emptyTitle": "Nessun documento ancora",
+      "emptyBody": "Scansiona il primo documento da un intervento (offline-first).",
+      "offlineSendHint": "Sei offline. “Invia al supporto” sarà disponibile quando torni online."
+    },
+    "row": {
+      "meta": "{createdAt} • {pages, plural, one {# pagina} other {# pagine}}"
+    },
+    "errors": {
+      "attachmentNotFound": "Allegato non trovato",
+      "pdfNotFound": "PDF non trovato"
+    },
+    "toasts": {
+      "sentTitle": "Inviato",
+      "sentBody": "Inviato via email al supporto.",
+      "sendFailedTitle": "Invio non riuscito",
+      "openFailedTitle": "Apertura non riuscita",
+      "openFailedBody": "Impossibile aprire"
+    },
+    "scan": {
+      "defaultTitle": "Scansione - {date}"
+    }
+  },
+  "templates": {
+    "page": {
+      "title": "Modelli",
+      "subtitle": "Libreria completa: tipo lavoro, intervento vs attività, cliente di default, checklist, ricambi e creazione “con un tap”."
+    },
+    "editor": {
+      "titleNew": "Nuovo modello",
+      "titleEdit": "Modifica modello",
+      "titleDuplicate": "Duplica modello",
+      "subtitle": "Definisci default per nuove visite. Checklist e ricambi precompilano il form intervento.",
+      "copyOf": "Copia di {name}",
+      "fields": {
+        "name": "Nome modello",
+        "recordAs": "Registra come",
+        "jobType": "Tipo lavoro",
+        "defaultClient": "Cliente di default",
+        "defaultDurationMinutes": "Durata di default (minuti)",
+        "defaultKm": "KM di default",
+        "defaultNotes": "Note di default",
+        "defaultChecklist": "Checklist di default",
+        "defaultSpareParts": "Ricambi di default"
+      },
+      "recordAs": {
+        "interventionTitle": "Intervento sul campo",
+        "interventionBody": "Lavoro presso cliente: installazioni, riparazioni, manutenzioni.",
+        "activityTitle": "Attività",
+        "activityBody": "Blocchi di lavoro d’ufficio o da remoto."
+      },
+      "officeActivityLabel": "Attività presso ufficio (non selezionato = remoto / home office)",
+      "clientMode": {
+        "new": "Nuovo cliente ogni volta",
+        "saved": "Cliente fisso"
+      },
+      "clientHintLabel": "Nome suggerito (opzionale, precompilato nel form)",
+      "placeholders": {
+        "name": "es. HVAC trimestrale — giro centro",
+        "jobType": "Etichetta personalizzata",
+        "clientHint": "es. Nuovo cliente",
+        "selectClient": "Seleziona cliente…",
+        "optional": "Opzionale",
+        "defaultNotes": "Checklist interna, codici accesso, strumenti speciali…",
+        "part": "Ricambio…",
+        "qty": "Qtà"
+      },
+      "actions": {
+        "addLine": "Aggiungi riga",
+        "save": "Salva modello"
+      },
+      "emptySpareParts": "Nessun ricambio in questo modello.",
+      "skuLine": "SKU {sku}",
+      "toasts": {
+        "notFoundTitle": "Modello non trovato",
+        "savedTitle": "Modello salvato",
+        "saveFailedTitle": "Salvataggio non riuscito"
+      }
+    },
+    "count": "{count, plural, one {# modello} other {# modelli}}",
+    "actions": {
+      "new": "Nuovo modello",
+      "createFromTemplate": "Crea da modello",
+      "duplicate": "Duplica"
+    },
+    "card": {
+      "savedClient": "Cliente salvato",
+      "suggestedClient": "Suggerito: {clientName}",
+      "newClientEachTime": "Nuovo cliente ogni volta",
+      "defaultDuration": "Durata di default · {minutes} min"
+    },
+    "confirmDelete": "Eliminare questo modello dal dispositivo e dal cloud quando sei online?",
+    "empty": {
+      "title": "Nessun modello ancora",
+      "body": "Crea una libreria di visite ricorrenti con checklist, ricambi e clienti di default. Tocca “Nuovo modello” per iniziare.",
+      "cta": "Crea il tuo primo modello"
+    },
+    "toasts": {
+      "deleteFailedTitle": "Eliminazione non riuscita",
+      "deletedTitle": "Eliminato",
+      "deletedBody": "Modello rimosso."
+    }
+  },
+  "tickets": {
+    "page": {
+      "title": "Ticket CRM",
+      "subtitle": "Traccia follow-up e promemoria (offline-first)."
+    }
+    ,
+    "fields": {
+      "title": "Titolo",
+      "description": "Descrizione",
+      "priority": "Priorità",
+      "dueDate": "Scadenza"
+    },
+    "priority": {
+      "low": "Bassa",
+      "medium": "Media",
+      "high": "Alta"
+    },
+    "actions": {
+      "create": "Crea ticket",
+      "new": "Nuovo ticket"
+    },
+    "searchPlaceholder": "Cerca ticket…",
+    "filters": {
+      "statusAll": "Tutti",
+      "priorityAll": "Qualsiasi priorità"
+    },
+    "status": {
+      "open": "Aperto",
+      "pending": "In attesa",
+      "closed": "Chiuso"
+    },
+    "table": {
+      "ticket": "Ticket",
+      "status": "Stato"
+    },
+    "reminderDue": "Promemoria in scadenza",
+    "duePrefix": "Scade:",
+    "empty": "Nessun ticket ancora. Creane uno per follow-up e promemoria.",
+    "dialog": {
+      "title": "Nuovo ticket CRM",
+      "subtitle": "Salvato in locale, sincronizzato dopo."
+    },
+    "createFromIntervention": {
+      "defaultTitle": "Follow-up",
+      "defaultTitleWithClient": "Follow-up: {clientName}"
+    },
+    "toasts": {
+      "createdTitle": "Ticket creato",
+      "createdBody": "Collegato all’intervento.",
+      "savedLocally": "Salvato in locale.",
+      "updatedTitle": "Ticket aggiornato",
+      "updatedBody": "Stato: {status}",
+      "createFailedTitle": "Creazione ticket non riuscita"
+    }
+  },
+  "reports": {
+    "page": {
+      "title": "Report",
+      "subtitle": "Esportazioni semplici per il reporting CRM (offline-first)."
+    },
+    "monthlyCrmExport": {
+      "title": "Export CRM mensile",
+      "subtitle": "Scarica JSON + CSV per il mese selezionato.",
+      "actions": {
+        "exportMonth": "Esporta mese"
+      },
+      "toasts": {
+        "exportedTitle": "Esportato",
+        "exportedBody": "JSON + CSV mensili scaricati.",
+        "exportFailedTitle": "Export non riuscito",
+        "exportFailedBody": "Impossibile esportare il mese"
+      }
+    }
+  },
+  "settings": {
+    "appVersion": "{appName} • v{version}",
+    "profile": {
+      "title": "Profilo",
+      "subtitle": "Informazioni account Supabase.",
+      "supabaseNotConfigured": "Supabase non è configurato.",
+      "techNameLabel": "Nome tecnico (per PDF/CRM)",
+      "techNamePlaceholder": "es. Mario Rossi",
+      "supportEmailLabel": "Email di supporto predefinita",
+      "supportEmailPlaceholder": "support@azienda.com",
+      "supportEmailHint": "Verrà pre-compilata nel campo “To:” quando invii un documento. Si sincronizza sul profilo quando sei online.",
+      "reminderEmailLabel": "Email promemoria di default",
+      "reminderEmailPlaceholder": "tuo@azienda.com",
+      "reminderEmailHint": "Usata quando un intervento abilita i promemoria ma lascia vuota la sua email. Richiede variabili Resend sul server.",
+      "notificationsEnabledTitle": "Notifiche abilitate",
+      "notificationPermissionTitle": "Permesso: {permission}",
+      "notificationsEnabledBody": "Riceverai promemoria locali mentre WorkFlow è aperto.",
+      "notificationPermissionBody": "Puoi cambiarlo nelle impostazioni del sito del browser.",
+      "requestNotificationPermission": "Richiedi permesso notifiche browser",
+      "officeAddressLabel": "Indirizzo ufficio predefinito",
+      "officeAddressPlaceholder": "es. Via Roma 10, Milano",
+      "officeAddressHint": "Usato dal pulsante Andata e ritorno (Partenza → Ufficio → Partenza) in creazione intervento. Sincronizzato sul profilo utente quando sei online."
+    },
+    "sync": {
+      "title": "Sincronizzazione cloud",
+      "subtitle": "Riprova upload falliti, gestisci eliminazioni in coda e scarica gli ultimi dati da Supabase.",
+      "actions": {
+        "syncNow": "Sincronizza ora",
+        "forceFullSync": "Forza sync completa"
+      },
+      "failures": {
+        "title": "Errori recenti",
+        "empty": "Nessun errore registrato. Se la sync ha problemi, appariranno qui con data e ora.",
+        "dismissAria": "Rimuovi",
+        "clear": "Svuota lista errori"
+      },
+      "toasts": {
+        "syncFinishedTitle": "Sync completata",
+        "syncFinishedBody": "I dati sono aggiornati.",
+        "syncErrorTitle": "Errore sync",
+        "forceSyncCompleteTitle": "Sync forzata completata",
+        "forceSyncCompleteBody": "Unito con il cloud.",
+        "forceSyncIssuesTitle": "Sync forzata completata con problemi",
+        "forceSyncIssuesBodyFallback": "Controlla la lista errori qui sotto.",
+        "forceSyncErrorTitle": "Errore sync forzata"
+      }
+    },
+    "appearance": {
+      "title": "Aspetto",
+      "subtitle": "Ottimizzato per iPad, supporta la modalità scura.",
+      "toggleDarkMode": "Attiva/disattiva tema scuro (ora: {theme})",
+      "installPwa": "Installa PWA",
+      "tip": "Suggerimento: su iPad Safari puoi anche usare Condividi → “Aggiungi a Home”.",
+      "toasts": {
+        "installStartedTitle": "Installazione avviata",
+        "installStartedBody": "Segui il prompt su iPad."
+      }
+    },
+    "offlineData": {
+      "title": "Dati offline",
+      "subtitle": "Backup e manutenzione dell’IndexedDB locale.",
+      "filenames": {
+        "fullBackup": "workflow-backup-completo-{date}.json"
+      },
+      "actions": {
+        "exportFullBackup": "Esporta backup completo",
+        "importBackup": "Importa backup",
+        "clearLocalDb": "Svuota database locale"
+      },
+      "confirmImport": "Importare il backup e sostituire TUTTI i dati locali? Non puoi annullare.",
+      "confirmClearLocal": "Cancellare TUTTI i dati locali? Non puoi annullare.",
+      "keyboardHint": "Suggerimento tastiera (iPad): usa una tastiera esterna per inserimenti più rapidi. Scorciatoie comuni: Cmd+K ricerca globale, Cmd+F trova nel browser, Cmd+R ricarica.",
+      "toasts": {
+        "backupExportedTitle": "Backup esportato",
+        "backupExportedBody": "JSON completo (incl. allegati) scaricato.",
+        "exportFailedTitle": "Export non riuscito",
+        "exportFailedBody": "Impossibile esportare i dati",
+        "importCompleteTitle": "Import completato",
+        "importCompleteBody": "Dati locali sostituiti. Ricarico…",
+        "importFailedTitle": "Import non riuscito",
+        "importFailedBody": "Impossibile importare il backup",
+        "localClearedTitle": "Dati locali cancellati",
+        "localClearedBody": "Ricarico…"
+      }
+    },
+    "rights": {
+      "title": "I tuoi diritti",
+      "subtitle": "Export e cancellazione dei dati (portabilità e cancellazione).",
+      "filenames": {
+        "export": "workflow-export-{date}.json"
+      },
+      "actions": {
+        "exportAllJson": "Esporta tutti i miei dati (JSON)",
+        "deleteAll": "Cancella tutti i miei dati"
+      },
+      "confirmDeleteAll": "Vuoi cancellare TUTTI i tuoi dati?\n\n- Verranno rimossi dal dispositivo.\n- Se sei online, verranno eliminati anche dal cloud.\n\nOperazione irreversibile.",
+      "note": "Nota: se sei offline, la cancellazione cloud verrà riprovata quando torni online (dati locali cancellati subito).",
+      "toasts": {
+        "exportReadyTitle": "Export pronto",
+        "exportReadyBody": "File JSON scaricato sul dispositivo.",
+        "exportFailedTitle": "Export fallito",
+        "exportFailedBody": "Impossibile esportare i dati",
+        "deletedTitle": "Dati cancellati",
+        "deletedBody": "Sessione terminata. Torno alla Home…",
+        "deleteFailedTitle": "Cancellazione fallita",
+        "deleteFailedBody": "Impossibile completare la cancellazione"
+      }
+    }
+  },
+  "statistics": {
+    "page": {
+      "title": "Statistiche",
+      "subtitle": "Panoramica mensile per tracciabilità CRM."
+    },
+    "monthLabel": "Mese",
+    "actions": {
+      "export": "Esporta JSON + CSV"
+    },
+    "toasts": {
+      "exportedTitle": "Esportato",
+      "exportedBody": "JSON + CSV mensili scaricati.",
+      "exportFailedTitle": "Export non riuscito",
+      "exportFailedBody": "Impossibile esportare"
+    },
+    "cards": {
+      "interventions": "Interventi",
+      "hoursWorked": "Ore lavorate",
+      "kmTraveled": "KM percorsi"
+    },
+    "topClients": {
+      "title": "Clienti principali",
+      "subtitle": "Per numero di interventi (poi ore).",
+      "rowMeta": "{count, plural, one {# intervento} other {# interventi}} • {hours} h • {km} km",
+      "empty": "Nessun dato per questo mese."
+    }
+  },
+  "spareParts": {
+    "page": {
+      "title": "Ricambi",
+      "subtitle": "Magazzino locale: le giacenze si aggiornano subito anche offline."
+    },
+    "list": {
+      "count": "{count, plural, one {# ricambio} other {# ricambi}}"
+    },
+    "table": {
+      "part": "Ricambio",
+      "stock": "Giacenza",
+      "actions": "Azioni"
+    },
+    "row": {
+      "meta": "SKU: {sku} • Unità: {unit}",
+      "min": "Min: {min}"
+    },
+    "fields": {
+      "sku": "SKU",
+      "name": "Nome",
+      "unit": "Unità",
+      "minStock": "Giacenza minima (opzionale)",
+      "movementType": "Tipo",
+      "quantity": "Quantità",
+      "reason": "Motivo"
+    },
+    "movementTypes": {
+      "in": "in",
+      "out": "out",
+      "adjust": "rettifica"
+    },
+    "reasonPlaceholder": "Correzione inventario",
+    "actions": {
+      "addPart": "Aggiungi ricambio",
+      "adjust": "Rettifica",
+      "saveMovement": "Salva movimento"
+    },
+    "empty": "Nessun ricambio ancora. Aggiungi il primo per iniziare a tracciare le giacenze.",
+    "dialogs": {
+      "add": {
+        "title": "Aggiungi ricambio",
+        "subtitle": "Salvato in locale. Sincronizzato dopo."
+      },
+      "adjust": {
+        "title": "Rettifica giacenza",
+        "subtitle": "Crea un movimento di magazzino (in/out/rettifica). Offline-first."
+      }
+    }
+  },
+  "pdf": {
+    "photoAlt": "Foto",
+    "companyNamePlaceholder": "Nome azienda (se necessario)",
+    "interventionReport": "Report intervento",
+    "dueInline": "Scade {when}",
+    "workCategory": {
+      "activity": "ATTIVITÀ",
+      "intervention": "INTERVENTO"
+    },
+    "summary": "Riepilogo",
+    "technician": "Tecnico",
+    "technicianPlaceholder": "Nome tecnico",
+    "duration": "Durata",
+    "status": "Stato",
+    "due": "Scadenza",
+    "routeAutoKm": "KM percorso (auto)",
+    "notes": "Note",
+    "checklist": "Checklist",
+    "sparePartsUsed": "Ricambi utilizzati",
+    "part": "Ricambio",
+    "qty": "Qtà",
+    "photos": "Foto",
+    "footerPlaceholder": "Nome azienda • Indirizzo/Telefono • Generato da WorkFlow"
+  },
+  "interventions": {
+    "page": {
+      "title": "Interventi",
+      "subtitle": "Elenco offline-first con filtri rapidi."
+    },
+    "list": {
+      "searchPlaceholder": "Cerca per cliente, tipo, note, scadenza…",
+      "scopes": {
+        "all": "Tutti",
+        "today": "Oggi",
+        "overdue": "In ritardo",
+        "interventions": "Interventi",
+        "activities": "Attività"
+      },
+      "statusFilters": {
+        "all": "Tutti gli stati",
+        "open": "Aperti",
+        "completed": "Completati"
+      },
+      "table": {
+        "title": "Intervento"
+      },
+      "deleteAria": "Elimina intervento per {clientName}",
+      "empty": "Nessun intervento in questa vista.",
+      "newCta": "Nuovo intervento"
+    },
+    "status": {
+      "open": "Aperto",
+      "inProgress": "In corso",
+      "overdue": "In ritardo",
+      "completed": "Completato"
+    },
+    "timer": {
+      "title": "Timer lavoro",
+      "state": {
+        "running": "In esecuzione — metti in pausa per congelare, stop per chiudere la visita e salvare la durata.",
+        "paused": "In pausa — riprendi per continuare a conteggiare.",
+        "idle": "Inattivo — avvia quando inizi a lavorare."
+      },
+      "actions": {
+        "start": "Avvia",
+        "pause": "Pausa",
+        "resume": "Riprendi",
+        "stopAndComplete": "Stop e completa"
+      },
+      "toasts": {
+        "started": "Timer avviato",
+        "pausedTitle": "In pausa",
+        "pausedBody": "Timer congelato al totale attuale.",
+        "resumed": "Ripreso",
+        "completedTitle": "Visita completata",
+        "completedBodyWithDuration": "Durata salvata: {duration}",
+        "completedBodyFromTracked": "Durata salvata dal tempo tracciato."
+      }
+    },
+    "form": {
+      "titleNew": "Nuovo intervento",
+      "titleEdit": "Modifica intervento",
+      "subtitle": "Offline-first. Tutto viene salvato in locale; la sincronizzazione avviene dopo.",
+      "recordAs": "Registra come",
+      "recordAsInterventionHint": "Visita sul campo presso un cliente.",
+      "recordAsActivityHint": "Lavoro d’ufficio o da remoto.",
+      "onSiteOfficeLabel": "Presso ufficio (non selezionato = remoto)",
+      "jobType": "Tipo lavoro",
+      "jobTypePlaceholder": "es. manutenzione, sopralluogo…",
+      "start": "Inizio",
+      "end": "Fine",
+      "startHint": "Opzionale. Lascia vuoto per creare un’attività con sola scadenza e promemoria.",
+      "autoDuration": "Durata automatica",
+      "durationOverride": "Override durata (minuti)",
+      "durationOverridePlaceholder": "Lascia vuoto per calcolare da inizio/fine",
+      "durationOverrideHint": "Usalo se devi correggere la durata per tracciabilità/CRM.",
+      "mustCompleteBy": "Da completare entro",
+      "mustCompleteByHint": "Usato per countdown, stato “in ritardo” e pianificazione promemoria.",
+      "remindersTitle": "Promemoria (push + email quando l’app può inviare)",
+      "reminderWhen": "Quando ricordare (prima della scadenza)",
+      "reminderPresets": {
+        "oneDay": "1 giorno",
+        "twoHours": "2 ore",
+        "thirtyMinutes": "30 min",
+        "custom": "Personalizzato"
+      },
+      "customReminderTime": "Orario promemoria personalizzato",
+      "reminderEmailLabel": "Email per questa visita (opzionale)",
+      "reminderEmailPlaceholder": "Usa il default delle Impostazioni se vuoto",
+      "reminderEmailHint": "Le notifiche browser funzionano mentre l’app è aperta; l’email usa il tuo server (Resend) quando online. WhatsApp è previsto in una release successiva.",
+      "officeFallback": "Ufficio",
+      "roundTrip": {
+        "title": "Andata e ritorno",
+        "subtitle": "Partenza → Ufficio (impostazioni) → Partenza. Perfetto per visite rapide sul campo."
+      },
+      "roundTripCta": "Andata e ritorno",
+      "roundTripEstimate": "Totale percorso (aria, stima)",
+      "kmManual": "KM (manuale)",
+      "useAutoKm": "Usa auto ({km} km)",
+      "autoFromRouteKm": "Auto da percorso ≈ {km} km",
+      "notes": "Note",
+      "notesPlaceholder": "Cosa è stato fatto, anomalie, follow-up…",
+      "sparePartsUsed": "Ricambi utilizzati",
+      "noSpareParts": "Nessun ricambio aggiunto.",
+      "selectSparePart": "Seleziona ricambio…",
+      "availableSparePart": "Disponibili: {available} {unit}",
+      "qty": "Qtà",
+      "checklist": "Checklist",
+      "stockReasonUsedInIntervention": "Usato in intervento",
+      "errors": {
+        "saveFailed": "Impossibile salvare l’intervento"
+      },
+      "toasts": {
+        "stillLoadingTitle": "Caricamento in corso",
+        "stillLoadingBody": "Attendi che l’intervento si carichi e riprova.",
+        "reminderNeedsDueTitle": "Il promemoria richiede una scadenza",
+        "reminderNeedsDueBody": "Imposta “Da completare entro” oppure disattiva i promemoria.",
+        "savedTitleNew": "Intervento salvato",
+        "savedTitleEdit": "Intervento aggiornato",
+        "savedBodyNew": "Apro i dettagli…",
+        "savedBodyEdit": "Salvato in locale (prima offline).",
+        "saveFailedTitle": "Salvataggio non riuscito"
+      }
+    },
+    "detail": {
+      "notFound": "Intervento non trovato.",
+      "mustCompleteByPrefix": "Da completare entro",
+      "actions": {
+        "exportForCrm": "Esporta per CRM",
+        "markComplete": "Segna completato",
+        "saveTemplate": "Salva modello"
+      },
+      "toasts": {
+        "crmExportedTitle": "Esportato per CRM",
+        "crmExportedBody": "JSON + CSV scaricati.",
+        "crmExportFailedTitle": "Esportazione CRM non riuscita",
+        "crmExportFailedBody": "Impossibile esportare",
+        "markedCompleteTitle": "Segnato come completato",
+        "markedCompleteBodyWithTimer": "Visita chiusa e durata salvata dal timer.",
+        "markedCompleteBody": "Visita chiusa."
+      },
+      "summary": {
+        "work": "Lavoro",
+        "onSiteOffice": "Presso ufficio",
+        "remote": "Remoto",
+        "jobType": "Tipo lavoro",
+        "duration": "Durata",
+        "km": "KM",
+        "timerPrefix": "Timer {state}",
+        "spareParts": "Ricambi"
+      },
+      "timerClosed": {
+        "completed": "Questa visita è completata. Usa Modifica per aggiornare i dettagli; il timer è chiuso.",
+        "noStart": "Nessun orario di inizio impostato — aggiungi un inizio per usare il timer."
+      }
+      "route": {
+        "navigatorTitle": "Navigazione",
+        "navigatorHint": "Su iPad si apre Mappe con tutte le fermate; su altri dispositivi può essere usato Google Maps se più adatto."
+      },
+      "routeCard": {
+        "title": "Percorso",
+        "subtitle": "Partenza/arrivo e distanza automatica.",
+        "start": "Partenza",
+        "end": "Arrivo",
+        "kmLine": "Percorso auto ≈ {autoKm} km · KM manuali: {manualKm}"
+      },
+      "advancedRoute": {
+        "title": "Percorso avanzato (multi-fermata)",
+        "subtitle": "Elenco fermate in tempo reale condiviso tra dispositivi."
+      },
+      "documentsCard": {
+        "title": "Documenti",
+        "subtitle": "Scansiona documenti in un unico PDF per intervento.",
+        "scanCta": "Scansiona documento"
+      },
+      "photoDialog": {
+        "title": "Foto",
+        "subtitle": "Tocca fuori per chiudere.",
+        "previewAlt": "Anteprima foto"
+      },
+      "scan": {
+        "defaultTitle": "{clientName} - {date}"
+      },
+      "supportRef": "{clientName} • {date}",
+      "pdfDialog": {
+        "title": "Export PDF",
+        "subtitle": "L’anteprima viene generata in locale dai dati offline.",
+        "download": "Scarica PDF"
+      },
+      "ticketDialog": {
+        "title": "Crea ticket dall’intervento",
+        "subtitle": "Crea un ticket CRM collegato a questo intervento (offline-first)."
+      },
+      "templateDialog": {
+        "title": "Salva come modello",
+        "subtitle": "Crea un modello riutilizzabile da questo intervento (senza documenti/foto).",
+        "nameLabel": "Nome modello",
+        "namePlaceholder": "Nome modello"
+      },
+      "deleteDialogBody": "Quando sei online, rimuove l’intervento anche dal tuo account Supabase (documenti, allegati e email in coda nel cloud). I ticket CRM restano ma vengono scollegati. Non puoi annullare.",
+      "documents": {
+        "empty": "Nessun documento scansionato ancora."
+      },
+      "sections": {
+        "notesTitle": "Note",
+        "notesSubtitle": "Cosa è stato fatto, osservazioni, follow-up.",
+        "photosTitle": "Foto",
+        "photosSubtitle": "Tocca una foto per ingrandire.",
+        "photosEmpty": "Nessuna foto allegata.",
+        "photosAlt": "Foto"
+      },
+      "toasts": {
+        "pdfReadyTitle": "PDF pronto",
+        "pdfReadyBody": "Scaricato sul dispositivo.",
+        "pdfFailedTitle": "Export PDF non riuscito",
+        "pdfFailedBody": "Impossibile generare il PDF",
+        "templateSavedTitle": "Modello salvato",
+        "templateSavedBody": "Disponibile in Modelli.",
+        "templateSaveFailedTitle": "Salvataggio modello non riuscito"
+      }
+    },
+    "deleteDialog": {
+      "title": "Eliminare l’intervento?",
+      "body": "Rimuovi “{label}” da questo dispositivo e dal cloud quando sei online, inclusi documenti collegati, foto, note vocali e movimenti di magazzino per questa visita. I ticket vengono solo scollegati. Non puoi annullare."
+    },
+    "toasts": {
+      "deleteCloudFailedTitle": "Impossibile eliminare nel cloud",
+      "deletedTitle": "Intervento eliminato",
+      "deletedQueuedBody": "Eliminato in locale. Verrà rimosso dal cloud quando torni online.",
+      "deletedNowBody": "Eliminato da tutti i dispositivi.",
+      "deleteFailedTitle": "Impossibile eliminare"
+    }
+  },
+  "auth": {
+    "envMissing": "Variabili Supabase mancanti. Configura prima .env.local.",
+    "supabaseNotConfigured": "Supabase non è ancora configurato. Copia",
+    "supabaseNotConfiguredSteps": "Supabase non è ancora configurato. Copia <envExample>.env.local.example</envExample> in <envLocal>.env.local</envLocal> e compila le variabili.",
+    "supabaseNotConfiguredTail": "e compila le variabili.",
+    "fields": {
+      "email": "Email",
+      "password": "Password"
+    },
+    "oauthError": "Accesso OAuth non riuscito.",
+    "register": {
+      "title": "Crea account",
+      "subtitle": "Riceverai un’email per confermare l’indirizzo.",
+      "supabaseMissing": "Supabase non è ancora configurato. Copia {envExample} in {envLocal} e compila le variabili.",
+      "checkInbox": "Controlla la posta in arrivo per confermare l’email, poi torna qui per accedere.",
+      "goToSignIn": "Vai all’accesso",
+      "passwordHint": "Minimo 8 caratteri.",
+      "creating": "Creazione…",
+      "createAccount": "Crea account",
+      "haveAccount": "Hai già un account?",
+      "signIn": "Accedi"
+    },
+    "signIn": {
+      "title": "Accedi",
+      "subtitle": "Accesso sicuro a WorkFlow.",
+      "cta": "Accedi",
+      "loading": "Accesso in corso…",
+      "error": "Accesso non riuscito.",
+      "google": "Continua con Google",
+      "apple": "Continua con Apple",
+      "noAccount": "Non hai un account?",
+      "createOne": "Crea un account"
+    }
+  }
+}
+

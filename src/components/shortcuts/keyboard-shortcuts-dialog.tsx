@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import { Keyboard } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 
 export function KeyboardShortcutsDialog() {
+  const t = useTranslations();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -26,22 +28,22 @@ export function KeyboardShortcutsDialog() {
     <>
       <Button variant="outline" size="sm" onClick={() => setOpen(true)} type="button">
         <Keyboard className="h-4 w-4" />
-        Shortcuts
+        {t("shortcuts.button")}
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-xl">
           <DialogHeader>
-            <DialogTitle>Keyboard shortcuts</DialogTitle>
+            <DialogTitle>{t("shortcuts.title")}</DialogTitle>
           </DialogHeader>
 
           <div className="mt-3 grid gap-3 text-sm">
-            <Row k="⌘K" v="Global search" />
-            <Row k="⌘/" v="Open this panel" />
-            <Row k="⌘R" v="Reload" />
-            <Row k="⌘F" v="Browser find on page" />
+            <Row k="⌘K" v={t("shortcuts.items.globalSearch")} />
+            <Row k="⌘/" v={t("shortcuts.items.openPanel")} />
+            <Row k="⌘R" v={t("shortcuts.items.reload")} />
+            <Row k="⌘F" v={t("shortcuts.items.browserFind")} />
             <div className="rounded-xl border bg-muted px-4 py-3 text-xs text-muted-foreground">
-              Tip: on iPad, an external keyboard makes field work much faster.
+              {t("shortcuts.ipadTip")}
             </div>
           </div>
         </DialogContent>

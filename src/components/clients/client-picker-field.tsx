@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 type Props = {
   clients: Client[] | undefined;
@@ -18,6 +19,7 @@ type Props = {
 };
 
 export function ClientPickerField(props: Props) {
+  const t = useTranslations();
   const {
     clients,
     clientName,
@@ -56,7 +58,7 @@ export function ClientPickerField(props: Props) {
     <div className="grid gap-2" ref={wrapRef}>
       <Label className="flex items-center gap-2">
         <Icon icon={Users} />
-        Client
+        {t("common.client")}
       </Label>
       <div className="relative">
         <Input
@@ -69,7 +71,7 @@ export function ClientPickerField(props: Props) {
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
-          placeholder="Search or type a name"
+          placeholder={t("clientPicker.placeholder")}
           className="min-h-12 text-base"
           autoComplete="off"
           aria-autocomplete="list"
@@ -112,7 +114,7 @@ export function ClientPickerField(props: Props) {
         ) : null}
       </div>
       <p className="text-xs text-muted-foreground">
-        Pick a saved client or type a new name — it will be created when you save.
+        {t("clientPicker.hint")}
       </p>
     </div>
   );

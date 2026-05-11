@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getAuthCallbackUrl } from "@/lib/supabase/site-url";
+import { useTranslations } from "next-intl";
 
 function getEmailRedirectTo() {
   // After email confirmation, Supabase will redirect back with a code/session.
@@ -12,6 +13,7 @@ function getEmailRedirectTo() {
 }
 
 export default function RegisterPage() {
+  const t = useTranslations();
   const router = useRouter();
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
 
@@ -53,37 +55,37 @@ export default function RegisterPage() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 px-6 py-10">
       <header className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight">Create account</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("auth.register.title")}</h1>
         <p className="text-sm text-muted-foreground">
-          You’ll receive an email to confirm your address.
+          {t("auth.register.subtitle")}
         </p>
       </header>
 
       <div className="rounded-2xl border bg-background p-5 shadow-sm">
         {!supabase ? (
           <p className="rounded-md border bg-muted px-3 py-2 text-sm text-muted-foreground">
-            Supabase is not configured yet. Copy{" "}
-            <span className="font-mono">.env.local.example</span> to{" "}
-            <span className="font-mono">.env.local</span> and fill in the
-            variables.
+            {t.rich("auth.register.supabaseMissing", {
+              envExample: (chunks) => <span className="font-mono">{chunks}</span>,
+              envLocal: (chunks) => <span className="font-mono">{chunks}</span>
+            })}
           </p>
         ) : null}
         {sent ? (
           <div className="space-y-3">
             <p className="text-sm">
-              Check your inbox to confirm your email, then come back to sign in.
+              {t("auth.register.checkInbox")}
             </p>
             <button
               className="h-11 w-full rounded-md border bg-background px-4 text-sm font-medium"
               onClick={() => router.push("/login")}
             >
-              Go to sign in
+              {t("auth.register.goToSignIn")}
             </button>
           </div>
         ) : (
           <form onSubmit={register} className="space-y-4">
             <label className="grid gap-2 text-sm">
-              <span>Email</span>
+              <span>{t("auth.fields.email")}</span>
               <input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -96,7 +98,7 @@ export default function RegisterPage() {
             </label>
 
             <label className="grid gap-2 text-sm">
-              <span>Password</span>
+              <span>{t("auth.fields.password")}</span>
               <input
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -107,7 +109,7 @@ export default function RegisterPage() {
                 className="h-11 rounded-md border bg-transparent px-3 outline-none focus:ring-2 focus:ring-primary/20"
               />
               <span className="text-xs text-muted-foreground">
-                Minimum 8 characters.
+                {t("auth.register.passwordHint")}
               </span>
             </label>
 
@@ -121,17 +123,17 @@ export default function RegisterPage() {
               disabled={loading || !supabase}
               className="h-11 w-full rounded-md bg-primary px-4 text-primary-foreground disabled:opacity-60"
             >
-              {loading ? "Creating…" : "Create account"}
+              {loading ? t("auth.register.creating") : t("auth.register.createAccount")}
             </button>
           </form>
         )}
       </div>
 
       <p className="text-center text-sm text-muted-foreground">
-        Already have an account?{" "}
-        <a className="underline" href="/login">
-          Sign in
-        </a>
+        {t("auth.register.haveAccount")}{" "}
+        <Link className="underline" href="/login">
+          {t("auth.register.signIn")}
+        </Link>
       </p>
     </main>
   );

@@ -7,12 +7,14 @@ import { db } from "@/lib/db/workflow-db";
 import { endOfDay, endOfMonth, startOfDay, startOfMonth } from "@/lib/dates";
 import { IconBubble } from "@/components/ui/icon";
 import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
+import { useTranslations } from "next-intl";
 
 function minutesToHours(min: number) {
   return Math.round((min / 60) * 10) / 10;
 }
 
 export function DashboardStats() {
+  const t = useTranslations();
   const liveEpoch = useWorkflowLiveEpoch();
   const now = new Date();
   const todayStart = startOfDay(now).toISOString();
@@ -52,28 +54,30 @@ export function DashboardStats() {
 
   const cards = [
     {
-      title: "Interventions (today)",
+      title: t("dashboard.stats.interventionsToday.title"),
       icon: ClipboardList,
       value: interventionsToday ?? "—",
-      hint: "Created locally, sync later"
+      hint: t("dashboard.stats.interventionsToday.hint")
     },
     {
-      title: "Hours (this month)",
+      title: t("dashboard.stats.hoursThisMonth.title"),
       icon: Clock3,
       value: monthTotals ? String(minutesToHours(monthTotals.durationMinutes)) : "—",
-      hint: "Sum of durations"
+      hint: t("dashboard.stats.hoursThisMonth.hint")
     },
     {
-      title: "KM (this month)",
+      title: t("dashboard.stats.kmThisMonth.title"),
       icon: MapPin,
       value: monthTotals ? String(Math.round(monthTotals.km)) : "—",
-      hint: "Travel distance"
+      hint: t("dashboard.stats.kmThisMonth.hint")
     },
     {
-      title: "Pending CRM tickets",
+      title: t("dashboard.stats.pendingTickets.title"),
       icon: MessagesSquare,
       value: pendingTickets ? String(pendingTickets.due) : "—",
-      hint: pendingTickets ? `${pendingTickets.total} open/pending` : "Reminders due"
+      hint: pendingTickets
+        ? t("dashboard.stats.pendingTickets.hintWithTotal", { total: pendingTickets.total })
+        : t("dashboard.stats.pendingTickets.hintFallback")
     }
   ] as const;
 

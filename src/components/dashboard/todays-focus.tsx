@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Target } from "lucide-react";
 import { db } from "@/lib/db/workflow-db";
@@ -17,12 +17,15 @@ import {
 } from "@/lib/interventions/intervention-helpers";
 import { IconBubble } from "@/components/ui/icon";
 import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
+import { useTranslations } from "next-intl";
 
-function fmtTime(iso: string) {
+function fmtTime(iso?: string) {
+  if (!iso) return null;
   return new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 }
 
 export function TodaysFocus() {
+  const t = useTranslations();
   const liveEpoch = useWorkflowLiveEpoch();
   const tick = useSecondTicker(1000);
   void tick;
@@ -32,16 +35,27 @@ export function TodaysFocus() {
 
   const clients = useLiveQuery(async () => db.clients.toArray(), [liveEpoch]);
   const focus = useLiveQuery(async () => {
-    const list = await db.interventions
-      .where("startAt")
-      .between(todayStart, todayEnd, true, true)
-      .toArray();
-    return list.filter((i) => !isInterventionCompleted(i))
-      .sort(
-        (a, b) =>
-          (normalizeTimerRunState(b) === "running" ? 1 : 0) -
-            (normalizeTimerRunState(a) === "running" ? 1 : 0) || b.startAt.localeCompare(a.startAt)
-      )
+    // Include: started today OR due today OR overdue (even if unscheduled / no startAt yet).
+    const all = await db.interventions.toArray();
+    const nowMs = Date.now();
+    const startMs = new Date(todayStart).getTime();
+    const endMs = new Date(todayEnd).getTime();
+    const list = all.filter((i) => {
+      if (isInterventionCompleted(i)) return false;
+      const startAtMs = i.startAt ? new Date(i.startAt).getTime() : NaN;
+      const dueAtMs = i.dueAt ? new Date(i.dueAt).getTime() : NaN;
+      const startedToday = Number.isFinite(startAtMs) && startAtMs >= startMs && startAtMs <= endMs;
+      const dueToday = Number.isFinite(dueAtMs) && dueAtMs >= startMs && dueAtMs <= endMs;
+      const overdue = Number.isFinite(dueAtMs) && dueAtMs < nowMs;
+      return startedToday || dueToday || overdue;
+    });
+    return list
+      .sort((a, b) => {
+        const br = normalizeTimerRunState(b) === "running" ? 1 : 0;
+        const ar = normalizeTimerRunState(a) === "running" ? 1 : 0;
+        if (br !== ar) return br - ar;
+        return (b.startAt ?? "").localeCompare(a.startAt ?? "");
+      })
       .slice(0, 6);
   }, [todayStart, todayEnd, liveEpoch]);
 
@@ -52,8 +66,8 @@ export function TodaysFocus() {
       <CardHeader className="space-y-2">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <CardTitle className="text-base">Today’s Focus</CardTitle>
-            <CardDescription>Started or open interventions to close today.</CardDescription>
+              <CardTitle className="text-base">{t("dashboard.todaysFocus.title")}</CardTitle>
+              <CardDescription>{t("dashboard.todaysFocus.subtitle")}</CardDescription>
           </div>
           <IconBubble icon={Target} />
         </div>
@@ -70,12 +84,20 @@ export function TodaysFocus() {
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="truncate text-sm font-semibold">
-                    {clientById.get(it.clientId) ?? "Client"}
+                    {clientById.get(it.clientId) ?? t("common.client")}
                   </div>
                   <div className="mt-0.5 text-xs text-muted-foreground">
-                    {fmtTime(it.startAt)} •{" "}
-                    {(it.workCategory ?? "intervention") === "activity" ? "Activity · " : ""}
-                    {it.type}
+                    {fmtTime(it.startAt) ? (
+                      <>
+                        {fmtTime(it.startAt)} •{" "}
+                      </>
+                    ) : (
+                      <>
+                        {t("common.noTime")} •{" "}
+                      </>
+                    )}
+                    {(it.workCategory ?? "intervention") === "activity" ? t("common.activityPrefix") : ""}
+                    {it.type ?? t("common.intervention")}
                     {it.dueAt && !isInterventionCompleted(it) ? (
                       <>
                         {" "}
@@ -97,7 +119,7 @@ export function TodaysFocus() {
 
           {(focus ?? []).length === 0 ? (
             <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-              Nothing pending for today.
+              {t("dashboard.todaysFocus.empty")}
             </div>
           ) : null}
         </div>

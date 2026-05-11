@@ -6,6 +6,7 @@ import type { InterventionGeoStop } from "@/lib/db/workflow-db";
 import { cn } from "@/lib/utils";
 import type { LatLngTuple } from "leaflet";
 import type { Map as LeafletMap } from "leaflet";
+import { useTranslations } from "next-intl";
 
 type Props = {
   start?: InterventionGeoStop;
@@ -30,6 +31,7 @@ export function InterventionRouteMapPreview({
   variant = "comfortable",
   className
 }: Props) {
+  const t = useTranslations();
   const wrapRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [imgFallback, setImgFallback] = useState<string | null>(null);
@@ -102,7 +104,7 @@ export function InterventionRouteMapPreview({
             fillOpacity: 0.95
           })
             .addTo(map)
-            .bindTooltip("End", {
+            .bindTooltip(t("route.map.markerEnd"), {
               sticky: true,
               className: "!text-base !px-3 !py-2 touch-manipulation"
             });
@@ -116,7 +118,7 @@ export function InterventionRouteMapPreview({
             fillOpacity: 0.95
           })
             .addTo(map)
-            .bindTooltip("Start", {
+            .bindTooltip(t("route.map.markerStart"), {
               sticky: true,
               className: "!text-base !px-3 !py-2 touch-manipulation"
             });
@@ -166,7 +168,7 @@ export function InterventionRouteMapPreview({
               fillOpacity: 0.95
             })
               .addTo(map)
-              .bindTooltip("End", {
+              .bindTooltip(t("route.map.markerEnd"), {
                 sticky: true,
                 className: "!text-base !px-3 !py-2 touch-manipulation"
               });
@@ -187,7 +189,7 @@ export function InterventionRouteMapPreview({
         ro.observe(el);
       } catch (e) {
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : "Map failed to load");
+          setError(e instanceof Error ? e.message : t("route.map.errors.loadFailed"));
           if (googleProxy) setImgFallback(googleProxy);
         }
       }
@@ -211,7 +213,8 @@ export function InterventionRouteMapPreview({
     okStart,
     okEnd,
     variant,
-    googleProxy
+    googleProxy,
+    t
   ]);
 
   if (!hasAny) {
@@ -225,9 +228,10 @@ export function InterventionRouteMapPreview({
       >
         <MapPinOff className="h-12 w-12 shrink-0 text-muted-foreground" aria-hidden />
         <p className="max-w-lg text-lg leading-snug text-muted-foreground md:text-xl">
-          Search and tap a{" "}
-          <span className="font-semibold text-foreground">start</span> address to show the map. Add{" "}
-          <span className="font-semibold text-foreground">end</span> for the route line.
+          {t.rich("route.map.empty", {
+            start: (chunks) => <span className="font-semibold text-foreground">{chunks}</span>,
+            end: (chunks) => <span className="font-semibold text-foreground">{chunks}</span>
+          })}
         </p>
       </div>
     );
@@ -250,29 +254,31 @@ export function InterventionRouteMapPreview({
       />
       {error ? (
         <div className="border-t bg-card px-4 py-4 text-base">
-          <p className="font-semibold text-foreground">Could not load OpenStreetMap tiles</p>
+          <p className="font-semibold text-foreground">{t("route.map.errors.osmTilesTitle")}</p>
           <p className="mt-1 text-muted-foreground">{error}</p>
           {imgFallback ? (
             <div className="mt-4 overflow-hidden rounded-xl border bg-muted">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={imgFallback}
-                alt="Route map (Google Static)"
+                alt={t("route.map.fallbackAlt")}
                 className="h-auto min-h-[220px] w-full object-cover"
                 onError={() => setImgFallback(null)}
               />
             </div>
           ) : (
             <p className="mt-3 text-sm text-muted-foreground">
-              Set{" "}
-              <code className="rounded-md bg-muted px-2 py-0.5 font-mono text-xs">GOOGLE_MAPS_STATIC_KEY</code>{" "}
-              for a static image fallback.
+              {t.rich("route.map.fallbackKeyHint", {
+                code: (chunks) => (
+                  <code className="rounded-md bg-muted px-2 py-0.5 font-mono text-xs">{chunks}</code>
+                )
+              })}
             </p>
           )}
         </div>
       ) : (
         <p className="border-t px-4 py-3 text-center text-sm leading-relaxed text-muted-foreground md:text-base">
-          Pinch-zoom and drag · Driving path via OSRM when available · Tap markers for labels
+          {t("route.map.footerHint")}
         </p>
       )}
     </div>

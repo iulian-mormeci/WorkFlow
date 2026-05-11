@@ -52,13 +52,13 @@ export async function exportInterventionForCrm(interventionId: string) {
   ];
 
   const row = [
-    new Date(intervention.startAt).toISOString().slice(0, 10),
+    intervention.startAt ? new Date(intervention.startAt).toISOString().slice(0, 10) : "",
     techName,
     client?.name ?? "",
     intervention.workCategory ?? "intervention",
     intervention.type,
     intervention.status ?? "",
-    intervention.startAt,
+    intervention.startAt ?? "",
     intervention.endAt ?? "",
     intervention.dueAt ?? "",
     intervention.durationMinutes ?? "",
@@ -115,13 +115,13 @@ export async function exportMonthForCrm(year: number, monthIndex0: number) {
   for (const i of interventions) {
     lines.push(
       [
-        new Date(i.startAt).toISOString().slice(0, 10),
+        i.startAt ? new Date(i.startAt).toISOString().slice(0, 10) : "",
         techName,
         clientById.get(i.clientId) ?? "",
         i.workCategory ?? "intervention",
         i.type,
         i.status ?? "",
-        i.startAt,
+        i.startAt ?? "",
         i.endAt ?? "",
         i.dueAt ?? "",
         i.durationMinutes ?? "",

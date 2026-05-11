@@ -11,17 +11,19 @@ import {
 } from "@/lib/sync/sync-engine";
 import { useSyncUiStore } from "@/stores/sync-ui";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
-function formatRelative(ms: number | null, now: number | null) {
+function formatRelative(ms: number | null, now: number | null, t: (key: string, values?: any) => string) {
   if (ms == null || now == null) return null;
   const s = Math.floor((now - ms) / 1000);
-  if (s < 10) return "just now";
-  if (s < 60) return `${s}s ago`;
-  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
-  return `${Math.floor(s / 3600)} hr ago`;
+  if (s < 10) return t("syncStatus.relative.justNow");
+  if (s < 60) return t("syncStatus.relative.secondsAgo", { seconds: s });
+  if (s < 3600) return t("syncStatus.relative.minutesAgo", { minutes: Math.floor(s / 60) });
+  return t("syncStatus.relative.hoursAgo", { hours: Math.floor(s / 3600) });
 }
 
 export function SyncStatus() {
+  const t = useTranslations();
   const online = useOnlineStatus();
   const phase = useSyncUiStore((s) => s.phase);
   const lastRealtimeAt = useSyncUiStore((s) => s.lastRealtimeAt);
@@ -51,62 +53,62 @@ export function SyncStatus() {
       return {
         icon: CloudOff,
         tone: "amber" as const,
-        title: "Offline",
+        title: t("syncStatus.headline.offline.title"),
         subtitle:
           dirtyCount > 0
-            ? `${dirtyCount} change${dirtyCount === 1 ? "" : "s"} queued — will sync when you reconnect`
-            : "No pending changes"
+            ? t("syncStatus.headline.offline.subtitleQueued", { count: dirtyCount })
+            : t("syncStatus.headline.offline.subtitleNoPending")
       };
     }
     if (phase === "syncing") {
       return {
         icon: Loader2,
         tone: "blue" as const,
-        title: "Syncing",
-        subtitle: "Uploading and merging with the cloud…"
+        title: t("syncStatus.headline.syncing.title"),
+        subtitle: t("syncStatus.headline.syncing.subtitle")
       };
     }
     if (phase === "offline_pending" && online) {
       return {
         icon: Cloud,
         tone: "amber" as const,
-        title: "Catching up",
-        subtitle: "Finishing queued changes…"
+        title: t("syncStatus.headline.catchingUp.title"),
+        subtitle: t("syncStatus.headline.catchingUp.subtitle")
       };
     }
-    const rtAgo = formatRelative(lastRealtimeAt, nowMs);
+    const rtAgo = formatRelative(lastRealtimeAt, nowMs, t);
     if (lastRealtimeAt && nowMs != null && nowMs - lastRealtimeAt < 12_000) {
       return {
         icon: Cloud,
         tone: "emerald" as const,
-        title: "Live",
-        subtitle: "Cloud updated just now"
+        title: t("syncStatus.headline.live.title"),
+        subtitle: t("syncStatus.headline.live.subtitleJustNow")
       };
     }
     if (rtAgo && lastRealtimeAt) {
       return {
         icon: Cloud,
         tone: "muted" as const,
-        title: "Live",
-        subtitle: `Last cloud update ${rtAgo}`
+        title: t("syncStatus.headline.live.title"),
+        subtitle: t("syncStatus.headline.live.subtitleAgo", { when: rtAgo })
       };
     }
-    const syncAgo = formatRelative(lastSuccessfulSyncAt, nowMs);
+    const syncAgo = formatRelative(lastSuccessfulSyncAt, nowMs, t);
     if (syncAgo && lastSuccessfulSyncAt) {
       return {
         icon: Cloud,
         tone: "emerald" as const,
-        title: "Synced",
-        subtitle: `Full sync ${syncAgo}`
+        title: t("syncStatus.headline.synced.title"),
+        subtitle: t("syncStatus.headline.synced.subtitleAgo", { when: syncAgo })
       };
     }
     return {
       icon: Cloud,
       tone: "muted" as const,
-      title: "Ready",
-      subtitle: "Signed in — sync runs in the background"
+      title: t("syncStatus.headline.ready.title"),
+      subtitle: t("syncStatus.headline.ready.subtitle")
     };
-  }, [online, phase, lastRealtimeAt, lastSuccessfulSyncAt, dirtyCount, tick, nowMs]);
+  }, [online, phase, lastRealtimeAt, lastSuccessfulSyncAt, dirtyCount, tick, nowMs, t]);
 
   const Icon = headline.icon;
   const spin = phase === "syncing";
@@ -178,7 +180,7 @@ export function SyncStatus() {
         onClick={() => void onManualSync()}
       >
         <RefreshCw className={cn("mr-2 h-3.5 w-3.5", manualBusy && "animate-spin")} />
-        {manualBusy ? "Syncing…" : "Sync now"}
+        {manualBusy ? t("syncStatus.actions.syncing") : t("syncStatus.actions.syncNow")}
       </Button>
     </div>
   );

@@ -12,6 +12,8 @@ import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { InterventionRemindersProvider } from "@/components/interventions/intervention-reminders-provider";
 import { MobileMenu } from "@/components/layout/mobile-menu";
 import { PROTECTED_NAV_ITEMS } from "@/lib/navigation/protected-nav";
+import { LanguageSwitcher } from "@/components/i18n/language-switcher";
+import { getTranslations } from "next-intl/server";
 
 // Protected area must never be statically cached.
 export const dynamic = "force-dynamic";
@@ -22,6 +24,7 @@ export default async function ProtectedLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const t = await getTranslations();
   // Auth protection is enforced by `src/middleware.ts`.
   // No `getUser()` here: refreshing JWTs belongs in middleware / route handlers.
   const userEmail = undefined;
@@ -43,11 +46,15 @@ export default async function ProtectedLayout({
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <OnlineIndicator />
                 <span className="truncate">
-                  {userEmail ? `Signed in as ${userEmail}` : "Signed in"}
+                  {userEmail ? t("protectedShell.signedInAs", { email: userEmail }) : t("protectedShell.signedIn")}
                 </span>
               </div>
             </div>
             <SidebarSignOut />
+          </div>
+          <div className="mt-3 flex items-center justify-between">
+            <div className="text-xs font-medium text-muted-foreground">{t("protectedShell.languageLabel")}</div>
+            <LanguageSwitcher />
           </div>
 
           <GlobalSearch />
@@ -57,12 +64,11 @@ export default async function ProtectedLayout({
           <SidebarNav items={PROTECTED_NAV_ITEMS} />
 
           <div className="mt-6 rounded-xl border bg-muted p-3 text-xs text-muted-foreground">
-            Offline-first. Data is stored locally and can sync later.
+            {t("protectedShell.offlineFirstNote")}
           </div>
 
           <div className="mt-3 text-xs text-muted-foreground">
-            Keyboard (iPad): <span className="font-mono">⌘K</span> search •{" "}
-            <span className="font-mono">⌘R</span> reload
+            {t("protectedShell.keyboardHint")}
           </div>
 
           <div className="mt-3">

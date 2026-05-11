@@ -23,19 +23,22 @@ import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { performTemplateCloudSyncDelete } from "@/lib/sync/cloud-delete";
 import { scheduleWorkflowSync } from "@/lib/sync/sync-engine";
+import { useTranslations } from "next-intl";
 
 function clientSubtitle(
   t: InterventionTemplate,
-  clientNameById: Map<string, string>
+  clientNameById: Map<string, string>,
+  tt: (key: string, values?: Record<string, any>) => string
 ): string {
   if (t.defaultClientId) {
-    return clientNameById.get(t.defaultClientId) ?? "Saved client";
+    return clientNameById.get(t.defaultClientId) ?? tt("templates.card.savedClient");
   }
-  if (t.clientName) return `Suggested: ${t.clientName}`;
-  return "New client each time";
+  if (t.clientName) return tt("templates.card.suggestedClient", { clientName: t.clientName });
+  return tt("templates.card.newClientEachTime");
 }
 
 export function TemplatesClient() {
+  const t = useTranslations();
   const { toast } = useToast();
   const liveEpoch = useWorkflowLiveEpoch();
   const templates = useLiveQuery(
@@ -75,11 +78,11 @@ export function TemplatesClient() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <LayoutTemplate className="h-4 w-4 shrink-0" />
-          <span>{templates?.length ?? 0} templates</span>
+          <span>{t("templates.count", { count: templates?.length ?? 0 })}</span>
         </div>
         <Button size="lg" className="min-h-12 w-full shrink-0 sm:w-auto" onClick={openCreate}>
           <Plus className="h-5 w-5" />
-          New template
+          {t("templates.actions.new")}
         </Button>
       </div>
 
@@ -100,7 +103,7 @@ export function TemplatesClient() {
                         : "border-primary/30 bg-primary/10 text-primary"
                     }
                   >
-                    {t.workCategory === "activity" ? "Activity" : "Intervention"}
+                    {t.workCategory === "activity" ? t("common.activity") : t("common.intervention")}
                   </Badge>
                   <Badge className="border-muted-foreground/30 bg-background font-normal text-muted-foreground">
                     {t.type}
@@ -108,9 +111,13 @@ export function TemplatesClient() {
                 </div>
               </div>
             </div>
-            <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">{clientSubtitle(t, clientNameById)}</p>
+            <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">
+              {clientSubtitle(t, clientNameById, t)}
+            </p>
             {t.defaultDurationMinutes != null ? (
-              <p className="mt-1 text-xs text-muted-foreground">Default duration · {t.defaultDurationMinutes} min</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {t("templates.card.defaultDuration", { minutes: t.defaultDurationMinutes })}
+              </p>
             ) : null}
 
             <div className="mt-5 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
@@ -124,26 +131,22 @@ export function TemplatesClient() {
                 }}
               >
                 <Rocket className="h-4 w-4" />
-                Create from template
+                {t("templates.actions.createFromTemplate")}
               </Button>
               <Button type="button" variant="outline" className="min-h-11" onClick={() => openEdit(t.id)}>
                 <Pencil className="h-4 w-4" />
-                Edit
+                {t("common.edit")}
               </Button>
               <Button type="button" variant="outline" className="min-h-11" onClick={() => openDuplicate(t.id)}>
                 <Copy className="h-4 w-4" />
-                Duplicate
+                {t("templates.actions.duplicate")}
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 className="min-h-11 border-destructive/40 text-destructive hover:bg-destructive/10"
                 onClick={async () => {
-                  if (
-                    !confirm(
-                      "Delete this template from this device and from the cloud when online?"
-                    )
-                  ) {
+                  if (!confirm(t("templates.confirmDelete"))) {
                     return;
                   }
                   try {
@@ -158,17 +161,17 @@ export function TemplatesClient() {
                     });
                     if (!res.ok) {
                       toast({
-                        title: "Delete failed",
+                        title: t("templates.toasts.deleteFailedTitle"),
                         description: res.message,
                         variant: "destructive"
                       });
                       return;
                     }
-                    toast({ title: "Deleted", description: "Template removed." });
+                    toast({ title: t("templates.toasts.deletedTitle"), description: t("templates.toasts.deletedBody") });
                     scheduleWorkflowSync();
                   } catch (e: unknown) {
                     toast({
-                      title: "Delete failed",
+                      title: t("templates.toasts.deleteFailedTitle"),
                       description: e instanceof Error ? e.message : String(e),
                       variant: "destructive"
                     });
@@ -176,7 +179,7 @@ export function TemplatesClient() {
                 }}
               >
                 <Trash2 className="h-4 w-4" />
-                Delete
+                {t("common.delete")}
               </Button>
             </div>
           </div>
@@ -185,14 +188,13 @@ export function TemplatesClient() {
 
       {(templates ?? []).length === 0 ? (
         <div className="rounded-2xl border border-dashed bg-muted/40 px-6 py-16 text-center">
-          <p className="text-base font-medium text-foreground">No templates yet</p>
+          <p className="text-base font-medium text-foreground">{t("templates.empty.title")}</p>
           <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-            Build a library of recurring visits with checklist, spare parts, and client defaults. Tap
-            &quot;New template&quot; to start.
+            {t("templates.empty.body")}
           </p>
           <Button size="lg" className="mt-6" onClick={openCreate}>
             <Plus className="h-5 w-5" />
-            Create your first template
+            {t("templates.empty.cta")}
           </Button>
         </div>
       ) : null}

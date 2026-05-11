@@ -16,8 +16,10 @@ export function interventionStatsByClientId(
     if (!id) continue;
     const cur = map.get(id) ?? { count: 0, lastStartAt: undefined };
     cur.count += 1;
-    if (!cur.lastStartAt || iv.startAt > cur.lastStartAt) {
-      cur.lastStartAt = iv.startAt;
+    if (iv.startAt) {
+      if (!cur.lastStartAt || iv.startAt > cur.lastStartAt) {
+        cur.lastStartAt = iv.startAt;
+      }
     }
     map.set(id, cur);
   }

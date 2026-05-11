@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog";
+import { useTranslations } from "next-intl";
 
 export function SendToSupportDialog({
   open,
@@ -29,6 +30,7 @@ export function SendToSupportDialog({
   documentId: string;
   interventionRef?: string;
 }) {
+  const t = useTranslations();
   const { toast } = useToast();
   const online = useOnlineStatus();
 
@@ -50,9 +52,9 @@ export function SendToSupportDialog({
       if (!d) return;
       setTitle(d.title);
       setAttachmentId(d.attachmentId);
-      setSubject(`Documento WorkFlow - ${d.title}`);
+      setSubject(t("support.send.subjectDefault", { title: d.title }));
     })();
-  }, [open, doc]);
+  }, [open, doc, t]);
 
   const canSend = useMemo(() => {
     return to.trim().includes("@") && title.trim().length > 0 && Boolean(attachmentId);
@@ -63,11 +65,11 @@ export function SendToSupportDialog({
     console.info("[SendDocument] starting send to", email, { documentId, attachmentId, subject });
 
     const a = await db.attachments.get(attachmentId);
-    if (!a) throw new Error("PDF attachment not found");
+    if (!a) throw new Error(t("support.send.errors.attachmentNotFound"));
 
     const fd = new FormData();
     fd.append("to", email);
-    fd.append("subject", subject.trim() || `Documento WorkFlow - ${title.trim()}`);
+    fd.append("subject", subject.trim() || t("support.send.subjectDefault", { title: title.trim() }));
     fd.append("title", title.trim());
     if (message.trim()) fd.append("message", message.trim());
     fd.append("file", new File([a.blob], a.name ?? "document.pdf", { type: "application/pdf" }));
@@ -97,7 +99,10 @@ export function SendToSupportDialog({
           interventionId: undefined,
           lastError: undefined
         });
-        toast({ title: "Queued", description: "Will send automatically when online." });
+        toast({
+          title: t("support.send.toasts.queuedTitle"),
+          description: t("support.send.toasts.queuedBody")
+        });
         onOpenChange(false);
         return;
       }
@@ -108,7 +113,7 @@ export function SendToSupportDialog({
       } catch (e) {
         console.error("[SendDocument] failed", e);
         toast({
-          title: "Send failed",
+          title: t("support.send.toasts.sendFailedTitle"),
           description: e instanceof Error ? e.message : String(e),
           variant: "destructive"
         });
@@ -123,13 +128,16 @@ export function SendToSupportDialog({
       } catch (e) {
         console.error("[SendDocument] flush failed", e);
       }
-      toast({ title: "Sent", description: "Document emailed to support." });
+      toast({
+        title: t("support.send.toasts.sentTitle"),
+        description: t("support.send.toasts.sentBody")
+      });
       onOpenChange(false);
     } catch (e: any) {
       console.error("[SendDocument] failed", e);
       toast({
-        title: "Send failed",
-        description: e?.message ?? "Could not send",
+        title: t("support.send.toasts.sendFailedTitle"),
+        description: e?.message ?? t("support.send.toasts.sendFailedBodyFallback"),
         variant: "destructive"
       });
     } finally {
@@ -141,63 +149,69 @@ export function SendToSupportDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle>Invia documento</DialogTitle>
+          <DialogTitle>{t("support.send.dialogTitle")}</DialogTitle>
           <DialogDescription>
-            Controlla i dettagli prima di inviare. Se sei offline, lo mettiamo in coda e lo inviamo appena torni online.
+            {t("support.send.dialogBody")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="mt-4 grid gap-4">
           <div className="grid gap-2">
-            <Label>To</Label>
+            <Label>{t("support.send.toLabel")}</Label>
             <Input
               value={to}
               onChange={(e) => setTo(e.target.value)}
               onBlur={() => setSupportEmailTo(to.trim())}
-              placeholder="support@company.com"
+              placeholder={t("support.send.toPlaceholder")}
               inputMode="email"
               className="min-h-12 touch-manipulation text-base"
             />
             {interventionRef ? (
-              <div className="text-xs text-muted-foreground">Intervention: {interventionRef}</div>
+              <div className="text-xs text-muted-foreground">
+                {t("support.send.interventionRef", { ref: interventionRef })}
+              </div>
             ) : null}
           </div>
 
           <div className="grid gap-2">
-            <Label>Oggetto</Label>
+            <Label>{t("support.send.subjectLabel")}</Label>
             <Input
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              placeholder={`Documento WorkFlow - ${title}`}
+              placeholder={t("support.send.subjectDefault", { title })}
               className="min-h-12 touch-manipulation text-base"
             />
             <div className="text-xs text-muted-foreground">
-              Il PDF verrà allegato automaticamente.
+              {t("support.send.subjectHint")}
             </div>
           </div>
 
           <div className="grid gap-2">
-            <Label>Messaggio personalizzato (opzionale)</Label>
+            <Label>{t("support.send.messageLabel")}</Label>
             <Textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Scrivi qui eventuali dettagli…"
+              placeholder={t("support.send.messagePlaceholder")}
               className="min-h-28 text-base"
             />
           </div>
 
           {!online ? (
             <div className="rounded-2xl border bg-muted p-4 text-sm text-muted-foreground">
-              Offline: this email will be queued and sent automatically when you’re back online.
+              {t("support.send.offlineHint")}
             </div>
           ) : null}
 
           <div className="mt-2 flex items-center justify-end gap-2">
             <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
-              Annulla
+              {t("common.cancel")}
             </Button>
             <Button disabled={!canSend || sending} type="button" onClick={sendOrQueue}>
-              {sending ? "Invio…" : online ? "Invia" : "Metti in coda"}
+              {sending
+                ? t("support.send.actions.sending")
+                : online
+                  ? t("support.send.actions.send")
+                  : t("support.send.actions.queue")}
             </Button>
           </div>
         </div>

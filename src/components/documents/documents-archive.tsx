@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useEffect, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { FileScan, FileText, Plus, Search, Send } from "lucide-react";
@@ -10,10 +10,11 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
 import { DocumentScannerDialog } from "@/components/documents/document-scanner-dialog";
+import { useTranslations } from "next-intl";
 
 async function openPdf(attachmentId: string) {
   const a = await db.attachments.get(attachmentId);
-  if (!a) throw new Error("Attachment not found");
+  if (!a) throw new Error("workflow.i18n:attachmentNotFound");
   const url = URL.createObjectURL(a.blob);
   window.open(url, "_blank", "noopener,noreferrer");
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
@@ -21,7 +22,7 @@ async function openPdf(attachmentId: string) {
 
 async function sendToSupport(attachmentId: string, title: string) {
   const a = await db.attachments.get(attachmentId);
-  if (!a) throw new Error("Attachment not found");
+  if (!a) throw new Error("workflow.i18n:attachmentNotFound");
   const fd = new FormData();
   fd.append("title", title);
   fd.append("file", new File([a.blob], a.name ?? "document.pdf", { type: "application/pdf" }));
@@ -30,6 +31,7 @@ async function sendToSupport(attachmentId: string, title: string) {
 }
 
 export function DocumentsArchive() {
+  const t = useTranslations();
   const { toast } = useToast();
   const liveEpoch = useWorkflowLiveEpoch();
   const [q, setQ] = useState("");
@@ -60,11 +62,11 @@ export function DocumentsArchive() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="text-sm text-muted-foreground">
-          {docs?.length ?? 0} documents
+          {t("documents.archive.count", { count: docs?.length ?? 0 })}
         </div>
         <Button size="lg" className="min-h-12 touch-manipulation" onClick={() => setScanOpen(true)}>
           <Plus className="h-5 w-5" />
-          Scan document
+          {t("documents.archive.scanCta")}
         </Button>
       </div>
       <div className="relative">
@@ -72,15 +74,15 @@ export function DocumentsArchive() {
         <Input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search documents…"
+          placeholder={t("documents.archive.searchPlaceholder")}
           className="min-h-12 pl-9 text-base"
         />
       </div>
 
       <div className="overflow-hidden rounded-2xl border">
         <div className="grid grid-cols-[1fr_auto] gap-3 border-b bg-muted px-4 py-3 text-sm font-medium">
-          <div>Document</div>
-          <div className="text-right">Actions</div>
+          <div>{t("documents.archive.table.document")}</div>
+          <div className="text-right">{t("documents.archive.table.actions")}</div>
         </div>
         <div className="divide-y">
           {(docs ?? []).map((d) => (
@@ -90,7 +92,10 @@ export function DocumentsArchive() {
                   {d.title}
                 </Link>
                 <div className="mt-1 text-xs text-muted-foreground">
-                  {new Date(d.createdAt).toLocaleString()} • {d.pageCount} page{d.pageCount === 1 ? "" : "s"}
+                  {t("documents.row.meta", {
+                    createdAt: new Date(d.createdAt).toLocaleString(),
+                    pages: d.pageCount
+                  })}
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -99,12 +104,19 @@ export function DocumentsArchive() {
                   className="min-h-11 touch-manipulation"
                   onClick={() =>
                     openPdf(d.attachmentId).catch((e) =>
-                      toast({ title: "Open failed", description: String(e), variant: "destructive" })
+                      toast({
+                        title: t("documents.toasts.openFailedTitle"),
+                        description:
+                          e?.message === "workflow.i18n:attachmentNotFound"
+                            ? t("documents.errors.attachmentNotFound")
+                            : String(e),
+                        variant: "destructive"
+                      })
                     )
                   }
                 >
                   <FileText className="h-4 w-4" />
-                  Open
+                  {t("documents.archive.actions.open")}
                 </Button>
                 <Button
                   variant="outline"
@@ -112,14 +124,26 @@ export function DocumentsArchive() {
                   className="min-h-11 touch-manipulation"
                   onClick={() =>
                     sendToSupport(d.attachmentId, d.title)
-                      .then(() => toast({ title: "Sent", description: "Emailed to support." }))
+                      .then(() =>
+                        toast({
+                          title: t("documents.toasts.sentTitle"),
+                          description: t("documents.toasts.sentBody")
+                        })
+                      )
                       .catch((e) =>
-                        toast({ title: "Send failed", description: String(e), variant: "destructive" })
+                        toast({
+                          title: t("documents.toasts.sendFailedTitle"),
+                          description:
+                            e?.message === "workflow.i18n:attachmentNotFound"
+                              ? t("documents.errors.attachmentNotFound")
+                              : String(e),
+                          variant: "destructive"
+                        })
                       )
                   }
                 >
                   <Send className="h-4 w-4" />
-                  Send
+                  {t("documents.archive.actions.send")}
                 </Button>
               </div>
             </div>
@@ -130,9 +154,9 @@ export function DocumentsArchive() {
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border bg-muted/40">
                 <FileScan className="h-6 w-6 text-muted-foreground" />
               </div>
-              <div className="mt-4 text-sm font-semibold">No documents yet</div>
+              <div className="mt-4 text-sm font-semibold">{t("documents.archive.emptyTitle")}</div>
               <div className="mt-1 text-sm text-muted-foreground">
-                Scan your first document from an intervention (offline-first).
+                {t("documents.archive.emptyBody")}
               </div>
             </div>
           ) : null}
@@ -141,14 +165,14 @@ export function DocumentsArchive() {
 
       {!canSend ? (
         <div className="rounded-2xl border bg-muted p-4 text-sm text-muted-foreground">
-          You’re offline. “Send to Support” will be available when you’re online.
+          {t("documents.archive.offlineSendHint")}
         </div>
       ) : null}
 
       <DocumentScannerDialog
         open={scanOpen}
         onOpenChange={setScanOpen}
-        defaultTitle={`Scan - ${new Date().toLocaleDateString()}`}
+        defaultTitle={t("documents.scan.defaultTitle", { date: new Date().toLocaleDateString() })}
       />
     </div>
   );

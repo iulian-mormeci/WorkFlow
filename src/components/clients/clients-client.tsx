@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Building2, Calendar, ChevronRight, MapPin, Phone, Plus, Search, Wrench } from "lucide-react";
@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { ClientFormDialog } from "@/components/clients/client-form-dialog";
 import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 type TypeFilter = "all" | ClientType;
 type SortKey = "name" | "lastVisit" | "count";
@@ -33,6 +34,7 @@ function formatShortDate(iso?: string) {
 }
 
 export function ClientsClient() {
+  const t = useTranslations();
   useWorkflowLiveEpoch();
   const [q, setQ] = useState("");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
@@ -105,14 +107,14 @@ export function ClientsClient() {
     <div className="mx-auto max-w-5xl space-y-5 pb-24 md:pb-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Clients</h1>
+          <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{t("clients.page.title")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Search, filter, and open a client to see interventions. Syncs live with Supabase.
+            {t("clients.page.subtitle")}
           </p>
         </div>
         <Button size="lg" className="min-h-12 shrink-0 gap-2" onClick={openNew}>
           <Plus className="h-5 w-5" />
-          New client
+          {t("clients.actions.new")}
         </Button>
       </div>
 
@@ -122,37 +124,37 @@ export function ClientsClient() {
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search name, city, phone…"
+            placeholder={t("clients.search.placeholder")}
             className="min-h-12 pl-10 text-base"
-            aria-label="Search clients"
+            aria-label={t("clients.search.aria")}
           />
         </div>
         <div className="grid grid-cols-2 gap-3 sm:flex sm:items-center">
           <div className="grid gap-1">
-            <span className="text-xs font-medium text-muted-foreground">Type</span>
+            <span className="text-xs font-medium text-muted-foreground">{t("clients.filters.typeLabel")}</span>
             <select
               className="min-h-12 w-full rounded-xl border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value as TypeFilter)}
             >
-              <option value="all">All types</option>
-              <option value="company">Company</option>
-              <option value="private">Private</option>
-              <option value="restaurant">Restaurant</option>
-              <option value="shop">Shop</option>
-              <option value="other">Other</option>
+              <option value="all">{t("clients.filters.allTypes")}</option>
+              <option value="company">{t("clients.types.company")}</option>
+              <option value="private">{t("clients.types.private")}</option>
+              <option value="restaurant">{t("clients.types.restaurant")}</option>
+              <option value="shop">{t("clients.types.shop")}</option>
+              <option value="other">{t("clients.types.other")}</option>
             </select>
           </div>
           <div className="grid gap-1">
-            <span className="text-xs font-medium text-muted-foreground">Sort</span>
+            <span className="text-xs font-medium text-muted-foreground">{t("clients.filters.sortLabel")}</span>
             <select
               className="min-h-12 w-full rounded-xl border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
               value={sortKey}
               onChange={(e) => setSortKey(e.target.value as SortKey)}
             >
-              <option value="name">Name A–Z</option>
-              <option value="lastVisit">Last visit</option>
-              <option value="count">Most interventions</option>
+              <option value="name">{t("clients.sort.name")}</option>
+              <option value="lastVisit">{t("clients.sort.lastVisit")}</option>
+              <option value="count">{t("clients.sort.count")}</option>
             </select>
           </div>
         </div>
@@ -211,11 +213,11 @@ export function ClientsClient() {
                   <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-border/60 pt-3 text-xs text-muted-foreground">
                     <span className="inline-flex items-center gap-1.5">
                       <Calendar className="h-3.5 w-3.5" />
-                      Last: {formatShortDate(last)}
+                      {t("clients.card.lastPrefix")} {formatShortDate(last)}
                     </span>
                     <span className="inline-flex items-center gap-1.5">
                       <Wrench className="h-3.5 w-3.5" />
-                      {count} intervention{count === 1 ? "" : "s"}
+                      {t("clients.card.interventionsCount", { count })}
                     </span>
                   </div>
                 </Link>
@@ -226,7 +228,7 @@ export function ClientsClient() {
                   className="min-h-11 shrink-0 self-start px-3"
                   onClick={() => openEdit(c.id)}
                 >
-                  Edit
+                  {t("common.edit")}
                 </Button>
               </div>
             </div>
@@ -237,18 +239,18 @@ export function ClientsClient() {
       {(clients ?? []).length === 0 ? (
         <div className="rounded-2xl border border-dashed bg-muted/30 px-6 py-14 text-center">
           <Building2 className="mx-auto h-10 w-10 text-muted-foreground" />
-          <p className="mt-3 text-base font-medium">No clients yet</p>
+          <p className="mt-3 text-base font-medium">{t("clients.empty.title")}</p>
           <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-            Add your first client to speed up interventions and keep contact details in one place.
+            {t("clients.empty.body")}
           </p>
           <Button size="lg" className="mt-6 min-h-12 gap-2" onClick={openNew}>
             <Plus className="h-5 w-5" />
-            Add client
+            {t("clients.empty.cta")}
           </Button>
         </div>
       ) : filtered.length === 0 ? (
         <div className="rounded-2xl border bg-muted/20 px-6 py-10 text-center text-sm text-muted-foreground">
-          No clients match your search or filters.
+          {t("clients.emptyFiltered")}
         </div>
       ) : null}
 

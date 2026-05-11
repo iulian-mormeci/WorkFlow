@@ -1,13 +1,15 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db/workflow-db";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { InterventionStatusBadge } from "@/components/interventions/intervention-status-badge";
 import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
+import { useTranslations } from "next-intl";
 
-function fmt(iso: string) {
+function fmt(iso?: string) {
+  if (!iso) return null;
   return new Date(iso).toLocaleString(undefined, {
     weekday: "short",
     day: "2-digit",
@@ -18,6 +20,7 @@ function fmt(iso: string) {
 }
 
 export function DashboardRecent() {
+  const t = useTranslations();
   const liveEpoch = useWorkflowLiveEpoch();
   const clients = useLiveQuery(async () => db.clients.toArray(), [liveEpoch]);
   const recent = useLiveQuery(async () => {
@@ -29,8 +32,8 @@ export function DashboardRecent() {
   return (
     <Card className="rounded-2xl">
       <CardHeader className="space-y-2">
-        <CardTitle className="text-base">Recent interventions</CardTitle>
-        <CardDescription>Tap an item to edit or add details.</CardDescription>
+          <CardTitle className="text-base">{t("dashboard.recent.title")}</CardTitle>
+          <CardDescription>{t("dashboard.recent.subtitle")}</CardDescription>
       </CardHeader>
 
       <div className="px-2 pb-2">
@@ -44,18 +47,28 @@ export function DashboardRecent() {
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="truncate text-sm font-semibold">
-                    {clientById.get(it.clientId) ?? "Client"}
+                    {clientById.get(it.clientId) ?? t("common.client")}
                   </div>
                   <div className="mt-0.5 text-xs text-muted-foreground">
-                    {fmt(it.startAt)} •{" "}
-                    {(it.workCategory ?? "intervention") === "activity" ? "Activity · " : ""}
-                    {it.type}
+                    {fmt(it.startAt) ? (
+                      <>
+                        {fmt(it.startAt)} •{" "}
+                      </>
+                    ) : (
+                      <>
+                        {t("common.noDate")} •{" "}
+                      </>
+                    )}
+                    {(it.workCategory ?? "intervention") === "activity" ? t("common.activityPrefix") : ""}
+                    {it.type ?? t("common.intervention")}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <InterventionStatusBadge intervention={it} />
                   <div className="text-xs text-muted-foreground">
-                    {it.durationMinutes != null ? `${it.durationMinutes}m` : "—"}
+                    {it.durationMinutes != null
+                      ? t("common.minutesShort", { minutes: it.durationMinutes })
+                      : "—"}
                   </div>
                 </div>
               </div>
@@ -64,7 +77,7 @@ export function DashboardRecent() {
 
           {(recent ?? []).length === 0 ? (
             <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-              No interventions yet.
+              {t("dashboard.recent.empty")}
             </div>
           ) : null}
         </div>

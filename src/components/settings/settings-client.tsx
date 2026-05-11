@@ -25,11 +25,13 @@ import { usePwaInstallPrompt } from "@/hooks/use-pwa-install-prompt";
 import { getReminderDefaultEmail, setReminderDefaultEmail } from "@/lib/reminders/config";
 import { getSupportEmailTo, setSupportEmailTo } from "@/lib/support-email/config";
 import { useSyncFailureQueue } from "@/lib/sync/sync-failure-queue";
+import { useTranslations } from "next-intl";
 import {
   refreshPendingDirtyCount,
   runForceFullWorkflowSync,
   runManualFullSync
 } from "@/lib/sync/sync-engine";
+import { STORAGE_BUCKET } from "@/lib/sync/sync-constants";
 
 const APP_NAME = "WorkFlow";
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "0.1.0";
@@ -50,6 +52,7 @@ function base64ToBlob(base64: string, mime: string) {
 }
 
 export function SettingsClient() {
+  const t = useTranslations();
   const { toast } = useToast();
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const { theme, toggle } = useDarkMode();
@@ -61,6 +64,7 @@ export function SettingsClient() {
 
   const [busy, setBusy] = useState(false);
   const [syncBusy, setSyncBusy] = useState(false);
+  const [rightsBusy, setRightsBusy] = useState(false);
 
   useEffect(() => {
     hydrateFailures();
@@ -144,14 +148,14 @@ export function SettingsClient() {
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <div className="lg:col-span-2 text-xs text-muted-foreground">
-        {APP_NAME} • v{APP_VERSION}
+        {t("settings.appVersion", { appName: t("common.appName"), version: APP_VERSION })}
       </div>
       <Card className="rounded-2xl">
         <CardHeader className="space-y-2">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <CardTitle className="text-base">Profile</CardTitle>
-              <CardDescription>Supabase account information.</CardDescription>
+              <CardTitle className="text-base">{t("settings.profile.title")}</CardTitle>
+              <CardDescription>{t("settings.profile.subtitle")}</CardDescription>
             </div>
             <IconBubble icon={User} />
           </div>
@@ -159,25 +163,25 @@ export function SettingsClient() {
             {supabase ? (
               <ProfileInfo />
             ) : (
-              <div className="text-muted-foreground">Supabase not configured.</div>
+              <div className="text-muted-foreground">{t("settings.profile.supabaseNotConfigured")}</div>
             )}
           </div>
 
           <div className="mt-3 flex flex-col gap-2">
-            <div className="text-sm font-medium">Technician name (for PDF/CRM)</div>
+            <div className="text-sm font-medium">{t("settings.profile.techNameLabel")}</div>
             <Input
               value={techName}
               onChange={(e) => {
                 setTechName(e.target.value);
                 localStorage.setItem("workflow:techName", e.target.value);
               }}
-              placeholder="e.g. Mario Rossi"
+              placeholder={t("settings.profile.techNamePlaceholder")}
               className="min-h-12 touch-manipulation text-base"
             />
           </div>
 
           <div className="mt-4 flex flex-col gap-2">
-            <div className="text-sm font-medium">Email di supporto predefinita</div>
+            <div className="text-sm font-medium">{t("settings.profile.supportEmailLabel")}</div>
             <Input
               value={supportEmail}
               onChange={(e) => {
@@ -186,17 +190,17 @@ export function SettingsClient() {
                 setSupportEmailTo(v);
               }}
               onBlur={() => void persistSupportEmailToCloud(supportEmail)}
-              placeholder="support@company.com"
+              placeholder={t("settings.profile.supportEmailPlaceholder")}
               inputMode="email"
               className="min-h-12 touch-manipulation text-base"
             />
             <div className="text-xs text-muted-foreground">
-              Verrà pre-compilata nel campo “To:” quando invii un documento. Si sincronizza sul profilo quando sei online.
+              {t("settings.profile.supportEmailHint")}
             </div>
           </div>
 
           <div className="mt-4 flex flex-col gap-2">
-            <div className="text-sm font-medium">Default reminder email</div>
+            <div className="text-sm font-medium">{t("settings.profile.reminderEmailLabel")}</div>
             <Input
               value={reminderEmail}
               onChange={(e) => {
@@ -204,13 +208,12 @@ export function SettingsClient() {
                 setReminderEmail(v);
                 setReminderDefaultEmail(v);
               }}
-              placeholder="you@company.com"
+              placeholder={t("settings.profile.reminderEmailPlaceholder")}
               inputMode="email"
               className="min-h-12 touch-manipulation text-base"
             />
             <div className="text-xs text-muted-foreground">
-              Used when an intervention enables reminders but leaves its own email blank. Requires Resend env on
-              the server.
+              {t("settings.profile.reminderEmailHint")}
             </div>
             <Button
               type="button"
@@ -221,20 +224,23 @@ export function SettingsClient() {
                 if (typeof Notification === "undefined") return;
                 const p = await Notification.requestPermission();
                 toast({
-                  title: p === "granted" ? "Notifications enabled" : `Permission: ${p}`,
+                  title:
+                    p === "granted"
+                      ? t("settings.profile.notificationsEnabledTitle")
+                      : t("settings.profile.notificationPermissionTitle", { permission: p }),
                   description:
                     p === "granted"
-                      ? "You will get local reminders while WorkFlow is open."
-                      : "You can change this in the browser site settings."
+                      ? t("settings.profile.notificationsEnabledBody")
+                      : t("settings.profile.notificationPermissionBody")
                 });
               }}
             >
-              Request browser notification permission
+              {t("settings.profile.requestNotificationPermission")}
             </Button>
           </div>
 
           <div className="mt-4 flex flex-col gap-2">
-            <div className="text-sm font-medium">Indirizzo Ufficio predefinito</div>
+            <div className="text-sm font-medium">{t("settings.profile.officeAddressLabel")}</div>
             <Input
               value={officeAddress}
               onChange={(e) => {
@@ -247,12 +253,11 @@ export function SettingsClient() {
                 }
               }}
               onBlur={() => void persistOfficeToCloud(officeAddress)}
-              placeholder="es. Via Roma 10, Milano"
+              placeholder={t("settings.profile.officeAddressPlaceholder")}
               className="min-h-12 touch-manipulation text-base"
             />
             <div className="text-xs text-muted-foreground">
-              Usato dal pulsante Andata e ritorno (Partenza → Ufficio → Partenza) in creazione intervento. Sincronizzato
-              sul profilo utente quando sei online.
+              {t("settings.profile.officeAddressHint")}
             </div>
           </div>
         </CardHeader>
@@ -262,9 +267,9 @@ export function SettingsClient() {
         <CardHeader className="space-y-2">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <CardTitle className="text-base">Cloud sync</CardTitle>
+              <CardTitle className="text-base">{t("settings.sync.title")}</CardTitle>
               <CardDescription>
-                Retry failed uploads, flush pending remote deletes, and pull the latest from Supabase.
+                {t("settings.sync.subtitle")}
               </CardDescription>
             </div>
             <IconBubble icon={Cloud} />
@@ -278,10 +283,10 @@ export function SettingsClient() {
                 try {
                   await runManualFullSync();
                   await refreshPendingDirtyCount();
-                  toast({ title: "Sync finished", description: "Your data is up to date." });
+                  toast({ title: t("settings.sync.toasts.syncFinishedTitle"), description: t("settings.sync.toasts.syncFinishedBody") });
                 } catch (e: unknown) {
                   toast({
-                    title: "Sync error",
+                    title: t("settings.sync.toasts.syncErrorTitle"),
                     description: e instanceof Error ? e.message : String(e),
                     variant: "destructive"
                   });
@@ -291,7 +296,7 @@ export function SettingsClient() {
               }}
             >
               <RefreshCw className={`h-4 w-4 ${syncBusy ? "animate-spin" : ""}`} />
-              Sync now
+              {t("settings.sync.actions.syncNow")}
             </Button>
             <Button
               variant="secondary"
@@ -302,17 +307,17 @@ export function SettingsClient() {
                   const r = await runForceFullWorkflowSync();
                   await refreshPendingDirtyCount();
                   if (r?.ok) {
-                    toast({ title: "Force sync complete", description: "Merged with the cloud." });
+                    toast({ title: t("settings.sync.toasts.forceSyncCompleteTitle"), description: t("settings.sync.toasts.forceSyncCompleteBody") });
                   } else if (r && !r.skipped) {
                     toast({
-                      title: "Force sync finished with issues",
-                      description: r.errors[0] ?? "Check the failure list below.",
+                      title: t("settings.sync.toasts.forceSyncIssuesTitle"),
+                      description: r.errors[0] ?? t("settings.sync.toasts.forceSyncIssuesBodyFallback"),
                       variant: "destructive"
                     });
                   }
                 } catch (e: unknown) {
                   toast({
-                    title: "Force sync error",
+                    title: t("settings.sync.toasts.forceSyncErrorTitle"),
                     description: e instanceof Error ? e.message : String(e),
                     variant: "destructive"
                   });
@@ -321,15 +326,15 @@ export function SettingsClient() {
                 }
               }}
             >
-              Force full sync
+              {t("settings.sync.actions.forceFullSync")}
             </Button>
           </div>
 
           <div className="mt-4 space-y-2">
-            <div className="text-sm font-medium">Recent failures</div>
+            <div className="text-sm font-medium">{t("settings.sync.failures.title")}</div>
             {syncFailures.length === 0 ? (
               <div className="rounded-xl border bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-                No recorded failures. If sync struggles, they will appear here with timestamps.
+                {t("settings.sync.failures.empty")}
               </div>
             ) : (
               <div className="max-h-52 space-y-2 overflow-y-auto rounded-xl border bg-muted/30 p-2">
@@ -352,7 +357,7 @@ export function SettingsClient() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 shrink-0"
-                      aria-label="Dismiss"
+                      aria-label={t("settings.sync.failures.dismissAria")}
                       onClick={() => dismissFailure(f.id)}
                     >
                       <X className="h-3.5 w-3.5" />
@@ -360,7 +365,7 @@ export function SettingsClient() {
                   </div>
                 ))}
                 <Button type="button" variant="outline" size="sm" className="w-full" onClick={() => clearFailures()}>
-                  Clear failure list
+                  {t("settings.sync.failures.clear")}
                 </Button>
               </div>
             )}
@@ -372,15 +377,15 @@ export function SettingsClient() {
         <CardHeader className="space-y-2">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <CardTitle className="text-base">Appearance</CardTitle>
-              <CardDescription>Optimized for iPad, supports dark mode.</CardDescription>
+              <CardTitle className="text-base">{t("settings.appearance.title")}</CardTitle>
+              <CardDescription>{t("settings.appearance.subtitle")}</CardDescription>
             </div>
             <IconBubble icon={Monitor} />
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
             <Button variant="outline" onClick={toggle}>
               <Moon className="h-4 w-4" />
-              Toggle dark mode (now: {theme})
+              {t("settings.appearance.toggleDarkMode", { theme })}
             </Button>
             <Button
               variant="outline"
@@ -388,15 +393,15 @@ export function SettingsClient() {
               onClick={async () => {
                 const ok = await promptInstall();
                 if (!ok) return;
-                toast({ title: "Install started", description: "Follow the iPad prompt." });
+                toast({ title: t("settings.appearance.toasts.installStartedTitle"), description: t("settings.appearance.toasts.installStartedBody") });
               }}
             >
               <Download className="h-4 w-4" />
-              Install PWA
+              {t("settings.appearance.installPwa")}
             </Button>
           </div>
           <div className="mt-2 text-xs text-muted-foreground">
-            Tip: on iPad Safari you can also use Share → “Add to Home Screen”.
+            {t("settings.appearance.tip")}
           </div>
         </CardHeader>
       </Card>
@@ -405,8 +410,8 @@ export function SettingsClient() {
         <CardHeader className="space-y-2">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <CardTitle className="text-base">Offline data</CardTitle>
-              <CardDescription>Backup and maintenance for local IndexedDB.</CardDescription>
+              <CardTitle className="text-base">{t("settings.offlineData.title")}</CardTitle>
+              <CardDescription>{t("settings.offlineData.subtitle")}</CardDescription>
             </div>
             <IconBubble icon={Database} />
           </div>
@@ -440,14 +445,16 @@ export function SettingsClient() {
                   const url = URL.createObjectURL(blob);
                   const a = document.createElement("a");
                   a.href = url;
-                  a.download = `workflow-full-backup-${new Date().toISOString().slice(0, 10)}.json`;
+                  a.download = t("settings.offlineData.filenames.fullBackup", {
+                    date: new Date().toISOString().slice(0, 10)
+                  });
                   a.click();
                   URL.revokeObjectURL(url);
-                  toast({ title: "Backup exported", description: "Full JSON (incl. attachments) downloaded." });
+                  toast({ title: t("settings.offlineData.toasts.backupExportedTitle"), description: t("settings.offlineData.toasts.backupExportedBody") });
                 } catch (e: any) {
                   toast({
-                    title: "Export failed",
-                    description: e?.message ?? "Could not export data",
+                    title: t("settings.offlineData.toasts.exportFailedTitle"),
+                    description: e?.message ?? t("settings.offlineData.toasts.exportFailedBody"),
                     variant: "destructive"
                   });
                 } finally {
@@ -456,7 +463,7 @@ export function SettingsClient() {
               }}
             >
               <Download className="h-4 w-4" />
-              Export Full Backup
+              {t("settings.offlineData.actions.exportFullBackup")}
             </Button>
 
             <Button
@@ -474,7 +481,7 @@ export function SettingsClient() {
                     const text = await file.text();
                     const parsed = JSON.parse(text);
 
-                    if (!confirm("Import backup and replace ALL local data? This cannot be undone.")) {
+                    if (!confirm(t("settings.offlineData.confirmImport"))) {
                       return;
                     }
 
@@ -510,12 +517,12 @@ export function SettingsClient() {
                         if (attachments.length) await db.attachments.bulkAdd(attachments);
                       });
 
-                    toast({ title: "Import complete", description: "Local data replaced. Reloading…" });
+                    toast({ title: t("settings.offlineData.toasts.importCompleteTitle"), description: t("settings.offlineData.toasts.importCompleteBody") });
                     window.location.href = "/dashboard";
                   } catch (e: any) {
                     toast({
-                      title: "Import failed",
-                      description: e?.message ?? "Could not import backup",
+                      title: t("settings.offlineData.toasts.importFailedTitle"),
+                      description: e?.message ?? t("settings.offlineData.toasts.importFailedBody"),
                       variant: "destructive"
                     });
                   } finally {
@@ -526,18 +533,18 @@ export function SettingsClient() {
               }}
             >
               <Upload className="h-4 w-4" />
-              Import Backup
+              {t("settings.offlineData.actions.importBackup")}
             </Button>
 
             <Button
               variant="outline"
               disabled={busy}
               onClick={async () => {
-                if (!confirm("Clear ALL local data? This cannot be undone.")) return;
+                if (!confirm(t("settings.offlineData.confirmClearLocal"))) return;
                 setBusy(true);
                 try {
                   await db.delete();
-                  toast({ title: "Local data cleared", description: "Reloading…" });
+                  toast({ title: t("settings.offlineData.toasts.localClearedTitle"), description: t("settings.offlineData.toasts.localClearedBody") });
                   window.location.href = "/dashboard";
                 } finally {
                   setBusy(false);
@@ -545,14 +552,180 @@ export function SettingsClient() {
               }}
             >
               <Trash2 className="h-4 w-4" />
-              Clear local database
+              {t("settings.offlineData.actions.clearLocalDb")}
             </Button>
           </div>
 
           <div className="mt-2 text-xs text-muted-foreground">
-            Keyboard hint (iPad): use an external keyboard for faster entry. Common shortcuts:
-            Cmd+K global search, Cmd+F browser find, Cmd+R reload.
+            {t("settings.offlineData.keyboardHint")}
           </div>
+        </CardHeader>
+      </Card>
+
+      <Card className="rounded-2xl lg:col-span-2">
+        <CardHeader className="space-y-2">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <CardTitle className="text-base">{t("settings.rights.title")}</CardTitle>
+              <CardDescription>
+                {t("settings.rights.subtitle")}
+              </CardDescription>
+            </div>
+            <IconBubble icon={User} />
+          </div>
+
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={rightsBusy}
+              onClick={async () => {
+                setRightsBusy(true);
+                try {
+                  const data = {
+                    exportedAt: new Date().toISOString(),
+                    profile: {
+                      techName: (() => {
+                        try {
+                          return localStorage.getItem("workflow:techName") ?? "";
+                        } catch {
+                          return "";
+                        }
+                      })(),
+                      officeAddress: (() => {
+                        try {
+                          return localStorage.getItem("workflow:officeAddress") ?? "";
+                        } catch {
+                          return "";
+                        }
+                      })()
+                    },
+                    clients: await db.clients.toArray(),
+                    interventions: await db.interventions.toArray(),
+                    spareParts: await db.spareParts.toArray(),
+                    stockMovements: await db.stockMovements.toArray(),
+                    tickets: await db.tickets.toArray(),
+                    documents: await db.documents.toArray(),
+                    supportEmailOutbox: await db.supportEmailOutbox.toArray(),
+                    templates: await db.templates.toArray(),
+                    attachments: await Promise.all(
+                      (await db.attachments.toArray()).map(async (a) => ({
+                        ...a,
+                        blob: undefined,
+                        base64: await blobToBase64(a.blob)
+                      }))
+                    )
+                  };
+
+                  const blob = new Blob([JSON.stringify(data, null, 2)], {
+                    type: "application/json"
+                  });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = t("settings.rights.filenames.export", {
+                    date: new Date().toISOString().slice(0, 10)
+                  });
+                  a.click();
+                  URL.revokeObjectURL(url);
+                  toast({
+                    title: t("settings.rights.toasts.exportReadyTitle"),
+                    description: t("settings.rights.toasts.exportReadyBody")
+                  });
+                } catch (e: any) {
+                  toast({
+                    title: t("settings.rights.toasts.exportFailedTitle"),
+                    description: e?.message ?? t("settings.rights.toasts.exportFailedBody"),
+                    variant: "destructive"
+                  });
+                } finally {
+                  setRightsBusy(false);
+                }
+              }}
+            >
+              <Download className="h-4 w-4" />
+              {t("settings.rights.actions.exportAllJson")}
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              className="border-destructive/50 text-destructive hover:bg-destructive/10"
+              disabled={rightsBusy}
+              onClick={async () => {
+                if (!confirm(t("settings.rights.confirmDeleteAll"))) {
+                  return;
+                }
+                setRightsBusy(true);
+                try {
+                  // Best-effort cloud wipe when signed in + online.
+                  if (supabase && typeof navigator !== "undefined" && navigator.onLine) {
+                    const {
+                      data: { user }
+                    } = await supabase.auth.getUser();
+                    const userId = user?.id ?? null;
+                    if (userId) {
+                      // Remove storage objects first (prefix = userId/).
+                      try {
+                        const list = await supabase.storage
+                          .from(STORAGE_BUCKET)
+                          .list(userId, { limit: 1000 });
+                        const paths =
+                          (list.data ?? [])
+                            .map((x) => (x?.name ? `${userId}/${x.name}` : ""))
+                            .filter(Boolean) ?? [];
+                        if (paths.length) {
+                          await supabase.storage.from(STORAGE_BUCKET).remove(paths);
+                        }
+                      } catch {
+                        /* ignore storage errors; DB deletion still proceeds */
+                      }
+
+                      // Delete rows (user-scoped). Order is defensive for FK relationships.
+                      const tables = [
+                        "wf_support_email_outbox",
+                        "wf_documents",
+                        "wf_stock_movements",
+                        "wf_tickets",
+                        "wf_interventions",
+                        "wf_templates",
+                        "wf_spare_parts",
+                        "wf_clients",
+                        "wf_attachments"
+                      ] as const;
+                      for (const t of tables) {
+                        const { error } = await supabase.from(t).delete().eq("user_id", userId);
+                        if (error) throw new Error(`${t}: ${error.message}`);
+                      }
+                    }
+                  }
+
+                  // Always wipe local DB.
+                  await db.delete();
+                  toast({
+                    title: t("settings.rights.toasts.deletedTitle"),
+                    description: t("settings.rights.toasts.deletedBody")
+                  });
+                  window.location.href = "/auth/logout";
+                } catch (e: any) {
+                  toast({
+                    title: t("settings.rights.toasts.deleteFailedTitle"),
+                    description: e?.message ?? t("settings.rights.toasts.deleteFailedBody"),
+                    variant: "destructive"
+                  });
+                } finally {
+                  setRightsBusy(false);
+                }
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+              {t("settings.rights.actions.deleteAll")}
+            </Button>
+          </div>
+
+          <p className="mt-2 text-xs text-muted-foreground">
+            {t("settings.rights.note")}
+          </p>
         </CardHeader>
       </Card>
     </div>
@@ -562,6 +735,7 @@ export function SettingsClient() {
 function ProfileInfo() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [email, setEmail] = useState<string>("—");
+  const t = useTranslations();
 
   useEffect(() => {
     (async () => {
@@ -573,7 +747,7 @@ function ProfileInfo() {
 
   return (
     <div className="space-y-1">
-      <div className="text-xs text-muted-foreground">Email</div>
+      <div className="text-xs text-muted-foreground">{t("auth.fields.email")}</div>
       <div className="font-semibold">{email}</div>
     </div>
   );

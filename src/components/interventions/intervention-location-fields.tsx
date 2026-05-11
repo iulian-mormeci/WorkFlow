@@ -8,6 +8,7 @@ import { InterventionRouteMapPreview } from "@/components/interventions/interven
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useTranslations } from "next-intl";
 
 type GeocodeHit = { address: string; lat: number; lng: number };
 
@@ -33,6 +34,7 @@ function LocationBlock({
   onClear: () => void;
   onUseCurrent: () => void | Promise<void>;
 }) {
+  const t = useTranslations();
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<GeocodeHit[]>([]);
   const [loading, setLoading] = useState(false);
@@ -76,7 +78,7 @@ function LocationBlock({
             onClick={onUseCurrent}
           >
             <Crosshair className="h-4 w-4" />
-            Current location
+            {t("route.location.actions.currentLocation")}
           </Button>
           {value ? (
             <Button
@@ -86,7 +88,7 @@ function LocationBlock({
               className="min-h-12 touch-manipulation px-4 text-base"
               onClick={onClear}
             >
-              Clear
+              {t("route.location.actions.clear")}
             </Button>
           ) : null}
         </div>
@@ -94,7 +96,7 @@ function LocationBlock({
       <Input
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="Search address…"
+        placeholder={t("route.location.searchPlaceholder")}
         className="min-h-12 text-base touch-manipulation"
         aria-busy={loading}
       />
@@ -128,19 +130,20 @@ function LocationBlock({
           </div>
         </div>
       ) : (
-        <div className="text-xs text-muted-foreground">No stop selected.</div>
+        <div className="text-xs text-muted-foreground">{t("route.location.noStopSelected")}</div>
       )}
     </div>
   );
 }
 
 export function InterventionLocationFields({ start, end, autoKm, onChangeStart, onChangeEnd, onAutoKm }: Props) {
+  const t = useTranslations();
   const lastKmKey = useRef("");
 
   async function fillCurrentGeolocation(which: "start" | "end") {
     await new Promise<void>((resolve, reject) => {
       if (!navigator.geolocation) {
-        reject(new Error("Geolocation not available"));
+        reject(new Error(t("route.location.errors.geolocationNotAvailable")));
         return;
       }
       navigator.geolocation.getCurrentPosition(
@@ -208,19 +211,19 @@ export function InterventionLocationFields({ start, end, autoKm, onChangeStart, 
     <div className="grid gap-4">
       <div className="flex items-center gap-2 text-sm font-semibold">
         <Route className="h-4 w-4 text-muted-foreground" />
-        Route & distance
+        {t("route.location.title")}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <LocationBlock
-          label="Start location"
+          label={t("route.location.startLabel")}
           value={start}
           onPick={(h) => onChangeStart({ address: h.address, lat: h.lat, lng: h.lng })}
           onClear={() => onChangeStart(undefined)}
           onUseCurrent={() => void fillCurrentGeolocation("start")}
         />
         <LocationBlock
-          label="End location"
+          label={t("route.location.endLabel")}
           value={end}
           onPick={(h) => onChangeEnd({ address: h.address, lat: h.lat, lng: h.lng })}
           onClear={() => onChangeEnd(undefined)}
@@ -231,7 +234,7 @@ export function InterventionLocationFields({ start, end, autoKm, onChangeStart, 
       {start && end ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-background px-4 py-3">
           <div>
-            <div className="text-xs text-muted-foreground">Auto distance (straight-line or driving if configured)</div>
+            <div className="text-xs text-muted-foreground">{t("route.location.autoDistanceHint")}</div>
             <div className="text-lg font-semibold tabular-nums">
               {autoKm != null ? `${autoKm} km` : "—"}
             </div>
@@ -243,13 +246,13 @@ export function InterventionLocationFields({ start, end, autoKm, onChangeStart, 
             className="min-h-12 touch-manipulation px-5 text-base"
             onClick={() => void computeKm()}
           >
-            Recalculate
+            {t("route.location.actions.recalculate")}
           </Button>
         </div>
       ) : null}
 
       <div className="space-y-2">
-        <div className="text-sm font-semibold text-foreground">Route map</div>
+        <div className="text-sm font-semibold text-foreground">{t("route.location.mapTitle")}</div>
         <InterventionRouteMapPreview start={start} end={end} variant="comfortable" />
       </div>
     </div>

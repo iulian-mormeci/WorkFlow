@@ -7,6 +7,7 @@ import { db } from "@/lib/db/workflow-db";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { syncWorkflowNow } from "@/lib/sync/sync-engine";
+import { useTranslations } from "next-intl";
 import {
   formatElapsedHms,
   getTimerElapsedSeconds,
@@ -15,6 +16,7 @@ import {
 } from "@/lib/interventions/intervention-helpers";
 
 export function InterventionTimerPanel({ interventionId }: { interventionId: string }) {
+  const t = useTranslations();
   const { toast } = useToast();
   const iv = useLiveQuery(async () => db.interventions.get(interventionId), [interventionId]);
   const [tick, setTick] = useState(0);
@@ -26,6 +28,8 @@ export function InterventionTimerPanel({ interventionId }: { interventionId: str
 
   if (!iv) return null;
   if (isInterventionCompleted(iv)) return null;
+  // Timer is meaningful only when the visit has a start time.
+  if (!iv.startAt) return null;
 
   const state = normalizeTimerRunState(iv);
   void tick;
@@ -44,16 +48,16 @@ export function InterventionTimerPanel({ interventionId }: { interventionId: str
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-sm font-semibold">
           <Timer className="h-4 w-4 text-muted-foreground" />
-          Work timer
+          {t("interventions.timer.title")}
         </div>
         <div className="font-mono text-2xl tabular-nums tracking-tight">{formatElapsedHms(elapsed)}</div>
       </div>
       <p className="mt-1 text-xs text-muted-foreground">
         {state === "running"
-          ? "Running — pause to freeze, stop to complete visit and save duration."
+          ? t("interventions.timer.state.running")
           : state === "paused"
-            ? "Paused — resume continues counting."
-            : "Idle — start when you begin work."}
+            ? t("interventions.timer.state.paused")
+            : t("interventions.timer.state.idle")}
       </p>
 
       <div className="mt-4 flex flex-wrap gap-2">
@@ -68,11 +72,11 @@ export function InterventionTimerPanel({ interventionId }: { interventionId: str
                 status: "in_progress"
               });
               syncWorkflowNow();
-              toast({ title: "Timer started" });
+              toast({ title: t("interventions.timer.toasts.started") });
             }}
           >
             <Play className="h-4 w-4" />
-            Start
+            {t("interventions.timer.actions.start")}
           </Button>
         ) : null}
 
@@ -90,11 +94,14 @@ export function InterventionTimerPanel({ interventionId }: { interventionId: str
                   status: "in_progress"
                 });
                 syncWorkflowNow();
-                toast({ title: "Paused", description: "Timer frozen at current total." });
+                toast({
+                  title: t("interventions.timer.toasts.pausedTitle"),
+                  description: t("interventions.timer.toasts.pausedBody")
+                });
               }}
             >
               <Pause className="h-4 w-4" />
-              Pause
+              {t("interventions.timer.actions.pause")}
             </Button>
             <Button
               type="button"
@@ -112,13 +119,15 @@ export function InterventionTimerPanel({ interventionId }: { interventionId: str
                 });
                 syncWorkflowNow();
                 toast({
-                  title: "Visit completed",
-                  description: `Duration saved: ${formatElapsedHms(acc)}`
+                  title: t("interventions.timer.toasts.completedTitle"),
+                  description: t("interventions.timer.toasts.completedBodyWithDuration", {
+                    duration: formatElapsedHms(acc)
+                  })
                 });
               }}
             >
               <Square className="h-4 w-4" />
-              Stop & complete
+              {t("interventions.timer.actions.stopAndComplete")}
             </Button>
           </>
         ) : null}
@@ -134,11 +143,11 @@ export function InterventionTimerPanel({ interventionId }: { interventionId: str
                   status: "in_progress"
                 });
                 syncWorkflowNow();
-                toast({ title: "Resumed" });
+                toast({ title: t("interventions.timer.toasts.resumed") });
               }}
             >
               <Play className="h-4 w-4" />
-              Resume
+              {t("interventions.timer.actions.resume")}
             </Button>
             <Button
               type="button"
@@ -156,13 +165,13 @@ export function InterventionTimerPanel({ interventionId }: { interventionId: str
                 });
                 syncWorkflowNow();
                 toast({
-                  title: "Visit completed",
-                  description: `Duration saved from tracked time.`
+                  title: t("interventions.timer.toasts.completedTitle"),
+                  description: t("interventions.timer.toasts.completedBodyFromTracked")
                 });
               }}
             >
               <Square className="h-4 w-4" />
-              Stop & complete
+              {t("interventions.timer.actions.stopAndComplete")}
             </Button>
           </>
         ) : null}

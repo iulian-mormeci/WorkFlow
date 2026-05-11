@@ -10,8 +10,10 @@ import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { performVoiceAttachmentCloudSyncDelete } from "@/lib/sync/cloud-delete";
 import { scheduleWorkflowSync } from "@/lib/sync/sync-engine";
+import { useTranslations } from "next-intl";
 
 export function VoiceNotesList({ interventionId }: { interventionId: string }) {
+  const t = useTranslations();
   const { toast } = useToast();
   const liveEpoch = useWorkflowLiveEpoch();
   const intervention = useLiveQuery(async () => db.interventions.get(interventionId), [
@@ -56,10 +58,10 @@ export function VoiceNotesList({ interventionId }: { interventionId: string }) {
 
   return (
     <div className="grid gap-2 rounded-2xl border bg-background p-4">
-      <div className="text-sm font-semibold">Saved voice notes</div>
+      <div className="text-sm font-semibold">{t("voice.list.title")}</div>
       {list.length === 0 ? (
         <div className="rounded-xl border bg-muted px-4 py-3 text-sm text-muted-foreground">
-          No voice notes yet.
+          {t("voice.list.empty")}
         </div>
       ) : (
         <div className="grid gap-3">
@@ -76,11 +78,7 @@ export function VoiceNotesList({ interventionId }: { interventionId: string }) {
               <Button
                 variant="outline"
                 onClick={async () => {
-                  if (
-                    !confirm(
-                      "Delete this voice note from this device and from the cloud (when online)?"
-                    )
-                  ) {
+                  if (!confirm(t("voice.list.confirmDelete"))) {
                     return;
                   }
                   try {
@@ -95,25 +93,28 @@ export function VoiceNotesList({ interventionId }: { interventionId: string }) {
                     });
                     if (!res.ok) {
                       toast({
-                        title: "Delete failed",
+                        title: t("voice.list.toasts.deleteFailedTitle"),
                         description: res.message,
                         variant: "destructive"
                       });
                       return;
                     }
-                    toast({ title: "Deleted", description: "Voice note removed." });
+                    toast({
+                      title: t("voice.list.toasts.deletedTitle"),
+                      description: t("voice.list.toasts.deletedBody")
+                    });
                     scheduleWorkflowSync();
                   } catch (e: any) {
                     toast({
-                      title: "Delete failed",
-                      description: e?.message ?? "Could not delete",
+                      title: t("voice.list.toasts.deleteFailedTitle"),
+                      description: e?.message ?? t("voice.list.toasts.deleteFailedBodyFallback"),
                       variant: "destructive"
                     });
                   }
                 }}
               >
                 <Trash2 className="h-4 w-4" />
-                Delete
+                {t("common.delete")}
               </Button>
             </div>
           ))}

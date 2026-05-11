@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useTranslations } from "next-intl";
 
 export type ChecklistRow = { id: string; label: string; done: boolean };
 
@@ -31,11 +32,17 @@ function SortableRow({
   onToggle,
   onLabel,
   onRemove
+  ,
+  dragAriaLabel
+  ,
+  itemPlaceholder
 }: {
   item: ChecklistRow;
   onToggle: () => void;
   onLabel: (v: string) => void;
   onRemove: () => void;
+  dragAriaLabel: string;
+  itemPlaceholder: string;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id
@@ -55,7 +62,7 @@ function SortableRow({
       <button
         type="button"
         className="touch-manipulation rounded-lg p-2 text-muted-foreground hover:bg-muted"
-        aria-label="Drag to reorder"
+        aria-label={dragAriaLabel}
         {...attributes}
         {...listeners}
       >
@@ -65,7 +72,7 @@ function SortableRow({
       <Input
         value={item.label}
         onChange={(e) => onLabel(e.target.value)}
-        placeholder="Checklist item"
+        placeholder={itemPlaceholder}
         className="min-w-0 flex-1"
       />
       <Button type="button" variant="ghost" size="icon" className="shrink-0" onClick={onRemove}>
@@ -82,6 +89,7 @@ type Props = {
 };
 
 export function DynamicChecklistEditor({ value, onChange, label = "Checklist" }: Props) {
+  const t = useTranslations();
   const [draft, setDraft] = useState("");
   const ids = useMemo(() => value.map((x) => x.id), [value]);
 
@@ -111,12 +119,12 @@ export function DynamicChecklistEditor({ value, onChange, label = "Checklist" }:
 
   return (
     <div className="grid gap-2">
-      <Label>{label}</Label>
+      <Label>{label === "Checklist" ? t("checklist.editor.title") : label}</Label>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
         <Input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="New item text"
+          placeholder={t("checklist.editor.newItemPlaceholder")}
           className="flex-1"
           onKeyDown={(e) => {
             if (e.key === "Enter") {
@@ -127,13 +135,13 @@ export function DynamicChecklistEditor({ value, onChange, label = "Checklist" }:
         />
         <Button type="button" variant="secondary" className="shrink-0" onClick={addItem}>
           <Plus className="mr-2 h-4 w-4" />
-          Add
+          {t("common.add")}
         </Button>
       </div>
 
       {value.length === 0 ? (
         <div className="rounded-xl border border-dashed bg-muted/40 px-4 py-6 text-center text-sm text-muted-foreground">
-          No checklist items yet. Add tasks above — drag the handle to reorder.
+          {t("checklist.editor.empty")}
         </div>
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
@@ -143,6 +151,8 @@ export function DynamicChecklistEditor({ value, onChange, label = "Checklist" }:
                 <SortableRow
                   key={item.id}
                   item={item}
+                  dragAriaLabel={t("checklist.editor.dragToReorder")}
+                  itemPlaceholder={t("checklist.editor.itemPlaceholder")}
                   onToggle={() =>
                     onChange(value.map((x) => (x.id === item.id ? { ...x, done: !x.done } : x)))
                   }

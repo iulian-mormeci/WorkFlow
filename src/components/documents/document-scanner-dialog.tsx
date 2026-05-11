@@ -18,6 +18,7 @@ import {
   DialogTitle
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslations } from "next-intl";
 
 async function fileToDataUrl(file: File) {
   return await new Promise<string>((resolve, reject) => {
@@ -33,14 +34,14 @@ async function enhanceToJpegDataUrl(dataUrl: string, quality = 0.92) {
   img.src = dataUrl;
   await new Promise<void>((res, rej) => {
     img.onload = () => res();
-    img.onerror = () => rej(new Error("Image load failed"));
+    img.onerror = () => rej(new Error("WF_IMAGE_LOAD_FAILED"));
   });
 
   const canvas = document.createElement("canvas");
   canvas.width = img.naturalWidth;
   canvas.height = img.naturalHeight;
   const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Canvas not supported");
+  if (!ctx) throw new Error("WF_CANVAS_NOT_SUPPORTED");
 
   // Stronger “scanner-like” enhancement using canvas filters.
   // (fast enough for iPad, works offline)
@@ -70,6 +71,7 @@ export function DocumentScannerDialog({
   interventionId?: string;
   defaultTitle: string;
 }) {
+  const t = useTranslations();
   const { toast } = useToast();
   const [title, setTitle] = useState(defaultTitle);
   const [pages, setPages] = useState<PageItem[]>([]);
@@ -167,7 +169,7 @@ export function DocumentScannerDialog({
     img.src = imgData;
     await new Promise<void>((res, rej) => {
       img.onload = () => res();
-      img.onerror = () => rej(new Error("Image load failed"));
+      img.onerror = () => rej(new Error("WF_IMAGE_LOAD_FAILED"));
     });
     const c = document.createElement("canvas");
     const ctx = c.getContext("2d");
@@ -253,9 +255,9 @@ export function DocumentScannerDialog({
         }
       } catch (e: unknown) {
         toast({
-          title: "Cloud upload incomplete",
+          title: t("scanner.toasts.cloudUploadIncompleteTitle"),
           description:
-            e instanceof Error ? e.message : "PDF is saved locally; will retry on next sync.",
+            e instanceof Error ? e.message : t("scanner.toasts.cloudUploadIncompleteBodyFallback"),
           variant: "destructive"
         });
       } finally {
@@ -282,15 +284,22 @@ export function DocumentScannerDialog({
 
       scheduleWorkflowSync();
       toast({
-        title: "Document saved",
-        description: "PDF stored locally and queued for sync."
+        title: t("scanner.toasts.savedTitle"),
+        description: t("scanner.toasts.savedBody")
       });
       setPages([]);
       onOpenChange(false);
     } catch (e: any) {
+      const rawMsg = e?.message ? String(e.message) : "";
+      const mappedMsg =
+        rawMsg === "WF_IMAGE_LOAD_FAILED"
+          ? t("scanner.errors.imageLoadFailed")
+          : rawMsg === "WF_CANVAS_NOT_SUPPORTED"
+            ? t("scanner.errors.canvasNotSupported")
+            : rawMsg;
       toast({
-        title: "Scan failed",
-        description: e?.message ?? "Could not create PDF",
+        title: t("scanner.toasts.scanFailedTitle"),
+        description: mappedMsg || t("scanner.toasts.scanFailedBodyFallback"),
         variant: "destructive"
       });
     } finally {
@@ -302,23 +311,25 @@ export function DocumentScannerDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Document scanner</DialogTitle>
+          <DialogTitle>{t("scanner.title")}</DialogTitle>
           <DialogDescription>
-            Capture multiple pages and save as a single high-quality PDF (offline-first).
+            {t("scanner.subtitle")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="mt-4 grid gap-4">
           <div className="grid gap-2">
-            <Label>Title</Label>
+            <Label>{t("scanner.fields.title")}</Label>
             <Input value={title} onChange={(e) => setTitle(e.target.value)} />
           </div>
 
           <div className="grid gap-2">
-            <Label>Pages</Label>
+            <Label>{t("scanner.fields.pages")}</Label>
             <div className="grid gap-2 sm:grid-cols-2">
               <label className="grid gap-2">
-                <span className="text-xs font-medium text-muted-foreground">Add pages (camera)</span>
+                <span className="text-xs font-medium text-muted-foreground">
+                  {t("scanner.add.camera")}
+                </span>
                 <input
                   className="h-12 w-full rounded-xl border bg-background px-3 text-sm"
                   type="file"
@@ -333,7 +344,9 @@ export function DocumentScannerDialog({
                 />
               </label>
               <label className="grid gap-2">
-                <span className="text-xs font-medium text-muted-foreground">Add multiple (library)</span>
+                <span className="text-xs font-medium text-muted-foreground">
+                  {t("scanner.add.library")}
+                </span>
                 <input
                   className="h-12 w-full rounded-xl border bg-background px-3 text-sm"
                   type="file"
@@ -348,16 +361,16 @@ export function DocumentScannerDialog({
               </label>
             </div>
             <div className="text-xs text-muted-foreground">
-              Take a photo, then tap the camera input again to add another page. Reorder, rotate, delete, then save one PDF.
+              {t("scanner.add.hint")}
             </div>
           </div>
 
           <div className="flex items-center gap-3 rounded-2xl border bg-muted/60 px-4 py-3 text-sm">
             <Checkbox checked={enhance} onCheckedChange={(v) => setEnhance(Boolean(v))} />
             <div className="min-w-0">
-              <div className="font-medium">Auto enhance</div>
+              <div className="font-medium">{t("scanner.enhance.title")}</div>
               <div className="text-xs text-muted-foreground">
-                Contrast boost for clearer scans.
+                {t("scanner.enhance.body")}
               </div>
             </div>
           </div>
@@ -365,11 +378,9 @@ export function DocumentScannerDialog({
           {pages.length ? (
             <div className="rounded-2xl border p-4">
               <div className="flex items-center justify-between gap-3">
-                <div className="text-sm font-semibold">
-                  {pages.length} page{pages.length === 1 ? "" : "s"}
-                </div>
+                <div className="text-sm font-semibold">{t("scanner.pagesCount", { count: pages.length })}</div>
                 <div className="text-xs text-muted-foreground">
-                  Tap rotate, drag-free reorder with arrows.
+                  {t("scanner.pagesHint")}
                 </div>
               </div>
 
@@ -377,7 +388,9 @@ export function DocumentScannerDialog({
                 {pages.map((p, idx) => (
                   <div key={p.id} className="rounded-2xl border bg-background p-3">
                     <div className="flex items-center justify-between gap-2">
-                      <div className="text-sm font-semibold">Page {idx + 1}</div>
+                      <div className="text-sm font-semibold">
+                        {t("scanner.pageLabel", { index: idx + 1 })}
+                      </div>
                       <div className="flex items-center gap-2">
                         <Button
                           variant="outline"
@@ -385,7 +398,7 @@ export function DocumentScannerDialog({
                           className="min-h-11 touch-manipulation"
                           onClick={() => move(p.id, -1)}
                         >
-                          Up
+                          {t("scanner.actions.up")}
                         </Button>
                         <Button
                           variant="outline"
@@ -393,7 +406,7 @@ export function DocumentScannerDialog({
                           className="min-h-11 touch-manipulation"
                           onClick={() => move(p.id, 1)}
                         >
-                          Down
+                          {t("scanner.actions.down")}
                         </Button>
                         <Button
                           variant="outline"
@@ -401,7 +414,7 @@ export function DocumentScannerDialog({
                           className="min-h-11 touch-manipulation"
                           onClick={() => rotate(p.id)}
                         >
-                          Rotate
+                          {t("scanner.actions.rotate")}
                         </Button>
                         <Button
                           variant="outline"
@@ -409,7 +422,7 @@ export function DocumentScannerDialog({
                           className="min-h-11 touch-manipulation"
                           onClick={() => removePage(p.id)}
                         >
-                          Delete
+                          {t("common.delete")}
                         </Button>
                       </div>
                     </div>
@@ -418,7 +431,7 @@ export function DocumentScannerDialog({
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={enhance ? (p.enhancedUrl ?? p.originalUrl) : p.originalUrl}
-                        alt={`Page ${idx + 1}`}
+                        alt={t("scanner.previewAlt", { index: idx + 1 })}
                         className="h-48 w-full object-contain"
                         style={{ transform: `rotate(${p.rotation}deg)` }}
                       />
@@ -429,14 +442,14 @@ export function DocumentScannerDialog({
             </div>
           ) : (
             <div className="rounded-2xl border bg-muted p-4 text-sm text-muted-foreground">
-              No pages yet. Add at least 1 page.
+              {t("scanner.empty")}
             </div>
           )}
 
           {uploadPct != null ? (
             <div className="grid gap-1">
               <div className="text-xs font-medium text-muted-foreground">
-                Uploading to cloud… {uploadPct}%
+                {t("scanner.uploading", { pct: uploadPct })}
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-muted">
                 <div
@@ -449,10 +462,16 @@ export function DocumentScannerDialog({
 
           <div className="flex items-center justify-end gap-2">
             <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button disabled={!canSave || saving || adding} type="button" onClick={savePdf}>
-              {adding ? "Adding…" : saving ? (uploadPct != null ? `Upload ${uploadPct}%` : "Saving…") : "Save PDF"}
+              {adding
+                ? t("scanner.actions.adding")
+                : saving
+                  ? uploadPct != null
+                    ? t("scanner.actions.uploadPct", { pct: uploadPct })
+                    : t("scanner.actions.saving")
+                  : t("scanner.actions.savePdf")}
             </Button>
           </div>
         </div>

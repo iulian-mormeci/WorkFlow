@@ -33,6 +33,7 @@ import {
   upsertRouteStop,
   type RouteStopDraft
 } from "@/lib/routes/route-stops";
+import { useTranslations } from "next-intl";
 
 type GeocodeHit = { address: string; lat: number; lng: number };
 
@@ -48,6 +49,7 @@ function toGeoStop(s: RouteStopDraft): InterventionGeoStop | null {
 export function buildRoundTripStops(args: {
   start?: { address?: string; lat?: number; lng?: number };
   office?: { address?: string; lat?: number; lng?: number };
+  labels: { start: string; office: string; end: string };
 }): RouteStopDraft[] {
   const base = Date.now();
   const startId = crypto.randomUUID();
@@ -59,7 +61,7 @@ export function buildRoundTripStops(args: {
     {
       id: startId,
       sortIndex: 10,
-      label: "Start",
+      label: args.labels.start,
       address: start.address,
       lat: start.lat,
       lng: start.lng
@@ -67,7 +69,7 @@ export function buildRoundTripStops(args: {
     {
       id: officeId,
       sortIndex: 20,
-      label: "Office",
+      label: args.labels.office,
       address: office.address,
       lat: office.lat,
       lng: office.lng
@@ -75,7 +77,7 @@ export function buildRoundTripStops(args: {
     {
       id: endId,
       sortIndex: 30,
-      label: "End",
+      label: args.labels.end,
       address: start.address,
       lat: start.lat,
       lng: start.lng
@@ -94,6 +96,7 @@ function SortableStopRow({
   onRemove: () => void;
   onUseCurrent: () => void;
 }) {
+  const t = useTranslations();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: stop.id
   });
@@ -141,7 +144,7 @@ function SortableStopRow({
           <button
             type="button"
             className="touch-manipulation rounded-xl p-2 text-muted-foreground hover:bg-muted"
-            aria-label="Drag to reorder"
+            aria-label={t("route.stops.dragToReorder")}
             {...attributes}
             {...listeners}
           >
@@ -150,7 +153,7 @@ function SortableStopRow({
           <Input
             value={stop.label ?? ""}
             onChange={(e) => onChange({ label: e.target.value })}
-            placeholder="Label (e.g. Start, Stop 1, Office)"
+            placeholder={t("route.stops.labelPlaceholder")}
             className="min-h-12 w-[min(18rem,100%)] text-base"
           />
         </div>
@@ -163,7 +166,7 @@ function SortableStopRow({
             onClick={onUseCurrent}
           >
             <Crosshair className="h-4 w-4" />
-            Current
+            {t("route.stops.actions.current")}
           </Button>
           <Button
             type="button"
@@ -181,7 +184,7 @@ function SortableStopRow({
         <Input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search address…"
+          placeholder={t("route.stops.searchAddressPlaceholder")}
           className="min-h-12 text-base touch-manipulation"
           aria-busy={loading}
         />
@@ -207,13 +210,13 @@ function SortableStopRow({
 
         {typeof stop.lat === "number" && typeof stop.lng === "number" ? (
           <div className="rounded-xl border bg-muted/20 px-4 py-3 text-sm">
-            <div className="font-medium">{stop.address || "Selected stop"}</div>
+            <div className="font-medium">{stop.address || t("route.stops.selectedStopFallback")}</div>
             <div className="mt-0.5 font-mono text-xs text-muted-foreground">
               {stop.lat.toFixed(5)}, {stop.lng.toFixed(5)}
             </div>
           </div>
         ) : (
-          <div className="text-xs text-muted-foreground">No coordinates yet.</div>
+          <div className="text-xs text-muted-foreground">{t("route.stops.noCoordinatesYet")}</div>
         )}
       </div>
     </div>
@@ -233,6 +236,7 @@ export function RouteStopsEditor({
   draftStops?: RouteStopDraft[];
   onDraftStopsChange?: (next: RouteStopDraft[]) => void;
 }) {
+  const t = useTranslations();
   const [stops, setStops] = useState<RouteStopDraft[]>([]);
   const [busy, setBusy] = useState(false);
   const ids = useMemo(() => stops.map((s) => s.id), [stops]);
@@ -280,7 +284,7 @@ export function RouteStopsEditor({
     const s: RouteStopDraft = {
       id: crypto.randomUUID(),
       sortIndex: nextSortIndex(),
-      label: `Stop ${stops.length + 1}`
+      label: t("route.stops.stopN", { n: stops.length + 1 })
     };
     const next = [...stops, s];
     setStopsBoth(next);
@@ -294,7 +298,7 @@ export function RouteStopsEditor({
     const s: RouteStopDraft = {
       id: crypto.randomUUID(),
       sortIndex: nextSortIndex(),
-      label: "Return",
+      label: t("route.stops.returnLabel"),
       address: first.address,
       lat: first.lat,
       lng: first.lng
@@ -385,7 +389,7 @@ export function RouteStopsEditor({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-sm font-semibold">
           <Route className="h-4 w-4 text-muted-foreground" />
-          Advanced route stops
+          {t("route.stops.title")}
         </div>
         <div className="flex flex-wrap gap-2">
           <Button
@@ -397,7 +401,7 @@ export function RouteStopsEditor({
             onClick={() => void roundTrip()}
           >
             <MapPinned className="h-4 w-4" />
-            Round trip
+            {t("route.stops.actions.roundTrip")}
           </Button>
           <Button
             type="button"
@@ -407,16 +411,16 @@ export function RouteStopsEditor({
             onClick={() => void addStop()}
           >
             <Plus className="h-4 w-4" />
-            Add stop
+            {t("route.stops.actions.addStop")}
           </Button>
         </div>
       </div>
 
       <div className="grid gap-2">
-        <Label className="text-sm">Stops (drag to reorder)</Label>
+        <Label className="text-sm">{t("route.stops.stopsLabel")}</Label>
         {stops.length === 0 ? (
           <div className="rounded-2xl border border-dashed bg-muted/40 px-5 py-8 text-center text-sm text-muted-foreground">
-            No stops yet. Add a stop, pick an address, then drag to reorder.
+            {t("route.stops.empty")}
           </div>
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
@@ -440,11 +444,11 @@ export function RouteStopsEditor({
       <div className="rounded-2xl border bg-background px-4 py-4 sm:px-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div className="text-xs text-muted-foreground">Total (straight-line fallback)</div>
+            <div className="text-xs text-muted-foreground">{t("route.stops.totalHint")}</div>
             <div className="text-2xl font-semibold tabular-nums">{totalKm ? `${totalKm.toFixed(2)} km` : "—"}</div>
           </div>
           <div className="text-xs text-muted-foreground sm:max-w-[18rem]">
-            Driving KM per segment can be added next (Google Matrix / OSRM multi-leg).
+            {t("route.stops.drivingKmHint")}
           </div>
         </div>
         {segments.length ? (
@@ -452,7 +456,8 @@ export function RouteStopsEditor({
             {segments.map((s, idx) => (
               <div key={idx} className="flex items-center justify-between gap-3 rounded-xl border bg-muted/20 px-4 py-2.5 text-sm">
                 <div className="min-w-0 truncate">
-                  {(stops[idx]?.label ?? `Stop ${idx + 1}`)} → {(stops[idx + 1]?.label ?? `Stop ${idx + 2}`)}
+                  {(stops[idx]?.label ?? t("route.stops.stopN", { n: idx + 1 }))} →{" "}
+                  {(stops[idx + 1]?.label ?? t("route.stops.stopN", { n: idx + 2 }))}
                 </div>
                 <div className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
                   {s.km != null ? `${s.km.toFixed(2)} km` : "—"}
@@ -464,7 +469,7 @@ export function RouteStopsEditor({
       </div>
 
       <div className="space-y-2">
-        <div className="text-sm font-semibold text-foreground">Map preview</div>
+        <div className="text-sm font-semibold text-foreground">{t("route.stops.mapPreviewTitle")}</div>
         <InterventionRouteMapPreview start={start} end={end} variant="comfortable" />
       </div>
     </div>

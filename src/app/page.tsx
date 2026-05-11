@@ -1,5 +1,4 @@
-import type { Metadata } from "next";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import {
   ArrowRight,
   BarChart3,
@@ -22,81 +21,68 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { getTranslations } from "next-intl/server";
 
-export const metadata: Metadata = {
-  title: "WorkFlow — Interventi sul campo, organizzati",
-  description:
-    "PWA offline-first per tecnici: interventi, documenti, promemoria, sync multi-dispositivo e report PDF. I tuoi dati restano sul dispositivo e si aggiornano in cloud quando c’è rete."
-};
+export async function generateMetadata() {
+  const t = await getTranslations();
+  return {
+    title: t("landing.metaTitle"),
+    description: t("landing.metaDescription")
+  };
+}
 
 const features = [
   {
     icon: Wrench,
-    title: "Interventi e attività",
-    body: "Gestisci visite, attività in sede o da remoto, stato lavori, note e allegati in un unico flusso pensato per il tablet."
+    key: "landing.features.interventions"
   },
   {
     icon: Camera,
-    title: "Scanner documenti",
-    body: "Acquisisci PDF sul posto, collegali all’intervento e inviali al supporto quando la connessione lo consente."
+    key: "landing.features.scanner"
   },
   {
     icon: Bell,
-    title: "Promemoria intelligenti",
-    body: "Notifiche nel browser e opzionale invio email per scadenze: meno dimenticanze, più continuità con il cliente."
+    key: "landing.features.reminders"
   },
   {
     icon: Cloud,
-    title: "Sync e multi-dispositivo",
-    body: "IndexedDB in locale, Supabase in cloud: lavori offline e ritrovi tutto su telefono, iPad o desktop."
+    key: "landing.features.sync"
   },
   {
     icon: FileText,
-    title: "Export PDF",
-    body: "Report stampabili per consegna al cliente o archivio interno, coerenti con i dati dell’intervento."
+    key: "landing.features.pdf"
   },
   {
     icon: Users,
-    title: "Clienti strutturati",
-    body: "Rubrica con anagrafica, tipologia attività e storico collegato alle visite."
+    key: "landing.features.clients"
   },
   {
     icon: Package,
-    title: "Ricambi e magazzino",
-    body: "Movimenti di stock legati agli interventi: traccia cosa è stato installato o prelevato."
+    key: "landing.features.stock"
   },
   {
     icon: Ticket,
-    title: "Ticket CRM leggeri",
-    body: "Segnalazioni e follow-up senza la pesantezza di un CRM enterprise: resti agile sul campo."
+    key: "landing.features.tickets"
   },
   {
     icon: LayoutTemplate,
-    title: "Modelli ripetibili",
-    body: "Template per tipologie di intervento ricorrenti: parti già impostato e risparmi tempo amministrativo."
+    key: "landing.features.templates"
   },
   {
     icon: BarChart3,
-    title: "Report e statistiche",
-    body: "Esportazioni e numeri operativi per capire carico di lavoro, andamento e priorità."
+    key: "landing.features.reports"
   }
 ] as const;
 
 const testimonials = [
   {
-    quote:
-      "Il punto di forza è poter chiudere un intervento in cantina senza rete, e vedere tutto allineato quando torno in ufficio.",
-    role: "Tecnico manutentore — impianti professionali"
+    key: "landing.testimonials.one"
   },
   {
-    quote:
-      "Scanner e PDF ci hanno tolto il giro di foto su WhatsApp e fogli persi. Il cliente riceve qualcosa di leggibile subito.",
-    role: "Responsabile assistenza — retail"
+    key: "landing.testimonials.two"
   },
   {
-    quote:
-      "Promemoria e scadenze su tablet hanno ridotto i ritardi sulle commesse ricorrenti. L’interfaccia è sobria, non distrae.",
-    role: "Coordinatore team sul territorio"
+    key: "landing.testimonials.three"
   }
 ] as const;
 
@@ -105,6 +91,7 @@ const testimonials = [
  * Authenticated users still see the page with a clear shortcut to the app shell.
  */
 export default async function HomePage() {
+  const t = await getTranslations();
   const supabase = await createSupabaseServerClient();
   const {
     data: { user }
@@ -119,7 +106,7 @@ export default async function HomePage() {
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
               <Wrench className="h-4 w-4" aria-hidden />
             </span>
-            <span className="text-base sm:text-lg">WorkFlow</span>
+            <span className="text-base sm:text-lg">{t("common.appName")}</span>
           </Link>
           <nav className="flex shrink-0 items-center gap-2 sm:gap-3">
             {user ? (
@@ -129,7 +116,7 @@ export default async function HomePage() {
                 </span>
                 <Button asChild size="sm" className="rounded-xl sm:h-10 sm:px-4">
                   <Link href="/dashboard">
-                    Apri app
+                    {t("common.openApp")}
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 </Button>
@@ -137,10 +124,10 @@ export default async function HomePage() {
             ) : (
               <>
                 <Button variant="ghost" asChild size="sm" className="rounded-xl sm:h-10">
-                  <Link href="/login">Accedi</Link>
+                  <Link href="/login">{t("common.signIn")}</Link>
                 </Button>
                 <Button asChild size="sm" className="rounded-xl sm:h-10 sm:px-4">
-                  <Link href="/register">Crea account gratuito</Link>
+                  <Link href="/register">{t("common.signUp")}</Link>
                 </Button>
               </>
             )}
@@ -162,21 +149,19 @@ export default async function HomePage() {
             <div className="mx-auto max-w-3xl text-center">
               <div className="mb-4 inline-flex items-center gap-2 rounded-full border bg-muted/60 px-3 py-1 text-xs font-medium text-muted-foreground">
                 <Sparkles className="h-3.5 w-3.5 text-primary" aria-hidden />
-                Offline-first · PWA · Supabase
+                {t("landing.badge")}
               </div>
               <h1 className="text-balance text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
-                WorkFlow — il tuo assistente personale per interventi tecnici
+                {t("landing.heroTitle")}
               </h1>
               <p className="mt-5 text-pretty text-base text-muted-foreground sm:text-lg">
-                Pianifica, documenta e chiudi le visite sul campo anche senza connessione. WorkFlow
-                tiene i dati sul dispositivo e li sincronizza in modo sicuro quando torni online:
-                meno attrito, più controllo operativo.
+                {t("landing.heroBody")}
               </p>
               <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
                 {user ? (
                   <Button asChild size="lg" className="h-12 rounded-2xl px-8 text-base">
                     <Link href="/dashboard">
-                      Vai alla dashboard
+                      {t("landing.ctaDashboard")}
                       <ArrowRight className="h-5 w-5" />
                     </Link>
                   </Button>
@@ -184,12 +169,12 @@ export default async function HomePage() {
                   <>
                     <Button asChild size="lg" className="h-12 rounded-2xl px-8 text-base">
                       <Link href="/register">
-                        Crea account gratuito
+                        {t("landing.ctaPrimary")}
                         <ArrowRight className="h-5 w-5" />
                       </Link>
                     </Button>
                     <Button asChild variant="outline" size="lg" className="h-12 rounded-2xl px-8 text-base">
-                      <Link href="/login">Accedi</Link>
+                      <Link href="/login">{t("landing.ctaSecondary")}</Link>
                     </Button>
                   </>
                 )}
@@ -197,15 +182,15 @@ export default async function HomePage() {
               <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5">
                   <Shield className="h-4 w-4 text-primary" aria-hidden />
-                  Sessione Supabase
+                  {t("landing.pillAuth")}
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <MapPin className="h-4 w-4 text-primary" aria-hidden />
-                  Geocoding e mappe integrate
+                  {t("landing.pillMaps")}
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <Timer className="h-4 w-4 text-primary" aria-hidden />
-                  Timer intervento
+                  {t("landing.pillTimer")}
                 </span>
               </div>
             </div>
@@ -218,16 +203,16 @@ export default async function HomePage() {
             <div className="grid gap-8 md:grid-cols-3">
               {[
                 {
-                  title: "Pensato per chi sta in movimento",
-                  text: "Layout e azioni ottimizzati per iPhone e iPad: meno tap, più chiarezza sotto il sole o in cabina ascensore."
+                  title: t("landing.value1Title"),
+                  text: t("landing.value1Body")
                 },
                 {
-                  title: "Dati prima in locale",
-                  text: "Niente schermate vuote in assenza di rete: scrivi, allega, cronometra. La sync riallinea tutto al ritorno della linea."
+                  title: t("landing.value2Title"),
+                  text: t("landing.value2Body")
                 },
                 {
-                  title: "Professionale verso il cliente",
-                  text: "PDF, documenti e comunicazioni strutturate trasmettono ordine e affidabilità rispetto a messaggi sparsi."
+                  title: t("landing.value3Title"),
+                  text: t("landing.value3Body")
                 }
               ].map((item) => (
                 <div key={item.title} className="rounded-2xl border bg-background p-6 shadow-sm">
@@ -243,26 +228,25 @@ export default async function HomePage() {
         <section className="py-14 sm:py-20" id="funzionalita">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <div className="mx-auto max-w-2xl text-center">
-              <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Tutto ciò che serve sul campo</h2>
+              <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">{t("landing.featuresTitle")}</h2>
               <p className="mt-3 text-sm text-muted-foreground sm:text-base">
-                Un solo strumento per collegare interventi, magazzino leggero, clienti e documentazione:
-                senza sovraccaricare il team con complessità inutili.
+                {t("landing.featuresSubtitle")}
               </p>
             </div>
             <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {features.map(({ icon: Icon, title, body }) => (
+              {features.map(({ icon: Icon, key }) => (
                 <Card
-                  key={title}
+                  key={key}
                   className="rounded-2xl border bg-card shadow-sm transition-shadow hover:shadow-md"
                 >
                   <CardHeader className="pb-2">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted">
                       <Icon className="h-5 w-5 text-primary" aria-hidden />
                     </div>
-                    <CardTitle className="text-base font-semibold">{title}</CardTitle>
+                    <CardTitle className="text-base font-semibold">{t(`${key}.title`)}</CardTitle>
                   </CardHeader>
                   <div className="px-5 pb-5 pt-0 md:px-6 md:pb-6">
-                    <CardDescription className="text-sm leading-relaxed">{body}</CardDescription>
+                    <CardDescription className="text-sm leading-relaxed">{t(`${key}.body`)}</CardDescription>
                   </div>
                 </Card>
               ))}
@@ -273,20 +257,19 @@ export default async function HomePage() {
         {/* Testimonials */}
         <section className="border-y bg-muted/25 py-14 sm:py-16">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <h2 className="text-center text-2xl font-bold tracking-tight sm:text-3xl">
-              Perché i team operativi lo usano
-            </h2>
+            <h2 className="text-center text-2xl font-bold tracking-tight sm:text-3xl">{t("landing.testimonialsTitle")}</h2>
             <p className="mx-auto mt-3 max-w-2xl text-center text-sm text-muted-foreground sm:text-base">
-              Obiettivo chiaro: meno attrito amministrativo, più tempo sul problema tecnico. Ecco cosa
-              cercano — e trovano — in WorkFlow.
+              {t("landing.testimonialsSubtitle")}
             </p>
             <div className="mt-10 grid gap-6 md:grid-cols-3">
-              {testimonials.map((t, i) => (
+              {testimonials.map((x, i) => (
                 <Card key={i} className="rounded-2xl border bg-background shadow-sm">
                   <div className="p-5 pt-6 md:p-6">
                     <CheckCircle2 className="mb-3 h-5 w-5 text-primary" aria-hidden />
-                    <blockquote className="text-sm leading-relaxed text-foreground">&ldquo;{t.quote}&rdquo;</blockquote>
-                    <footer className="mt-4 text-xs font-medium text-muted-foreground">{t.role}</footer>
+                    <blockquote className="text-sm leading-relaxed text-foreground">
+                      &ldquo;{t(`${x.key}.quote`)}&rdquo;
+                    </blockquote>
+                    <footer className="mt-4 text-xs font-medium text-muted-foreground">{t(`${x.key}.role`)}</footer>
                   </div>
                 </Card>
               ))}
@@ -297,23 +280,22 @@ export default async function HomePage() {
         {/* CTA */}
         <section className="py-16 sm:py-20">
           <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
-            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Pronto a organizzare il campo?</h2>
+            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">{t("landing.ctaTitle")}</h2>
             <p className="mt-3 text-sm text-muted-foreground sm:text-base">
-              Crea un account, installa la PWA e inizia dal primo intervento: nessun credito richiesto per provare il
-              flusso base.
+              {t("landing.ctaBody")}
             </p>
             <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
               {user ? (
                 <Button asChild size="lg" className="h-12 rounded-2xl px-8 text-base">
-                  <Link href="/dashboard">Apri WorkFlow</Link>
+                  <Link href="/dashboard">{t("landing.ctaOpenApp")}</Link>
                 </Button>
               ) : (
                 <>
                   <Button asChild size="lg" className="h-12 rounded-2xl px-8 text-base">
-                    <Link href="/register">Crea account gratuito</Link>
+                    <Link href="/register">{t("common.signUp")}</Link>
                   </Button>
                   <Button asChild variant="outline" size="lg" className="h-12 rounded-2xl px-8 text-base">
-                    <Link href="/login">Accedi</Link>
+                    <Link href="/login">{t("common.signIn")}</Link>
                   </Button>
                 </>
               )}
@@ -324,17 +306,17 @@ export default async function HomePage() {
 
       <footer className="border-t bg-muted/20 py-8">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 text-center text-xs text-muted-foreground sm:flex-row sm:px-6 sm:text-left">
-          <p>© {new Date().getFullYear()} WorkFlow. Tutti i diritti riservati.</p>
+          <p>{t("landing.footer.copyright", { year: new Date().getFullYear() })}</p>
           <div className="flex flex-wrap items-center justify-center gap-4">
             <Link href="/login" className="underline-offset-4 hover:underline">
-              Accedi
+              {t("common.signIn")}
             </Link>
             <Link href="/register" className="underline-offset-4 hover:underline">
-              Registrati
+              {t("common.signUp")}
             </Link>
             {user ? (
               <Link href="/dashboard" className="underline-offset-4 hover:underline">
-                Dashboard
+                {t("nav.dashboard")}
               </Link>
             ) : null}
           </div>

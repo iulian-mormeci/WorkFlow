@@ -1,13 +1,14 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "@/i18n/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { FileText, Search } from "lucide-react";
 import { db } from "@/lib/db/workflow-db";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
+import { useTranslations } from "next-intl";
 
 type Result =
   | { kind: "intervention"; id: string; title: string; subtitle: string; href: string }
@@ -15,6 +16,7 @@ type Result =
   | { kind: "document"; id: string; title: string; subtitle: string; href: string };
 
 export function GlobalSearch() {
+  const t = useTranslations();
   const liveEpoch = useWorkflowLiveEpoch();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -54,22 +56,27 @@ export function GlobalSearch() {
           kind: "client",
           id: c.id,
           title: c.name,
-          subtitle: "Client",
+          subtitle: t("common.client"),
           href: "/clients"
         });
       }
     }
 
     for (const it of interventions) {
-      const clientName = clientById.get(it.clientId) ?? "Client";
+      const clientName = clientById.get(it.clientId) ?? t("common.client");
       const wc = it.workCategory ?? "intervention";
       const hay = `${clientName} ${it.type} ${wc} ${it.dueAt ?? ""} ${(it.notes ?? "")}`.toLowerCase();
       if (hay.includes(query)) {
+        const when = it.startAt
+          ? new Date(it.startAt).toLocaleString()
+          : it.dueAt
+            ? `${t("common.duePrefix")} ${new Date(it.dueAt).toLocaleString()}`
+            : t("common.noDate");
         res.push({
           kind: "intervention",
           id: it.id,
           title: clientName,
-          subtitle: `${new Date(it.startAt).toLocaleString()} • ${wc === "activity" ? "Activity" : "Intervention"} • ${it.type}`,
+          subtitle: `${when} • ${wc === "activity" ? t("common.activity") : t("common.intervention")} • ${it.type}`,
           href: `/interventions/${it.id}`
         });
       }
@@ -81,16 +88,16 @@ export function GlobalSearch() {
           kind: "document",
           id: d.id,
           title: d.title,
-          subtitle: `${new Date(d.createdAt).toLocaleString()} • ${d.pageCount} pages`,
+          subtitle: `${new Date(d.createdAt).toLocaleString()} • ${t("search.global.pages", { count: d.pageCount })}`,
           href: `/documents/${d.id}`
         });
       }
     }
 
     return res.slice(0, 30);
-  }, [q, liveEpoch]);
+  }, [q, liveEpoch, t]);
 
-  const placeholder = useMemo(() => "Search… (⌘K)", []);
+  const placeholder = useMemo(() => t("search.global.buttonPlaceholder"), [t]);
 
   return (
     <>
@@ -109,7 +116,7 @@ export function GlobalSearch() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Global search</DialogTitle>
+            <DialogTitle>{t("search.global.dialogTitle")}</DialogTitle>
           </DialogHeader>
 
           <div className="mt-3 grid gap-3">
@@ -119,7 +126,7 @@ export function GlobalSearch() {
                 autoFocus
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Search interventions, clients, documents…"
+                placeholder={t("search.global.inputPlaceholder")}
                 className="pl-9"
               />
             </div>
@@ -147,7 +154,7 @@ export function GlobalSearch() {
 
                 {(results ?? []).length === 0 ? (
                   <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-                    {q.trim() ? "No results." : "Type to search."}
+                    {q.trim() ? t("search.global.emptyNoResults") : t("search.global.emptyTypeToSearch")}
                   </div>
                 ) : null}
               </div>

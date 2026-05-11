@@ -1,14 +1,15 @@
 import { OfflineBanner } from "@/components/offline/offline-banner";
 import { TemplatesClient } from "@/components/templates/templates-client";
+import { getTranslations } from "next-intl/server";
 
-export default function TemplatesPage() {
+export default async function TemplatesPage() {
+  const t = await getTranslations();
   return (
     <div className="space-y-5">
       <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Templates</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("templates.page.title")}</h1>
         <p className="text-sm text-muted-foreground">
-          Full template library: job type, field vs office activity, default client, checklist, spare parts,
-          and one-tap &quot;Create from template&quot;.
+          {t("templates.page.subtitle")}
         </p>
       </header>
 

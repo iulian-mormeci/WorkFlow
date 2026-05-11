@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useEffect, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { AlarmClock, AlertTriangle, Timer } from "lucide-react";
@@ -15,6 +15,7 @@ import {
   isInterventionCompleted,
   normalizeTimerRunState
 } from "@/lib/interventions/intervention-helpers";
+import { useTranslations } from "next-intl";
 
 function fmtShort(iso: string) {
   return new Date(iso).toLocaleString(undefined, {
@@ -26,6 +27,7 @@ function fmtShort(iso: string) {
 }
 
 export function DashboardAttention() {
+  const t = useTranslations();
   const liveEpoch = useWorkflowLiveEpoch();
   const tick = useSecondTicker(1000);
   void tick;
@@ -65,7 +67,7 @@ export function DashboardAttention() {
     return { overdue, upcoming, running };
   }, [liveEpoch, clock]);
 
-  const nameOf = (id: string) => clients?.find((c) => c.id === id)?.name ?? "Client";
+  const nameOf = (id: string) => clients?.find((c) => c.id === id)?.name ?? t("common.client");
 
   return (
     <div className="grid gap-4 lg:grid-cols-3">
@@ -73,13 +75,13 @@ export function DashboardAttention() {
         <CardHeader className="space-y-2">
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-destructive" />
-            <CardTitle className="text-base">Overdue</CardTitle>
+            <CardTitle className="text-base">{t("dashboard.attention.overdue.title")}</CardTitle>
           </div>
-          <CardDescription>Past “must complete by” and still open.</CardDescription>
+          <CardDescription>{t("dashboard.attention.overdue.subtitle")}</CardDescription>
         </CardHeader>
         <div className="space-y-2 px-5 pb-5">
           {(data?.overdue ?? []).length === 0 ? (
-            <div className="text-sm text-muted-foreground">Nothing overdue.</div>
+            <div className="text-sm text-muted-foreground">{t("dashboard.attention.overdue.empty")}</div>
           ) : (
             (data?.overdue ?? []).map((i) => (
               <Link
@@ -89,7 +91,7 @@ export function DashboardAttention() {
               >
                 <div className="font-semibold">{nameOf(i.clientId)}</div>
                 <div className="mt-0.5 text-xs text-destructive">
-                  Due {i.dueAt ? fmtShort(i.dueAt) : "—"}
+                  {t("common.duePrefix")} {i.dueAt ? fmtShort(i.dueAt) : "—"}
                 </div>
               </Link>
             ))
@@ -101,13 +103,13 @@ export function DashboardAttention() {
         <CardHeader className="space-y-2">
           <div className="flex items-center gap-2">
             <AlarmClock className="h-4 w-4 text-muted-foreground" />
-            <CardTitle className="text-base">Upcoming due</CardTitle>
+            <CardTitle className="text-base">{t("dashboard.attention.upcoming.title")}</CardTitle>
           </div>
-          <CardDescription>Next 7 days.</CardDescription>
+          <CardDescription>{t("dashboard.attention.upcoming.subtitle")}</CardDescription>
         </CardHeader>
         <div className="space-y-2 px-5 pb-5">
           {(data?.upcoming ?? []).length === 0 ? (
-            <div className="text-sm text-muted-foreground">No upcoming deadlines.</div>
+            <div className="text-sm text-muted-foreground">{t("dashboard.attention.upcoming.empty")}</div>
           ) : (
             (data?.upcoming ?? []).map((i) => (
               <Link
@@ -130,13 +132,13 @@ export function DashboardAttention() {
         <CardHeader className="space-y-2">
           <div className="flex items-center gap-2">
             <Timer className="h-4 w-4 text-muted-foreground" />
-            <CardTitle className="text-base">Running timers</CardTitle>
+            <CardTitle className="text-base">{t("dashboard.attention.running.title")}</CardTitle>
           </div>
-          <CardDescription>Work timers currently counting.</CardDescription>
+          <CardDescription>{t("dashboard.attention.running.subtitle")}</CardDescription>
         </CardHeader>
         <div className="space-y-2 px-5 pb-5">
           {(data?.running ?? []).length === 0 ? (
-            <div className="text-sm text-muted-foreground">No active timers.</div>
+            <div className="text-sm text-muted-foreground">{t("dashboard.attention.running.empty")}</div>
           ) : (
             (data?.running ?? []).map((i) => (
               <Link

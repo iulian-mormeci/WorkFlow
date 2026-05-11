@@ -15,6 +15,7 @@ import {
   DialogTitle
 } from "@/components/ui/dialog";
 import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
+import { useTranslations } from "next-intl";
 
 async function computeStockByPartId() {
   const moves = await db.stockMovements.toArray();
@@ -28,6 +29,7 @@ async function computeStockByPartId() {
 }
 
 export function SparePartsClient() {
+  const t = useTranslations();
   const liveEpoch = useWorkflowLiveEpoch();
   const spareParts = useLiveQuery(async () => db.spareParts.orderBy("name").toArray(), [liveEpoch]);
   const stockByPartId = useLiveQuery(async () => await computeStockByPartId(), [liveEpoch]);
@@ -45,7 +47,7 @@ export function SparePartsClient() {
   const [adjust, setAdjust] = useState({
     type: "adjust" as "in" | "out" | "adjust",
     qty: "",
-    reason: "Inventory correction"
+    reason: ""
   });
 
   const canAdd = useMemo(() => newPart.sku.trim() && newPart.name.trim(), [newPart]);
@@ -78,26 +80,26 @@ export function SparePartsClient() {
       createdAt: nowIso
     });
     setAdjustOpen(null);
-    setAdjust({ type: "adjust", qty: "", reason: "Inventory correction" });
+    setAdjust({ type: "adjust", qty: "", reason: "" });
   }
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-sm text-muted-foreground">
-          {spareParts?.length ?? 0} parts
+          {t("spareParts.list.count", { count: spareParts?.length ?? 0 })}
         </div>
         <Button onClick={() => setAddOpen(true)} size="lg">
           <Plus className="h-5 w-5" />
-          Add part
+          {t("spareParts.actions.addPart")}
         </Button>
       </div>
 
       <div className="overflow-hidden rounded-2xl border">
         <div className="grid grid-cols-[1fr_auto_auto] gap-3 border-b bg-muted px-4 py-3 text-sm font-medium">
-          <div>Spare part</div>
-          <div className="text-right">Stock</div>
-          <div className="text-right">Actions</div>
+          <div>{t("spareParts.table.part")}</div>
+          <div className="text-right">{t("spareParts.table.stock")}</div>
+          <div className="text-right">{t("spareParts.table.actions")}</div>
         </div>
         <div className="divide-y">
           {(spareParts ?? []).map((p) => {
@@ -113,8 +115,8 @@ export function SparePartsClient() {
                     {p.name}
                   </div>
                   <div className="mt-1 text-xs text-muted-foreground">
-                    SKU: {p.sku} • Unit: {p.unit ?? "pcs"}
-                    {p.minStock != null ? ` • Min: ${p.minStock}` : ""}
+                    {t("spareParts.row.meta", { sku: p.sku, unit: p.unit ?? "pcs" })}
+                    {p.minStock != null ? ` • ${t("spareParts.row.min", { min: p.minStock })}` : ""}
                   </div>
                 </div>
                 <div className="text-right text-sm">
@@ -126,7 +128,7 @@ export function SparePartsClient() {
                 <div className="text-right">
                   <Button variant="outline" onClick={() => setAdjustOpen(p.id)}>
                     <Wrench className="h-4 w-4" />
-                    Adjust
+                    {t("spareParts.actions.adjust")}
                   </Button>
                 </div>
               </div>
@@ -135,7 +137,7 @@ export function SparePartsClient() {
 
           {(spareParts ?? []).length === 0 ? (
             <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-              No spare parts yet. Add your first part to start tracking stock.
+              {t("spareParts.empty")}
             </div>
           ) : null}
         </div>
@@ -144,36 +146,36 @@ export function SparePartsClient() {
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add spare part</DialogTitle>
-            <DialogDescription>Saved locally. Sync later.</DialogDescription>
+            <DialogTitle>{t("spareParts.dialogs.add.title")}</DialogTitle>
+            <DialogDescription>{t("spareParts.dialogs.add.subtitle")}</DialogDescription>
           </DialogHeader>
 
           <div className="mt-4 grid gap-3">
             <div className="grid gap-2">
-              <Label>SKU</Label>
+              <Label>{t("spareParts.fields.sku")}</Label>
               <Input value={newPart.sku} onChange={(e) => setNewPart((s) => ({ ...s, sku: e.target.value }))} />
             </div>
             <div className="grid gap-2">
-              <Label>Name</Label>
+              <Label>{t("spareParts.fields.name")}</Label>
               <Input value={newPart.name} onChange={(e) => setNewPart((s) => ({ ...s, name: e.target.value }))} />
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="grid gap-2">
-                <Label>Unit</Label>
+                <Label>{t("spareParts.fields.unit")}</Label>
                 <Input value={newPart.unit} onChange={(e) => setNewPart((s) => ({ ...s, unit: e.target.value }))} />
               </div>
               <div className="grid gap-2">
-                <Label>Min stock (optional)</Label>
+                <Label>{t("spareParts.fields.minStock")}</Label>
                 <Input inputMode="numeric" value={newPart.minStock} onChange={(e) => setNewPart((s) => ({ ...s, minStock: e.target.value }))} />
               </div>
             </div>
 
             <div className="mt-2 flex items-center justify-end gap-2">
               <Button variant="outline" onClick={() => setAddOpen(false)} type="button">
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button disabled={!canAdd} onClick={createPart} type="button">
-                Save
+                {t("common.save")}
               </Button>
             </div>
           </div>
@@ -183,24 +185,28 @@ export function SparePartsClient() {
       <Dialog open={Boolean(adjustOpen)} onOpenChange={(v) => setAdjustOpen(v ? adjustOpen : null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Adjust stock</DialogTitle>
+            <DialogTitle>{t("spareParts.dialogs.adjust.title")}</DialogTitle>
             <DialogDescription>
-              Create a stock movement (in/out/adjust). This is offline-first.
+              {t("spareParts.dialogs.adjust.subtitle")}
             </DialogDescription>
           </DialogHeader>
 
           <div className="mt-4 grid gap-3">
             <div className="grid gap-2">
-              <Label>Type</Label>
+              <Label>{t("spareParts.fields.movementType")}</Label>
               <div className="grid grid-cols-3 gap-2">
-                {(["in", "out", "adjust"] as const).map((t) => (
+                {(["in", "out", "adjust"] as const).map((mt) => (
                   <Button
-                    key={t}
-                    variant={adjust.type === t ? "default" : "outline"}
-                    onClick={() => setAdjust((s) => ({ ...s, type: t }))}
+                    key={mt}
+                    variant={adjust.type === mt ? "default" : "outline"}
+                    onClick={() => setAdjust((s) => ({ ...s, type: mt }))}
                     type="button"
                   >
-                    {t}
+                    {mt === "in"
+                      ? t("spareParts.movementTypes.in")
+                      : mt === "out"
+                        ? t("spareParts.movementTypes.out")
+                        : t("spareParts.movementTypes.adjust")}
                   </Button>
                 ))}
               </div>
@@ -208,33 +214,34 @@ export function SparePartsClient() {
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="grid gap-2">
-                <Label>Quantity</Label>
+                <Label>{t("spareParts.fields.quantity")}</Label>
                 <Input
                   inputMode="numeric"
                   value={adjust.qty}
                   onChange={(e) => setAdjust((s) => ({ ...s, qty: e.target.value }))}
-                  placeholder="0"
+                  placeholder={t("common.numericZero")}
                 />
               </div>
               <div className="grid gap-2">
-                <Label>Reason</Label>
+                <Label>{t("spareParts.fields.reason")}</Label>
                 <Input
                   value={adjust.reason}
                   onChange={(e) => setAdjust((s) => ({ ...s, reason: e.target.value }))}
+                  placeholder={t("spareParts.reasonPlaceholder")}
                 />
               </div>
             </div>
 
             <div className="mt-2 flex items-center justify-end gap-2">
               <Button variant="outline" onClick={() => setAdjustOpen(null)} type="button">
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button
                 disabled={!canAdjust || !adjustOpen}
                 onClick={() => adjustOpen && applyAdjustment(adjustOpen)}
                 type="button"
               >
-                Save movement
+                {t("spareParts.actions.saveMovement")}
               </Button>
             </div>
           </div>

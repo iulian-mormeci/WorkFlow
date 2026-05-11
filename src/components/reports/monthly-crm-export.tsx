@@ -5,6 +5,7 @@ import { exportMonthForCrm } from "@/lib/export/crm-export";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslations } from "next-intl";
 
 function ym() {
   const d = new Date();
@@ -14,14 +15,15 @@ function ym() {
 }
 
 export function MonthlyCrmExport() {
+  const t = useTranslations();
   const { toast } = useToast();
   const [month, setMonth] = useState(ym());
 
   return (
     <Card className="rounded-2xl">
       <CardHeader className="space-y-2">
-        <CardTitle className="text-base">Monthly CRM export</CardTitle>
-        <CardDescription>Downloads JSON + CSV for the selected month.</CardDescription>
+        <CardTitle className="text-base">{t("reports.monthlyCrmExport.title")}</CardTitle>
+        <CardDescription>{t("reports.monthlyCrmExport.subtitle")}</CardDescription>
 
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <input
@@ -35,17 +37,20 @@ export function MonthlyCrmExport() {
               try {
                 const [y, m] = month.split("-").map((x) => Number(x));
                 await exportMonthForCrm(y, m - 1);
-                toast({ title: "Exported", description: "Monthly JSON + CSV downloaded." });
+                toast({
+                  title: t("reports.monthlyCrmExport.toasts.exportedTitle"),
+                  description: t("reports.monthlyCrmExport.toasts.exportedBody")
+                });
               } catch (e: any) {
                 toast({
-                  title: "Export failed",
-                  description: e?.message ?? "Could not export month",
+                  title: t("reports.monthlyCrmExport.toasts.exportFailedTitle"),
+                  description: e?.message ?? t("reports.monthlyCrmExport.toasts.exportFailedBody"),
                   variant: "destructive"
                 });
               }
             }}
           >
-            Export month
+            {t("reports.monthlyCrmExport.actions.exportMonth")}
           </Button>
         </div>
       </CardHeader>

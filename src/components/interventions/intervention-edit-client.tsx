@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
@@ -74,6 +73,7 @@ import {
   type RouteStopDraft
 } from "@/lib/routes/route-stops";
 import type { Intervention } from "@/lib/db/workflow-db";
+import { useTranslations } from "next-intl";
 
 function OpenInterventionRouteNavigator({
   interventionId,
@@ -82,6 +82,7 @@ function OpenInterventionRouteNavigator({
   interventionId: string;
   intervention: Intervention;
 }) {
+  const t = useTranslations();
   const [cloudStops, setCloudStops] = useState<RouteStopDraft[]>([]);
 
   useEffect(() => {
@@ -109,16 +110,19 @@ function OpenInterventionRouteNavigator({
 
   return (
     <div className="border-b border-primary/15 bg-gradient-to-b from-primary/5 to-transparent px-5 py-5 md:px-6">
-      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Navigazione</p>
+      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {t("interventions.detail.route.navigatorTitle")}
+      </p>
       <OpenRouteInNavigatorButton stops={mapStops} />
       <p className="mt-2 text-xs text-muted-foreground">
-        Su iPad si apre Mappe con tutte le fermate; su altri dispositivi si usa Google Maps se Mappe non conviene.
+        {t("interventions.detail.route.navigatorHint")}
       </p>
     </div>
   );
 }
 
 export function InterventionEditClient({ id }: { id: string }) {
+  const t = useTranslations();
   const liveEpoch = useWorkflowLiveEpoch();
   const intervention = useLiveQuery(async () => await db.interventions.get(id), [id, liveEpoch]);
   const client = useLiveQuery(async () => {
@@ -163,11 +167,11 @@ export function InterventionEditClient({ id }: { id: string }) {
         <div className="flex items-center gap-3">
           <Link className="inline-flex items-center gap-2 text-sm underline" href="/interventions">
             <ChevronLeft className="h-4 w-4" />
-            Back
+            {t("common.back")}
           </Link>
         </div>
         <div className="rounded-2xl border bg-muted p-4 text-sm text-muted-foreground">
-          Intervention not found.
+          {t("interventions.detail.notFound")}
         </div>
       </div>
     );
@@ -180,18 +184,23 @@ export function InterventionEditClient({ id }: { id: string }) {
           <div className="flex items-center gap-3">
             <Link className="inline-flex items-center gap-2 text-sm underline" href="/interventions">
               <ChevronLeft className="h-4 w-4" />
-              Back
+              {t("common.back")}
             </Link>
           </div>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-            {client?.name ?? "Intervention"}
+            {client?.name ?? t("common.intervention")}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {new Date(intervention.startAt).toLocaleString()}
+            {intervention.startAt ? (
+              <span suppressHydrationWarning>{new Date(intervention.startAt).toLocaleString()}</span>
+            ) : (
+              <span>{t("common.noDate")}</span>
+            )}
             {intervention.dueAt ? (
               <>
                 {" "}
-                · Must complete by {new Date(intervention.dueAt).toLocaleString()} (
+                · {t("interventions.detail.mustCompleteByPrefix")}{" "}
+                <span suppressHydrationWarning>{new Date(intervention.dueAt).toLocaleString()}</span> (
                 <DueCountdown intervention={intervention} />)
               </>
             ) : null}
@@ -201,11 +210,11 @@ export function InterventionEditClient({ id }: { id: string }) {
           <InterventionStatusBadge intervention={intervention} />
           <Button type="button" variant="outline" onClick={() => setPdfOpen(true)}>
             <FileDown className="h-4 w-4" />
-            PDF
+            {t("common.pdf")}
           </Button>
           <Button type="button" variant="outline" onClick={() => setTicketOpen(true)}>
             <MessageSquarePlus className="h-4 w-4" />
-            Ticket
+            {t("common.ticket")}
           </Button>
           <Button
             type="button"
@@ -213,21 +222,24 @@ export function InterventionEditClient({ id }: { id: string }) {
             onClick={async () => {
               try {
                 await exportInterventionForCrm(id);
-                toast({ title: "Exported for CRM", description: "JSON + CSV downloaded." });
+                toast({
+                  title: t("interventions.detail.toasts.crmExportedTitle"),
+                  description: t("interventions.detail.toasts.crmExportedBody")
+                });
               } catch (e: any) {
                 toast({
-                  title: "CRM export failed",
-                  description: e?.message ?? "Could not export",
+                  title: t("interventions.detail.toasts.crmExportFailedTitle"),
+                  description: e?.message ?? t("interventions.detail.toasts.crmExportFailedBody"),
                   variant: "destructive"
                 });
               }
             }}
           >
-            Export for CRM
+            {t("interventions.detail.actions.exportForCrm")}
           </Button>
           <Button type="button" onClick={() => setOpen(true)} variant="outline">
             <Pencil className="h-4 w-4" />
-            Edit
+            {t("common.edit")}
           </Button>
           {!isInterventionCompleted(intervention) ? (
             <Button
@@ -250,16 +262,16 @@ export function InterventionEditClient({ id }: { id: string }) {
                   });
                   scheduleWorkflowSync();
                   toast({
-                    title: "Marked complete",
+                    title: t("interventions.detail.toasts.markedCompleteTitle"),
                     description:
                       acc > 0
-                        ? "Visit closed and duration saved from the timer."
-                        : "Visit closed."
+                        ? t("interventions.detail.toasts.markedCompleteBodyWithTimer")
+                        : t("interventions.detail.toasts.markedCompleteBody")
                   });
                 } catch (e: unknown) {
                   toast({
-                    title: "Could not update",
-                    description: e instanceof Error ? e.message : "Unknown error",
+                    title: t("common.updateFailed"),
+                    description: e instanceof Error ? e.message : t("common.unknownError"),
                     variant: "destructive"
                   });
                 } finally {
@@ -268,34 +280,37 @@ export function InterventionEditClient({ id }: { id: string }) {
               }}
             >
               <CheckCircle2 className="h-4 w-4" />
-              Mark complete
+              {t("interventions.detail.actions.markComplete")}
             </Button>
           ) : null}
           <Button
             type="button"
             onClick={() => {
               setTemplateName(
-                `${client?.name ?? "Client"} • ${intervention.type}`
+                `${client?.name ?? t("common.client")} • ${intervention.type}`
               );
               setTemplateOpen(true);
             }}
             variant="outline"
           >
             <Layers className="h-4 w-4" />
-            Save template
+            {t("interventions.detail.actions.saveTemplate")}
           </Button>
           <Button type="button" onClick={() => setConfirmDelete(true)} variant="outline">
             <Trash2 className="h-4 w-4" />
-            Delete
+            {t("common.delete")}
           </Button>
         </div>
       </header>
 
       <OfflineBanner />
 
+      {/* Timer is optional: only show when the visit has a start time. */}
+      {intervention.startAt ? <InterventionTimerPanel interventionId={id} /> : null}
+
       <div className="grid gap-3 rounded-2xl border p-4 sm:grid-cols-2">
         <div>
-          <div className="text-xs text-muted-foreground">Work</div>
+          <div className="text-xs text-muted-foreground">{t("interventions.detail.summary.work")}</div>
           <div className="mt-1 flex flex-wrap items-center gap-2">
             <Badge
               className={
@@ -304,43 +319,45 @@ export function InterventionEditClient({ id }: { id: string }) {
                   : "border-primary/30 bg-primary/10 text-primary"
               }
             >
-              {(intervention.workCategory ?? "intervention") === "activity" ? "Activity" : "Intervention"}
+              {(intervention.workCategory ?? "intervention") === "activity"
+                ? t("common.activity")
+                : t("common.intervention")}
             </Badge>
             {(intervention.workCategory ?? "intervention") === "activity" &&
             intervention.isOfficeActivity ? (
-              <span className="text-xs text-muted-foreground">On-site office</span>
+              <span className="text-xs text-muted-foreground">{t("interventions.detail.summary.onSiteOffice")}</span>
             ) : (intervention.workCategory ?? "intervention") === "activity" ? (
-              <span className="text-xs text-muted-foreground">Remote</span>
+              <span className="text-xs text-muted-foreground">{t("interventions.detail.summary.remote")}</span>
             ) : null}
           </div>
         </div>
         <div>
-          <div className="text-xs text-muted-foreground">Job type</div>
+          <div className="text-xs text-muted-foreground">{t("interventions.detail.summary.jobType")}</div>
           <div className="font-semibold">{intervention.type}</div>
         </div>
         <div>
-          <div className="text-xs text-muted-foreground">Duration</div>
+          <div className="text-xs text-muted-foreground">{t("interventions.detail.summary.duration")}</div>
           <div className="font-semibold">
             {coerceInterventionWorkflowStatus(intervention.status) === "in_progress" ||
             normalizeTimerRunState(intervention) === "running" ||
             normalizeTimerRunState(intervention) === "paused" ? (
               <span className="font-mono">
-                Timer {normalizeTimerRunState(intervention)} ·{" "}
+                {t("interventions.detail.summary.timerPrefix", { state: normalizeTimerRunState(intervention) })} ·{" "}
                 {formatElapsedHms(getTimerElapsedSeconds(intervention))}
               </span>
             ) : intervention.durationMinutes != null ? (
-              `${intervention.durationMinutes} min`
+              t("common.minutesShort", { minutes: intervention.durationMinutes })
             ) : (
               "—"
             )}
           </div>
         </div>
         <div>
-          <div className="text-xs text-muted-foreground">KM</div>
+          <div className="text-xs text-muted-foreground">{t("interventions.detail.summary.km")}</div>
           <div className="font-semibold">{intervention.km ?? "—"}</div>
         </div>
         <div>
-          <div className="text-xs text-muted-foreground">Spare parts</div>
+          <div className="text-xs text-muted-foreground">{t("interventions.detail.summary.spareParts")}</div>
           <div className="font-semibold">
             {intervention.sparePartsUsed?.length ?? 0}
           </div>
@@ -348,11 +365,13 @@ export function InterventionEditClient({ id }: { id: string }) {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        {!isInterventionCompleted(intervention) ? (
+        {!isInterventionCompleted(intervention) && intervention.startAt ? (
           <InterventionTimerPanel interventionId={intervention.id} />
         ) : (
           <div className="rounded-2xl border bg-muted/40 px-4 py-6 text-sm text-muted-foreground">
-            This visit is completed. Use Edit to adjust details; the timer is closed.
+            {isInterventionCompleted(intervention)
+              ? t("interventions.detail.timerClosed.completed")
+              : t("interventions.detail.timerClosed.noStart")}
           </div>
         )}
         {intervention.startLocation || intervention.endLocation ? (
@@ -360,27 +379,30 @@ export function InterventionEditClient({ id }: { id: string }) {
             <CardHeader className="space-y-2">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <CardTitle className="text-base">Route</CardTitle>
-                  <CardDescription>Start / end stops and auto distance.</CardDescription>
+                  <CardTitle className="text-base">{t("interventions.detail.routeCard.title")}</CardTitle>
+                  <CardDescription>{t("interventions.detail.routeCard.subtitle")}</CardDescription>
                 </div>
                 <IconBubble icon={MapPin} />
               </div>
               <div className="mt-2 space-y-2 text-sm">
                 {intervention.startLocation ? (
                   <div>
-                    <div className="text-xs font-medium text-muted-foreground">Start</div>
+                    <div className="text-xs font-medium text-muted-foreground">{t("interventions.detail.routeCard.start")}</div>
                     <div>{intervention.startLocation.address}</div>
                   </div>
                 ) : null}
                 {intervention.endLocation ? (
                   <div>
-                    <div className="text-xs font-medium text-muted-foreground">End</div>
+                    <div className="text-xs font-medium text-muted-foreground">{t("interventions.detail.routeCard.end")}</div>
                     <div>{intervention.endLocation.address}</div>
                   </div>
                 ) : null}
                 {intervention.locationKmAuto != null ? (
                   <div className="text-xs text-muted-foreground">
-                    Auto route ≈ {intervention.locationKmAuto} km · Manual KM: {intervention.km ?? "—"}
+                    {t("interventions.detail.routeCard.kmLine", {
+                      autoKm: intervention.locationKmAuto,
+                      manualKm: intervention.km ?? "—"
+                    })}
                   </div>
                 ) : null}
               </div>
@@ -402,8 +424,8 @@ export function InterventionEditClient({ id }: { id: string }) {
         <CardHeader className="space-y-2">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <CardTitle className="text-base">Advanced route (multi-stop)</CardTitle>
-              <CardDescription>Realtime stops list shared across devices.</CardDescription>
+              <CardTitle className="text-base">{t("interventions.detail.advancedRoute.title")}</CardTitle>
+              <CardDescription>{t("interventions.detail.advancedRoute.subtitle")}</CardDescription>
             </div>
             <IconBubble icon={MapPin} />
           </div>
@@ -419,8 +441,8 @@ export function InterventionEditClient({ id }: { id: string }) {
           <CardHeader className="space-y-2">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <CardTitle className="text-base">Notes</CardTitle>
-                <CardDescription>What was done, observations, follow-ups.</CardDescription>
+                <CardTitle className="text-base">{t("interventions.detail.sections.notesTitle")}</CardTitle>
+                <CardDescription>{t("interventions.detail.sections.notesSubtitle")}</CardDescription>
               </div>
               <IconBubble icon={NotebookPen} />
             </div>
@@ -433,8 +455,8 @@ export function InterventionEditClient({ id }: { id: string }) {
         <CardHeader className="space-y-2">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <CardTitle className="text-base">Voice notes</CardTitle>
-              <CardDescription>Fast audio memos stored locally.</CardDescription>
+              <CardTitle className="text-base">{t("voice.sectionTitle")}</CardTitle>
+              <CardDescription>{t("voice.sectionSubtitle")}</CardDescription>
             </div>
             <IconBubble icon={Mic} />
           </div>
@@ -451,8 +473,8 @@ export function InterventionEditClient({ id }: { id: string }) {
         <CardHeader className="space-y-2">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <CardTitle className="text-base">Photos</CardTitle>
-              <CardDescription>Tap a photo to enlarge.</CardDescription>
+              <CardTitle className="text-base">{t("interventions.detail.sections.photosTitle")}</CardTitle>
+              <CardDescription>{t("interventions.detail.sections.photosSubtitle")}</CardDescription>
             </div>
             <IconBubble icon={FileImage} />
           </div>
@@ -460,7 +482,7 @@ export function InterventionEditClient({ id }: { id: string }) {
         <div className="px-5 pb-5 md:px-6 md:pb-6">
           {(intervention.photoIds ?? []).length === 0 ? (
             <div className="rounded-xl border bg-muted px-4 py-8 text-center text-sm text-muted-foreground">
-              No photos attached.
+              {t("interventions.detail.sections.photosEmpty")}
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -474,7 +496,7 @@ export function InterventionEditClient({ id }: { id: string }) {
                   <AttachmentImage
                     id={pid}
                     className="h-32 w-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
-                    alt="Photo"
+                    alt={t("interventions.detail.sections.photosAlt")}
                   />
                 </button>
               ))}
@@ -488,16 +510,16 @@ export function InterventionEditClient({ id }: { id: string }) {
           <div>
             <div className="flex items-center gap-2 text-sm font-semibold">
               <FileScan className="h-4 w-4 text-muted-foreground" />
-              Documents
+              {t("interventions.detail.documentsCard.title")}
             </div>
             <div className="text-xs text-muted-foreground">
-              Scan paperwork into a single PDF per intervention.
+              {t("interventions.detail.documentsCard.subtitle")}
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={() => setScanOpen(true)}>
               <Scan className="h-4 w-4" />
-              Scan document
+              {t("interventions.detail.documentsCard.scanCta")}
             </Button>
           </div>
         </div>
@@ -505,7 +527,7 @@ export function InterventionEditClient({ id }: { id: string }) {
         <div className="mt-4 space-y-2">
           {(intervention.documentIds ?? []).length === 0 ? (
             <div className="rounded-xl border bg-muted px-4 py-6 text-sm text-muted-foreground">
-              No scanned documents yet.
+              {t("interventions.detail.documents.empty")}
             </div>
           ) : (
             (intervention.documentIds ?? []).map((docId) => (
@@ -527,15 +549,15 @@ export function InterventionEditClient({ id }: { id: string }) {
       <Dialog open={Boolean(photoOpen)} onOpenChange={() => setPhotoOpen(null)}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Photo</DialogTitle>
-            <DialogDescription>Tap outside to close.</DialogDescription>
+            <DialogTitle>{t("interventions.detail.photoDialog.title")}</DialogTitle>
+            <DialogDescription>{t("interventions.detail.photoDialog.subtitle")}</DialogDescription>
           </DialogHeader>
           {photoOpen ? (
             <div className="mt-3 overflow-hidden rounded-2xl border bg-black">
               <AttachmentImage
                 id={photoOpen}
                 className="max-h-[70dvh] w-full object-contain"
-                alt="Photo preview"
+                alt={t("interventions.detail.photoDialog.previewAlt")}
               />
             </div>
           ) : null}
@@ -546,22 +568,36 @@ export function InterventionEditClient({ id }: { id: string }) {
         open={scanOpen}
         onOpenChange={setScanOpen}
         interventionId={id}
-        defaultTitle={`${client?.name ?? "Client"} - ${new Date(intervention.startAt).toLocaleDateString()}`}
+        defaultTitle={t("interventions.detail.scan.defaultTitle", {
+          clientName: client?.name ?? t("common.client"),
+          date: intervention.startAt
+            ? new Date(intervention.startAt).toLocaleDateString()
+            : intervention.dueAt
+              ? new Date(intervention.dueAt).toLocaleDateString()
+              : t("common.noDate")
+        })}
       />
 
       <SendToSupportDialog
         open={Boolean(sendDocId)}
         onOpenChange={(v) => !v && setSendDocId(null)}
         documentId={sendDocId ?? ""}
-        interventionRef={`${client?.name ?? "Client"} • ${new Date(intervention.startAt).toLocaleDateString()}`}
+        interventionRef={t("interventions.detail.supportRef", {
+          clientName: client?.name ?? t("common.client"),
+          date: intervention.startAt
+            ? new Date(intervention.startAt).toLocaleDateString()
+            : intervention.dueAt
+              ? new Date(intervention.dueAt).toLocaleDateString()
+              : t("common.noDate")
+        })}
       />
 
       <Dialog open={pdfOpen} onOpenChange={setPdfOpen}>
         <DialogContent className="max-w-[900px]">
           <DialogHeader>
-            <DialogTitle>PDF export</DialogTitle>
+            <DialogTitle>{t("interventions.detail.pdfDialog.title")}</DialogTitle>
             <DialogDescription>
-              Preview is generated locally from your offline data.
+              {t("interventions.detail.pdfDialog.subtitle")}
             </DialogDescription>
           </DialogHeader>
 
@@ -571,27 +607,30 @@ export function InterventionEditClient({ id }: { id: string }) {
 
           <div className="mt-4 flex items-center justify-end gap-2">
             <Button variant="outline" onClick={() => setPdfOpen(false)} type="button">
-              Close
+              {t("common.close")}
             </Button>
             <Button
               onClick={async () => {
                 try {
-                  const safe = (client?.name ?? "intervention").replaceAll(/[^\w\-]+/g, "-");
+                  const safe = (client?.name ?? t("common.intervention")).replaceAll(/[^\w\-]+/g, "-");
                   await exportInterventionPdf({
                     filename: `workflow-${safe}-${id.slice(0, 8)}.pdf`
                   });
-                  toast({ title: "PDF ready", description: "Downloaded to your device." });
+                  toast({
+                    title: t("interventions.detail.toasts.pdfReadyTitle"),
+                    description: t("interventions.detail.toasts.pdfReadyBody")
+                  });
                 } catch (e: any) {
                   toast({
-                    title: "PDF export failed",
-                    description: e?.message ?? "Could not generate PDF",
+                    title: t("interventions.detail.toasts.pdfFailedTitle"),
+                    description: e?.message ?? t("interventions.detail.toasts.pdfFailedBody"),
                     variant: "destructive"
                   });
                 }
               }}
               type="button"
             >
-              Download PDF
+              {t("interventions.detail.pdfDialog.download")}
             </Button>
           </div>
         </DialogContent>
@@ -600,9 +639,9 @@ export function InterventionEditClient({ id }: { id: string }) {
       <Dialog open={ticketOpen} onOpenChange={setTicketOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create ticket from intervention</DialogTitle>
+            <DialogTitle>{t("interventions.detail.ticketDialog.title")}</DialogTitle>
             <DialogDescription>
-              Creates a CRM ticket linked to this intervention (offline-first).
+              {t("interventions.detail.ticketDialog.subtitle")}
             </DialogDescription>
           </DialogHeader>
 
@@ -617,19 +656,23 @@ export function InterventionEditClient({ id }: { id: string }) {
       <Dialog open={templateOpen} onOpenChange={setTemplateOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Save as template</DialogTitle>
+            <DialogTitle>{t("interventions.detail.templateDialog.title")}</DialogTitle>
             <DialogDescription>
-              Creates a reusable template from this intervention (no documents/photos).
+              {t("interventions.detail.templateDialog.subtitle")}
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4 grid gap-3">
             <div className="grid gap-2">
-              <Label>Template name</Label>
-              <Input value={templateName} onChange={(e) => setTemplateName(e.target.value)} placeholder="Template name" />
+              <Label>{t("interventions.detail.templateDialog.nameLabel")}</Label>
+              <Input
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+                placeholder={t("interventions.detail.templateDialog.namePlaceholder")}
+              />
             </div>
             <div className="flex items-center justify-end gap-2">
               <Button variant="outline" type="button" onClick={() => setTemplateOpen(false)}>
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button
                 type="button"
@@ -653,18 +696,21 @@ export function InterventionEditClient({ id }: { id: string }) {
                       createdAt: nowIso,
                       updatedAt: nowIso
                     });
-                    toast({ title: "Template saved", description: "Available in Templates." });
+                    toast({
+                      title: t("interventions.detail.toasts.templateSavedTitle"),
+                      description: t("interventions.detail.toasts.templateSavedBody")
+                    });
                     setTemplateOpen(false);
                   } catch (e: any) {
                     toast({
-                      title: "Failed to save template",
-                      description: e?.message ?? "Unknown error",
+                      title: t("interventions.detail.toasts.templateSaveFailedTitle"),
+                      description: e?.message ?? t("common.unknownError"),
                       variant: "destructive"
                     });
                   }
                 }}
               >
-                Save
+                {t("common.save")}
               </Button>
             </div>
           </div>
@@ -674,11 +720,9 @@ export function InterventionEditClient({ id }: { id: string }) {
       <Dialog open={confirmDelete} onOpenChange={(open) => !deleting && setConfirmDelete(open)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete intervention?</DialogTitle>
+            <DialogTitle>{t("interventions.deleteDialog.title")}</DialogTitle>
             <DialogDescription>
-              When you are online, this also removes the intervention from your Supabase account
-              (documents, attachments, and queued emails in the cloud). CRM tickets stay but are
-              unlinked. This cannot be undone.
+              {t("interventions.detail.deleteDialogBody")}
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4 flex items-center justify-end gap-2">
@@ -688,7 +732,7 @@ export function InterventionEditClient({ id }: { id: string }) {
               type="button"
               disabled={deleting}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               variant="outline"
@@ -708,7 +752,7 @@ export function InterventionEditClient({ id }: { id: string }) {
                   });
                   if (!res.ok) {
                     toast({
-                      title: "Could not delete in the cloud",
+                      title: t("interventions.toasts.deleteCloudFailedTitle"),
                       description: res.message,
                       variant: "destructive"
                     });
@@ -716,11 +760,11 @@ export function InterventionEditClient({ id }: { id: string }) {
                   }
                   setConfirmDelete(false);
                   toast({
-                    title: "Intervention deleted",
+                    title: t("interventions.toasts.deletedTitle"),
                     description:
                       res.mode === "queued"
-                        ? "Deleted locally. Will be removed from the cloud when you are online."
-                        : "Deleted from all devices."
+                        ? t("interventions.toasts.deletedQueuedBody")
+                        : t("interventions.toasts.deletedNowBody")
                   });
                   scheduleWorkflowSync();
                   router.push("/interventions");
@@ -728,7 +772,7 @@ export function InterventionEditClient({ id }: { id: string }) {
                 } catch (e: unknown) {
                   const msg = e instanceof Error ? e.message : String(e);
                   toast({
-                    title: "Could not delete",
+                    title: t("interventions.toasts.deleteFailedTitle"),
                     description: msg,
                     variant: "destructive"
                   });
@@ -737,7 +781,7 @@ export function InterventionEditClient({ id }: { id: string }) {
                 }
               }}
             >
-              {deleting ? "Deleting…" : "Delete"}
+              {deleting ? t("common.deleting") : t("common.delete")}
             </Button>
           </div>
         </DialogContent>
@@ -750,6 +794,7 @@ export function InterventionEditClient({ id }: { id: string }) {
 
 function DocumentRow({ docId, onSend }: { docId: string; onSend: (id: string) => void }) {
   const { toast } = useToast();
+  const t = useTranslations();
   const liveEpoch = useWorkflowLiveEpoch();
   const doc = useLiveQuery(async () => await db.documents.get(docId), [docId, liveEpoch]);
 
@@ -760,7 +805,10 @@ function DocumentRow({ docId, onSend }: { docId: string; onSend: (id: string) =>
       <div className="min-w-0">
         <div className="truncate text-sm font-semibold">{doc.title}</div>
         <div className="mt-0.5 text-xs text-muted-foreground">
-          {new Date(doc.createdAt).toLocaleString()} • {doc.pageCount} page{doc.pageCount === 1 ? "" : "s"}
+          {t("documents.row.meta", {
+            createdAt: new Date(doc.createdAt).toLocaleString(),
+            pages: doc.pageCount
+          })}
         </div>
       </div>
       <div className="flex items-center gap-2">
@@ -769,23 +817,27 @@ function DocumentRow({ docId, onSend }: { docId: string; onSend: (id: string) =>
           onClick={async () => {
             try {
               const a = await db.attachments.get(doc.attachmentId);
-              if (!a) throw new Error("PDF not found");
+              if (!a) throw new Error(t("documents.errors.pdfNotFound"));
               const url = URL.createObjectURL(a.blob);
               window.open(url, "_blank", "noopener,noreferrer");
               setTimeout(() => URL.revokeObjectURL(url), 60_000);
             } catch (e: any) {
-              toast({ title: "Open failed", description: e?.message ?? "Could not open", variant: "destructive" });
+              toast({
+                title: t("documents.toasts.openFailedTitle"),
+                description: e?.message ?? t("documents.toasts.openFailedBody"),
+                variant: "destructive"
+              });
             }
           }}
         >
-          Open PDF
+          {t("documents.actions.openPdf")}
         </Button>
         <Button
           variant="outline"
           onClick={() => onSend(doc.id)}
         >
           <Mail className="h-4 w-4" />
-          Send to Support
+          {t("documents.actions.sendToSupport")}
         </Button>
       </div>
     </div>
@@ -802,7 +854,10 @@ function CreateTicketFromIntervention({
   onDone: () => void;
 }) {
   const { toast } = useToast();
-  const [title, setTitle] = useState(clientName ? `Follow-up: ${clientName}` : "Follow-up");
+  const t = useTranslations();
+  const [title, setTitle] = useState(
+    clientName ? t("tickets.createFromIntervention.defaultTitleWithClient", { clientName }) : t("tickets.createFromIntervention.defaultTitle")
+  );
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
   const [dueDate, setDueDate] = useState(() => {
@@ -817,17 +872,17 @@ function CreateTicketFromIntervention({
   return (
     <div className="mt-4 grid gap-3">
       <div className="grid gap-2">
-        <Label>Title</Label>
+        <Label>{t("tickets.fields.title")}</Label>
         <Input value={title} onChange={(e) => setTitle(e.target.value)} />
       </div>
       <div className="grid gap-2">
-        <Label>Description</Label>
+        <Label>{t("tickets.fields.description")}</Label>
         <Textarea value={description} onChange={(e) => setDescription(e.target.value)} />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="grid gap-2">
-          <Label>Priority</Label>
+          <Label>{t("tickets.fields.priority")}</Label>
           <div className="grid grid-cols-3 gap-2">
             {(["low", "medium", "high"] as const).map((p) => (
               <Button
@@ -836,20 +891,20 @@ function CreateTicketFromIntervention({
                 onClick={() => setPriority(p)}
                 type="button"
               >
-                {p}
+                {t(`tickets.priority.${p}`)}
               </Button>
             ))}
           </div>
         </div>
         <div className="grid gap-2">
-          <Label>Due date</Label>
+          <Label>{t("tickets.fields.dueDate")}</Label>
           <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
         </div>
       </div>
 
       <div className="mt-2 flex items-center justify-end gap-2">
         <Button variant="outline" onClick={onDone} type="button">
-          Cancel
+          {t("common.cancel")}
         </Button>
         <Button
           disabled={!canSave}
@@ -869,19 +924,22 @@ function CreateTicketFromIntervention({
                 createdAt: nowIso,
                 updatedAt: nowIso
               });
-              toast({ title: "Ticket created", description: "Linked to intervention." });
+              toast({
+                title: t("tickets.toasts.createdTitle"),
+                description: t("tickets.toasts.createdBody")
+              });
               onDone();
             } catch (e: any) {
               toast({
-                title: "Failed to create ticket",
-                description: e?.message ?? "Unknown error",
+                title: t("tickets.toasts.createFailedTitle"),
+                description: e?.message ?? t("common.unknownError"),
                 variant: "destructive"
               });
             }
           }}
           type="button"
         >
-          Create ticket
+          {t("tickets.actions.create")}
         </Button>
       </div>
     </div>

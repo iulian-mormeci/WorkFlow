@@ -8,6 +8,7 @@ import { persistAttachmentToCloud } from "@/lib/sync/attachment-cloud";
 import { scheduleWorkflowSync } from "@/lib/sync/sync-engine";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslations } from "next-intl";
 
 type Props = {
   interventionId: string;
@@ -27,6 +28,7 @@ function pickBestMime() {
 }
 
 export function VoiceNoteRecorder({ interventionId }: Props) {
+  const t = useTranslations();
   const { toast } = useToast();
   const [recording, setRecording] = useState(false);
   const [paused, setPaused] = useState(false);
@@ -54,10 +56,10 @@ export function VoiceNoteRecorder({ interventionId }: Props) {
     setBusy(true);
     try {
       if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
-        throw new Error("Audio recording is not supported on this device/browser.");
+        throw new Error(t("voice.recorder.errors.notSupported"));
       }
       if (typeof MediaRecorder === "undefined") {
-        throw new Error("MediaRecorder not available.");
+        throw new Error(t("voice.recorder.errors.mediaRecorderUnavailable"));
       }
 
       if (previewUrl) {
@@ -88,8 +90,8 @@ export function VoiceNoteRecorder({ interventionId }: Props) {
       setPaused(false);
     } catch (e: any) {
       toast({
-        title: "Cannot record",
-        description: e?.message ?? "Microphone permission or support issue",
+        title: t("voice.recorder.toasts.cannotRecordTitle"),
+        description: e?.message ?? t("voice.recorder.toasts.cannotRecordBodyFallback"),
         variant: "destructive"
       });
     } finally {
@@ -164,9 +166,9 @@ export function VoiceNoteRecorder({ interventionId }: Props) {
         }
       } catch (e: unknown) {
         toast({
-          title: "Cloud upload incomplete",
+          title: t("voice.recorder.toasts.cloudUploadIncompleteTitle"),
           description:
-            e instanceof Error ? e.message : "Audio saved locally; will retry on next sync.",
+            e instanceof Error ? e.message : t("voice.recorder.toasts.cloudUploadIncompleteBodyFallback"),
           variant: "destructive"
         });
       } finally {
@@ -174,7 +176,10 @@ export function VoiceNoteRecorder({ interventionId }: Props) {
       }
 
       scheduleWorkflowSync();
-      toast({ title: "Voice note saved", description: "Stored locally (offline-first)." });
+      toast({
+        title: t("voice.recorder.toasts.savedTitle"),
+        description: t("voice.recorder.toasts.savedBody")
+      });
 
       // Clear any preview state created by onstop
       if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -238,9 +243,9 @@ export function VoiceNoteRecorder({ interventionId }: Props) {
         }
       } catch (e: unknown) {
         toast({
-          title: "Cloud upload incomplete",
+        title: t("voice.recorder.toasts.cloudUploadIncompleteTitle"),
           description:
-            e instanceof Error ? e.message : "Audio saved locally; will retry on next sync.",
+          e instanceof Error ? e.message : t("voice.recorder.toasts.cloudUploadIncompleteBodyFallback"),
           variant: "destructive"
         });
       } finally {
@@ -248,14 +253,17 @@ export function VoiceNoteRecorder({ interventionId }: Props) {
       }
 
       scheduleWorkflowSync();
-      toast({ title: "Voice note saved", description: "Stored locally (offline-first)." });
+    toast({
+      title: t("voice.recorder.toasts.savedTitle"),
+      description: t("voice.recorder.toasts.savedBody")
+    });
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       setPreviewUrl(null);
       setPreviewBlob(null);
     } catch (e: any) {
       toast({
-        title: "Save failed",
-        description: e?.message ?? "Could not save voice note",
+        title: t("voice.recorder.toasts.saveFailedTitle"),
+        description: e?.message ?? t("voice.recorder.toasts.saveFailedBodyFallback"),
         variant: "destructive"
       });
     } finally {
@@ -268,7 +276,7 @@ export function VoiceNoteRecorder({ interventionId }: Props) {
       {uploadPct != null ? (
         <div className="grid gap-1">
           <div className="text-xs font-medium text-muted-foreground">
-            Uploading… {uploadPct}%
+            {t("voice.recorder.uploading", { pct: uploadPct })}
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-muted">
             <div
@@ -280,29 +288,29 @@ export function VoiceNoteRecorder({ interventionId }: Props) {
       ) : null}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div className="text-sm font-semibold">Voice note</div>
-          <div className="text-xs text-muted-foreground">Record a short audio memo for this intervention.</div>
+          <div className="text-sm font-semibold">{t("voice.recorder.title")}</div>
+          <div className="text-xs text-muted-foreground">{t("voice.recorder.subtitle")}</div>
         </div>
 
         <div className="flex items-center gap-2">
           {!recording ? (
             <Button disabled={busy} onClick={start} type="button">
               <Mic className="h-4 w-4" />
-              Record
+              {t("voice.recorder.actions.record")}
             </Button>
           ) : (
             <>
               <Button variant="outline" onClick={togglePause} type="button">
                 {paused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
-                {paused ? "Resume" : "Pause"}
+                {paused ? t("voice.recorder.actions.resume") : t("voice.recorder.actions.pause")}
               </Button>
               <Button variant="outline" onClick={stopAndSave} type="button" disabled={busy}>
                 <Save className="h-4 w-4" />
-                Stop & Save
+                {t("voice.recorder.actions.stopAndSave")}
               </Button>
               <Button onClick={stop} type="button" disabled={busy}>
                 <Square className="h-4 w-4" />
-                Stop
+                {t("voice.recorder.actions.stop")}
               </Button>
             </>
           )}
@@ -323,17 +331,17 @@ export function VoiceNoteRecorder({ interventionId }: Props) {
               type="button"
             >
               <Trash2 className="h-4 w-4" />
-              Discard
+              {t("voice.recorder.actions.discard")}
             </Button>
             <Button disabled={busy} onClick={save} type="button">
               <Save className="h-4 w-4" />
-              Save
+              {t("common.save")}
             </Button>
           </div>
         </div>
       ) : (
         <div className="rounded-xl border bg-muted px-4 py-3 text-sm text-muted-foreground">
-          {recording ? "Recording…" : "No new recording."}
+          {recording ? t("voice.recorder.state.recording") : t("voice.recorder.state.noNewRecording")}
         </div>
       )}
     </div>

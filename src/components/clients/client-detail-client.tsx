@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
@@ -27,8 +27,10 @@ import {
   preservedWorkflowStatus
 } from "@/lib/interventions/intervention-helpers";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
-function formatWhen(iso: string) {
+function formatWhen(iso?: string) {
+  if (!iso) return "—";
   const d = new Date(iso);
   return d.toLocaleString(undefined, {
     weekday: "short",
@@ -41,6 +43,7 @@ function formatWhen(iso: string) {
 }
 
 export function ClientDetailClient({ id }: { id: string }) {
+  const t = useTranslations();
   useWorkflowLiveEpoch();
   const [ivOpen, setIvOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -49,7 +52,7 @@ export function ClientDetailClient({ id }: { id: string }) {
   const interventions = useLiveQuery(
     async () =>
       (await db.interventions.where("clientId").equals(id).toArray()).sort(
-        (a, b) => b.startAt.localeCompare(a.startAt)
+        (a, b) => (b.startAt ?? "").localeCompare(a.startAt ?? "")
       ),
     [id]
   );
@@ -63,7 +66,7 @@ export function ClientDetailClient({ id }: { id: string }) {
   if (client === undefined) {
     return (
       <div className="mx-auto max-w-3xl py-10 text-center text-sm text-muted-foreground">
-        Loading…
+        {t("clients.detail.loading")}
       </div>
     );
   }
@@ -76,11 +79,11 @@ export function ClientDetailClient({ id }: { id: string }) {
           className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to clients
+          {t("clients.detail.backToClients")}
         </Link>
         <div className="rounded-2xl border bg-muted/30 px-6 py-12 text-center">
-          <p className="font-medium">Client not found</p>
-          <p className="mt-2 text-sm text-muted-foreground">It may have been deleted on another device.</p>
+          <p className="font-medium">{t("clients.detail.notFoundTitle")}</p>
+          <p className="mt-2 text-sm text-muted-foreground">{t("clients.detail.notFoundBody")}</p>
         </div>
       </div>
     );
@@ -94,7 +97,7 @@ export function ClientDetailClient({ id }: { id: string }) {
           className="inline-flex min-h-11 items-center gap-2 rounded-xl border bg-background px-3 text-sm font-medium text-muted-foreground transition hover:bg-muted"
         >
           <ArrowLeft className="h-4 w-4" />
-          Clients
+          {t("clients.page.title")}
         </Link>
       </div>
 
@@ -109,12 +112,14 @@ export function ClientDetailClient({ id }: { id: string }) {
               </Badge>
             </div>
             {client.contactPerson ? (
-              <p className="text-sm text-muted-foreground">Contact: {client.contactPerson}</p>
+              <p className="text-sm text-muted-foreground">
+                {t("clients.detail.contactPrefix")} {client.contactPerson}
+              </p>
             ) : null}
             <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">
                 <Calendar className="h-4 w-4" />
-                Last visit:{" "}
+                {t("clients.detail.lastVisitPrefix")}{" "}
                 {st?.lastStartAt
                   ? new Date(st.lastStartAt).toLocaleDateString(undefined, {
                       day: "numeric",
@@ -125,18 +130,18 @@ export function ClientDetailClient({ id }: { id: string }) {
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <Wrench className="h-4 w-4" />
-                {st?.count ?? 0} intervention{(st?.count ?? 0) === 1 ? "" : "s"}
+                {t("clients.detail.interventionsCount", { count: st?.count ?? 0 })}
               </span>
             </div>
           </div>
           <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:min-w-[11rem]">
             <Button className="min-h-12 w-full gap-2" onClick={() => setIvOpen(true)}>
               <Plus className="h-4 w-4" />
-              New intervention
+              {t("clients.detail.actions.newIntervention")}
             </Button>
             <Button variant="outline" className="min-h-12 w-full gap-2" onClick={() => setEditOpen(true)}>
               <Pencil className="h-4 w-4" />
-              Edit client
+              {t("clients.detail.actions.editClient")}
             </Button>
           </div>
         </div>
@@ -179,8 +184,8 @@ export function ClientDetailClient({ id }: { id: string }) {
       </div>
 
       <div>
-        <h2 className="text-lg font-semibold tracking-tight">Interventions</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Newest first. Tap to open the full record.</p>
+        <h2 className="text-lg font-semibold tracking-tight">{t("clients.detail.interventionsTitle")}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{t("clients.detail.interventionsSubtitle")}</p>
         <ul className="mt-4 space-y-2">
           {(interventions ?? []).map((it) => {
             const done = isInterventionCompleted(it);
@@ -194,7 +199,7 @@ export function ClientDetailClient({ id }: { id: string }) {
                   )}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="font-medium">{it.type || "Intervention"}</span>
+                    <span className="font-medium">{it.type || t("common.intervention")}</span>
                     <Badge
                       className={
                         done
@@ -205,7 +210,13 @@ export function ClientDetailClient({ id }: { id: string }) {
                       {preservedWorkflowStatus(it)}
                     </Badge>
                   </div>
-                  <div className="text-xs text-muted-foreground">{formatWhen(it.startAt)}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {it.startAt
+                      ? formatWhen(it.startAt)
+                      : it.dueAt
+                        ? `${t("common.duePrefix")} ${formatWhen(it.dueAt)}`
+                        : t("common.noDate")}
+                  </div>
                 </Link>
               </li>
             );
@@ -213,7 +224,7 @@ export function ClientDetailClient({ id }: { id: string }) {
         </ul>
         {(interventions ?? []).length === 0 ? (
           <div className="mt-4 rounded-2xl border border-dashed bg-muted/20 px-4 py-10 text-center text-sm text-muted-foreground">
-            No interventions yet for this client.
+            {t("clients.detail.empty")}
           </div>
         ) : null}
       </div>
