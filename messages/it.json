@@ -548,7 +548,6 @@
     "cta": "Ho capito",
     "privacyLink": "Leggi la Privacy Policy"
   },
-  
   "logout": {
     "title": "Sei stato disconnesso.",
     "body": "Grazie per aver usato WorkFlow.",
@@ -1317,7 +1316,7 @@
       "timerClosed": {
         "completed": "Questa visita è completata. Usa Modifica per aggiornare i dettagli; il timer è chiuso.",
         "noStart": "Nessun orario di inizio impostato — aggiungi un inizio per usare il timer."
-      }
+      },
       "route": {
         "navigatorTitle": "Navigazione",
         "navigatorHint": "Su iPad si apre Mappe con tutte le fermate; su altri dispositivi può essere usato Google Maps se più adatto."

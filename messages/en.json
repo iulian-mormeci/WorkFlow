@@ -1316,7 +1316,7 @@
       "timerClosed": {
         "completed": "This visit is completed. Use Edit to adjust details; the timer is closed.",
         "noStart": "No start time set yet — add a start time to use the work timer."
-      }
+      },
       "route": {
         "navigatorTitle": "Navigation",
         "navigatorHint": "On iPad, Apple Maps opens with all stops; on other devices, Google Maps may be used if it’s a better fit."
