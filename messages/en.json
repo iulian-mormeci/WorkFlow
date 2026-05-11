@@ -992,7 +992,7 @@
       "lastLoginUnknown": "Not available yet",
       "currentSessionTitle": "Current session",
       "currentSessionBody": "Signed in.",
-      "currentSessionDeviceHint": "This browser — access token rotates automatically while you use the app.",
+      "currentSessionDeviceHint": "Shows this browser only. Supabase does not expose other devices in the app; each client keeps its own session. Sign out everywhere still revokes every session on the server — other phones or tabs disconnect after their next navigation or refresh.",
       "sessionRefreshHint": "Current access token expires about: {when}",
       "signOutAllDevices": "Sign out from all devices",
       "signOutAllHint": "Ends every Supabase session (this device and any other). You will need to sign in again.",

@@ -992,7 +992,7 @@
       "lastLoginUnknown": "Non ancora disponibile",
       "currentSessionTitle": "Sessione attuale",
       "currentSessionBody": "Connesso.",
-      "currentSessionDeviceHint": "Questo browser — il token di accesso si rinnova automaticamente mentre usi l’app.",
+      "currentSessionDeviceHint": "Mostra solo questo browser. Supabase non elenca gli altri dispositivi nell’app: ogni client mantiene la propria sessione. «Esci da tutti i dispositivi» revoca comunque tutto lato server — telefono o altre schede si disconnettono al prossimo caricamento o rinnovo del token.",
       "sessionRefreshHint": "Il token di accesso attuale scade verso: {when}",
       "signOutAllDevices": "Esci da tutti i dispositivi",
       "signOutAllHint": "Chiude tutte le sessioni Supabase (questo dispositivo e ogni altro). Dovrai accedere di nuovo.",
