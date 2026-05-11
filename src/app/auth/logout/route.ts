@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { getAuthRedirectOrigin } from "@/lib/supabase/site-url";
+import { getSiteUrl } from "@/lib/supabase/site-url";
 
 /**
  * Builds a safe absolute URL for `/` on the canonical public origin.
@@ -8,8 +8,7 @@ import { getAuthRedirectOrigin } from "@/lib/supabase/site-url";
  */
 function redirectToLandingRoot(req: NextRequest): URL {
   try {
-    const origin = getAuthRedirectOrigin(req);
-    const u = new URL("/", origin);
+    const u = new URL("/", getSiteUrl());
     if (u.protocol !== "http:" && u.protocol !== "https:") {
       throw new Error("unsupported protocol");
     }

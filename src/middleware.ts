@@ -321,9 +321,28 @@ export async function middleware(req: NextRequest) {
   if (isPublicPath(pathname)) return finish(req, res);
 
   // Official pattern: getUser() refreshes JWT and writes cookies via setAll on this response.
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  let user: unknown = null;
+  try {
+    const r = await supabase.auth.getUser();
+    user = r.data.user;
+    // If Supabase returns an error here, we treat it like an offline/refresh failure:
+    // do not crash the request; we fall back to offline-first behavior below.
+    if (r.error) {
+      logSecurityEvent({
+        event: "supabase_getUser_error",
+        ip,
+        message: r.error.message
+      });
+      user = null;
+    }
+  } catch (e: unknown) {
+    logSecurityEvent({
+      event: "supabase_getUser_throw",
+      ip,
+      message: e instanceof Error ? e.message : String(e)
+    });
+    user = null;
+  }
 
   if (user) return finish(req, res);
 

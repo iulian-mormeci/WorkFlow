@@ -5,8 +5,12 @@ import type { NextRequest } from "next/server";
  * In production, set `NEXT_PUBLIC_SITE_URL` to your canonical origin (e.g. https://workflow.mormeci.it).
  */
 export function getSiteUrl(): string {
-  const v = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  if (v) return v.replace(/\/+$/, "");
+  const vRaw = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (vRaw) {
+    // Common production typo hardening: `https:://example.com` → `https://example.com`
+    const v = vRaw.replace(/^([a-z]+):+\/\//i, "$1://").replace(/\/+$/, "");
+    return v;
+  }
   if (typeof window !== "undefined") return window.location.origin;
   // Dev / prerender only — production should always set NEXT_PUBLIC_SITE_URL for stable auth redirects.
   return "http://localhost:3000";
@@ -18,7 +22,9 @@ export function getSiteUrl(): string {
  * to localhost or the wrong deployment. Order: configured URL → forwarded headers → request URL.
  */
 export function getAuthRedirectOrigin(req: NextRequest): string {
-  const configuredRaw = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/+$/, "") ?? "";
+  const configuredRaw = (process.env.NEXT_PUBLIC_SITE_URL?.trim() ?? "")
+    .replace(/^([a-z]+):+\/\//i, "$1://")
+    .replace(/\/+$/, "");
   if (configuredRaw) {
     try {
       const withScheme = /^https?:\/\//i.test(configuredRaw)

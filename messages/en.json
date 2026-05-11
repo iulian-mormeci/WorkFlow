@@ -1430,6 +1430,8 @@
       "email": "Email",
       "password": "Password"
     },
+    "email": "Email",
+    "password": "Password",
     "oauthError": "OAuth sign-in failed.",
     "register": {
       "title": "Create account",
