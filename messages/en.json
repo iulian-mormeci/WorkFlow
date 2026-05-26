@@ -418,6 +418,10 @@
       "itemPlaceholder": "Checklist item",
       "newItemPlaceholder": "New item text",
       "empty": "No checklist items yet. Add tasks above — drag the handle to reorder."
+    },
+    "suggestions": {
+      "title": "Frequently used",
+      "addAria": "Add {label}"
     }
   },
   "route": {
@@ -1396,6 +1400,9 @@
       "sections": {
         "notesTitle": "Notes",
         "notesSubtitle": "What was done, observations, follow-ups.",
+        "checklistTitle": "Checklist",
+        "checklistSubtitle": "Add tasks, tick them off on site, and reuse frequent items from your history.",
+        "checklistProgress": "{done} of {total} done",
         "photosTitle": "Photos",
         "photosSubtitle": "Tap a photo to enlarge.",
         "photosEmpty": "No photos attached.",

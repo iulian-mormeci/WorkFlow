@@ -418,6 +418,10 @@
       "itemPlaceholder": "Voce checklist",
       "newItemPlaceholder": "Testo nuovo elemento",
       "empty": "Nessuna voce checklist ancora. Aggiungi attività qui sopra — trascina la maniglia per riordinare."
+    },
+    "suggestions": {
+      "title": "Usate spesso",
+      "addAria": "Aggiungi {label}"
     }
   },
   "route": {
@@ -1396,6 +1400,9 @@
       "sections": {
         "notesTitle": "Note",
         "notesSubtitle": "Cosa è stato fatto, osservazioni, follow-up.",
+        "checklistTitle": "Checklist",
+        "checklistSubtitle": "Aggiungi attività, spuntale in cantiere e riusa le voci più frequenti dalla tua cronologia.",
+        "checklistProgress": "{done} di {total} completate",
         "photosTitle": "Foto",
         "photosSubtitle": "Tocca una foto per ingrandire.",
         "photosEmpty": "Nessuna foto allegata.",

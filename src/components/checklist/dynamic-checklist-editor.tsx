@@ -86,9 +86,16 @@ type Props = {
   value: ChecklistRow[];
   onChange: (next: ChecklistRow[]) => void;
   label?: string;
+  /** Quick-add chips from the user's frequent checklist labels. */
+  suggestions?: string[];
 };
 
-export function DynamicChecklistEditor({ value, onChange, label = "Checklist" }: Props) {
+export function DynamicChecklistEditor({
+  value,
+  onChange,
+  label = "Checklist",
+  suggestions = []
+}: Props) {
   const t = useTranslations();
   const [draft, setDraft] = useState("");
   const ids = useMemo(() => value.map((x) => x.id), [value]);
@@ -107,15 +114,22 @@ export function DynamicChecklistEditor({ value, onChange, label = "Checklist" }:
     onChange(arrayMove(value, oldIndex, newIndex));
   }
 
-  function addItem() {
-    const t = draft.trim();
+  function addItem(text?: string) {
+    const t = (text ?? draft).trim();
     if (!t) return;
+    const key = t.toLowerCase();
+    if (value.some((x) => x.label.trim().toLowerCase() === key)) return;
     onChange([
       ...value,
       { id: crypto.randomUUID(), label: t, done: false }
     ]);
     setDraft("");
   }
+
+  const visibleSuggestions = suggestions.filter((s) => {
+    const key = s.trim().toLowerCase();
+    return key.length > 1 && !value.some((x) => x.label.trim().toLowerCase() === key);
+  });
 
   return (
     <div className="grid gap-2">
@@ -133,11 +147,35 @@ export function DynamicChecklistEditor({ value, onChange, label = "Checklist" }:
             }
           }}
         />
-        <Button type="button" variant="secondary" className="shrink-0" onClick={addItem}>
+        <Button type="button" variant="secondary" className="shrink-0 min-h-11 touch-manipulation" onClick={() => addItem()}>
           <Plus className="mr-2 h-4 w-4" />
           {t("common.add")}
         </Button>
       </div>
+
+      {visibleSuggestions.length > 0 ? (
+        <div className="rounded-xl border border-dashed bg-muted/30 px-3 py-3">
+          <p className="text-xs font-medium text-muted-foreground">
+            {t("checklist.suggestions.title")}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {visibleSuggestions.map((s) => (
+              <Button
+                key={s}
+                type="button"
+                variant="outline"
+                size="sm"
+                className="min-h-10 touch-manipulation rounded-full px-3 text-left"
+                aria-label={t("checklist.suggestions.addAria", { label: s })}
+                onClick={() => addItem(s)}
+              >
+                <Plus className="mr-1.5 h-3.5 w-3.5 shrink-0 opacity-70" />
+                <span className="truncate">{s}</span>
+              </Button>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {value.length === 0 ? (
         <div className="rounded-xl border border-dashed bg-muted/40 px-4 py-6 text-center text-sm text-muted-foreground">

@@ -9,6 +9,7 @@ import {
   FileDown,
   FileImage,
   FileScan,
+  ListChecks,
   Layers,
   Mail,
   MapPin,
@@ -24,7 +25,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  DynamicChecklistEditor,
+  type ChecklistRow
+} from "@/components/checklist/dynamic-checklist-editor";
 import { InterventionFormDialog } from "@/components/interventions/intervention-form-dialog";
+import { getFrequentChecklistLabels } from "@/lib/checklist/checklist-suggestions";
 import { OfflineBanner } from "@/components/offline/offline-banner";
 import { AttachmentImage } from "@/components/attachments/attachment-image";
 import { DocumentScannerDialog } from "@/components/documents/document-scanner-dialog";
@@ -452,6 +458,11 @@ export function InterventionEditClient({ id }: { id: string }) {
         </Card>
       ) : null}
 
+      <InterventionDetailChecklist
+        interventionId={intervention.id}
+        checklist={intervention.checklist}
+      />
+
       <Card className="rounded-2xl">
         <CardHeader className="space-y-2">
           <div className="flex items-start justify-between gap-3">
@@ -790,6 +801,67 @@ export function InterventionEditClient({ id }: { id: string }) {
 
       <QuickNoteFab interventionId={id} />
     </div>
+  );
+}
+
+function InterventionDetailChecklist({
+  interventionId,
+  checklist
+}: {
+  interventionId: string;
+  checklist?: ChecklistRow[];
+}) {
+  const t = useTranslations();
+  const liveEpoch = useWorkflowLiveEpoch();
+  const rows = checklist ?? [];
+  const doneCount = rows.filter((x) => x.done).length;
+
+  const suggestions = useLiveQuery(
+    async () =>
+      getFrequentChecklistLabels({
+        excludeLabels: rows.map((x) => x.label),
+        excludeInterventionId: interventionId
+      }),
+    [interventionId, rows.map((x) => x.label).join("\n"), liveEpoch]
+  );
+
+  async function persist(next: ChecklistRow[]) {
+    const nowIso = new Date().toISOString();
+    await db.interventions.update(interventionId, {
+      checklist: next.length ? next : undefined,
+      updatedAt: nowIso
+    });
+    scheduleWorkflowSync();
+  }
+
+  return (
+    <Card className="rounded-2xl">
+      <CardHeader className="space-y-2">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <CardTitle className="text-base">
+              {t("interventions.detail.sections.checklistTitle")}
+            </CardTitle>
+            <CardDescription>
+              {rows.length > 0
+                ? t("interventions.detail.sections.checklistProgress", {
+                    done: doneCount,
+                    total: rows.length
+                  })
+                : t("interventions.detail.sections.checklistSubtitle")}
+            </CardDescription>
+          </div>
+          <IconBubble icon={ListChecks} />
+        </div>
+      </CardHeader>
+      <div className="px-5 pb-5 md:px-6 md:pb-6">
+        <DynamicChecklistEditor
+          value={rows}
+          onChange={(next) => void persist(next)}
+          suggestions={suggestions ?? []}
+        />
+      </div>
+    </Card>
   );
 }
 

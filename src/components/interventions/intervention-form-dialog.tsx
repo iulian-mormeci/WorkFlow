@@ -14,6 +14,7 @@ import {
   TimerReset
 } from "lucide-react";
 import { DynamicChecklistEditor, type ChecklistRow } from "@/components/checklist/dynamic-checklist-editor";
+import { getFrequentChecklistLabels } from "@/lib/checklist/checklist-suggestions";
 import { ClientPickerField } from "@/components/clients/client-picker-field";
 import { InterventionLocationFields } from "@/components/interventions/intervention-location-fields";
 import { RouteStopsEditor, buildRoundTripStops } from "@/components/interventions/route-stops-editor";
@@ -159,6 +160,17 @@ export function InterventionFormDialog(props: Props) {
   const [notes, setNotes] = useState("");
   const [durationOverride, setDurationOverride] = useState("");
   const [checklist, setChecklist] = useState<ChecklistRow[]>([]);
+  const checklistLabelKey = checklist.map((x) => x.label).join("\n");
+  const checklistSuggestions = useLiveQuery(
+    async () => {
+      if (!open) return [];
+      return getFrequentChecklistLabels({
+        excludeLabels: checklist.map((x) => x.label),
+        excludeInterventionId: mode === "edit" ? interventionId : undefined
+      });
+    },
+    [open, mode, interventionId, checklistLabelKey]
+  );
   const [partsUsed, setPartsUsed] = useState<SparePartLine[]>([]);
   const [dueAtLocal, setDueAtLocal] = useState("");
   const [remindersEnabled, setRemindersEnabled] = useState(false);
@@ -1043,7 +1055,11 @@ export function InterventionFormDialog(props: Props) {
               <Icon icon={ListChecks} />
               {t("interventions.form.checklist")}
             </Label>
-            <DynamicChecklistEditor value={checklist} onChange={setChecklist} />
+            <DynamicChecklistEditor
+              value={checklist}
+              onChange={setChecklist}
+              suggestions={checklistSuggestions ?? []}
+            />
           </div>
 
           <div className="flex flex-wrap items-center justify-end gap-2 pt-2 sm:gap-3">
