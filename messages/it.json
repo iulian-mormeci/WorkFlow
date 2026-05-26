@@ -409,7 +409,9 @@
   },
   "clientPicker": {
     "placeholder": "Cerca o scrivi un nome",
-    "hint": "Scegli un cliente salvato oppure scrivi un nuovo nome — verrà creato quando salvi."
+    "hint": "Scegli un cliente salvato oppure scrivi un nuovo nome — verrà creato quando salvi.",
+    "suggestionsAriaLabel": "Suggerimenti clienti",
+    "suggestionsTitle": "Suggerimenti ({count})"
   },
   "checklist": {
     "editor": {
@@ -422,6 +424,14 @@
     "suggestions": {
       "title": "Usate spesso",
       "addAria": "Aggiungi {label}"
+    },
+    "progress": {
+      "ariaLabel": "Avanzamento checklist",
+      "title": "Avanzamento checklist",
+      "emptyTitle": "Checklist",
+      "completeTitle": "Tutto fatto",
+      "summary": "{done} di {total} · {percent}%",
+      "empty": "Ancora nessuna voce"
     }
   },
   "route": {

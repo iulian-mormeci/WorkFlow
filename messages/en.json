@@ -409,7 +409,9 @@
   },
   "clientPicker": {
     "placeholder": "Search or type a name",
-    "hint": "Pick a saved client or type a new name — it will be created when you save."
+    "hint": "Pick a saved client or type a new name — it will be created when you save.",
+    "suggestionsAriaLabel": "Client suggestions",
+    "suggestionsTitle": "Suggestions ({count})"
   },
   "checklist": {
     "editor": {
@@ -422,6 +424,14 @@
     "suggestions": {
       "title": "Frequently used",
       "addAria": "Add {label}"
+    },
+    "progress": {
+      "ariaLabel": "Checklist progress",
+      "title": "Checklist progress",
+      "emptyTitle": "Checklist",
+      "completeTitle": "All done",
+      "summary": "{done} of {total} · {percent}%",
+      "empty": "No items yet"
     }
   },
   "route": {

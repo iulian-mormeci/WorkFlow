@@ -14,6 +14,7 @@ import {
   TimerReset
 } from "lucide-react";
 import { DynamicChecklistEditor, type ChecklistRow } from "@/components/checklist/dynamic-checklist-editor";
+import { ChecklistProgress } from "@/components/checklist/checklist-progress";
 import { getFrequentChecklistLabels } from "@/lib/checklist/checklist-suggestions";
 import { ClientPickerField } from "@/components/clients/client-picker-field";
 import { InterventionLocationFields } from "@/components/interventions/intervention-location-fields";
@@ -1050,11 +1051,15 @@ export function InterventionFormDialog(props: Props) {
             )}
           </div>
 
-          <div className="grid gap-2">
+          <div className="grid gap-3">
             <Label className="flex items-center gap-2">
               <Icon icon={ListChecks} />
               {t("interventions.form.checklist")}
             </Label>
+            <ChecklistProgress
+              done={checklist.filter((x) => x.done).length}
+              total={checklist.length}
+            />
             <DynamicChecklistEditor
               value={checklist}
               onChange={setChecklist}

@@ -29,6 +29,7 @@ import {
   DynamicChecklistEditor,
   type ChecklistRow
 } from "@/components/checklist/dynamic-checklist-editor";
+import { ChecklistProgress } from "@/components/checklist/checklist-progress";
 import { InterventionFormDialog } from "@/components/interventions/intervention-form-dialog";
 import { getFrequentChecklistLabels } from "@/lib/checklist/checklist-suggestions";
 import { OfflineBanner } from "@/components/offline/offline-banner";
@@ -835,7 +836,7 @@ function InterventionDetailChecklist({
   }
 
   return (
-    <Card className="rounded-2xl">
+      <Card className="rounded-2xl">
       <CardHeader className="space-y-2">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -843,18 +844,14 @@ function InterventionDetailChecklist({
               {t("interventions.detail.sections.checklistTitle")}
             </CardTitle>
             <CardDescription>
-              {rows.length > 0
-                ? t("interventions.detail.sections.checklistProgress", {
-                    done: doneCount,
-                    total: rows.length
-                  })
-                : t("interventions.detail.sections.checklistSubtitle")}
+              {t("interventions.detail.sections.checklistSubtitle")}
             </CardDescription>
           </div>
           <IconBubble icon={ListChecks} />
         </div>
       </CardHeader>
-      <div className="px-5 pb-5 md:px-6 md:pb-6">
+      <div className="space-y-4 px-5 pb-5 md:px-6 md:pb-6">
+        <ChecklistProgress done={doneCount} total={rows.length} />
         <DynamicChecklistEditor
           value={rows}
           onChange={(next) => void persist(next)}
