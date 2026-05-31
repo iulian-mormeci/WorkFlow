@@ -904,23 +904,54 @@
   "tickets": {
     "page": {
       "title": "CRM tickets",
-      "subtitle": "Track follow-ups and reminders (offline-first)."
-    }
-    ,
+      "subtitle": "Track follow-ups and reminders (offline-first, synced)."
+    },
     "fields": {
-      "title": "Title",
+      "title": "Title / subject",
+      "titlePlaceholder": "Short summary of the ticket",
       "description": "Description",
+      "descriptionPlaceholder": "Add details, context or notes…",
       "priority": "Priority",
-      "dueDate": "Due date"
+      "status": "Status",
+      "dueDate": "Due date",
+      "dueTime": "Time",
+      "reminders": "Reminder",
+      "remindersHint": "Notify before and at the deadline.",
+      "remindersNeedsDue": "Set a due date to enable reminders.",
+      "reminderPreset": "When to remind",
+      "reminderCustomDate": "Reminder date",
+      "reminderCustomTime": "Reminder time",
+      "linkedIntervention": "Linked intervention",
+      "linkedInterventionSearch": "Search interventions…",
+      "linkedInterventionNoResults": "No interventions match.",
+      "linkedInterventionUnknown": "Linked intervention",
+      "unlinkIntervention": "Remove link"
     },
     "priority": {
       "low": "Low",
       "medium": "Medium",
       "high": "High"
     },
+    "reminderPresets": {
+      "1d": "1 day before",
+      "2h": "2 hours before",
+      "30m": "30 min before",
+      "custom": "Custom"
+    },
     "actions": {
       "create": "Create ticket",
-      "new": "New ticket"
+      "new": "New ticket",
+      "cycleStatus": "Change status"
+    },
+    "form": {
+      "createTitle": "New CRM ticket",
+      "editTitle": "Edit ticket",
+      "subtitle": "Saved locally, synced across your devices."
+    },
+    "history": {
+      "title": "History",
+      "created": "Created {date}",
+      "updated": "Last updated {date}"
     },
     "searchPlaceholder": "Search tickets…",
     "filters": {
@@ -930,12 +961,15 @@
     "status": {
       "open": "Open",
       "pending": "Pending",
-      "closed": "Closed"
+      "closed": "Completed"
     },
     "table": {
       "ticket": "Ticket",
       "status": "Status"
     },
+    "overdue": "Overdue",
+    "linkedBadge": "Linked",
+    "tapToCycleHint": "Tap to change status",
     "reminderDue": "Reminder due",
     "duePrefix": "Due:",
     "empty": "No tickets yet. Create one for follow-ups and reminders.",
@@ -953,7 +987,8 @@
       "savedLocally": "Saved locally.",
       "updatedTitle": "Ticket updated",
       "updatedBody": "Status: {status}",
-      "createFailedTitle": "Failed to create ticket"
+      "createFailedTitle": "Failed to create ticket",
+      "saveFailedTitle": "Could not save ticket"
     }
   },
   "activities": {

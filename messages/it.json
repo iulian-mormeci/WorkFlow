@@ -904,23 +904,54 @@
   "tickets": {
     "page": {
       "title": "Ticket CRM",
-      "subtitle": "Traccia follow-up e promemoria (offline-first)."
-    }
-    ,
+      "subtitle": "Traccia follow-up e promemoria (offline-first, sincronizzati)."
+    },
     "fields": {
-      "title": "Titolo",
+      "title": "Titolo / oggetto",
+      "titlePlaceholder": "Breve riepilogo del ticket",
       "description": "Descrizione",
+      "descriptionPlaceholder": "Aggiungi dettagli, contesto o note…",
       "priority": "Priorità",
-      "dueDate": "Scadenza"
+      "status": "Stato",
+      "dueDate": "Scadenza",
+      "dueTime": "Ora",
+      "reminders": "Promemoria",
+      "remindersHint": "Avvisa prima e alla scadenza.",
+      "remindersNeedsDue": "Imposta una scadenza per abilitare i promemoria.",
+      "reminderPreset": "Quando avvisare",
+      "reminderCustomDate": "Data promemoria",
+      "reminderCustomTime": "Ora promemoria",
+      "linkedIntervention": "Intervento collegato",
+      "linkedInterventionSearch": "Cerca interventi…",
+      "linkedInterventionNoResults": "Nessun intervento corrispondente.",
+      "linkedInterventionUnknown": "Intervento collegato",
+      "unlinkIntervention": "Rimuovi collegamento"
     },
     "priority": {
       "low": "Bassa",
       "medium": "Media",
       "high": "Alta"
     },
+    "reminderPresets": {
+      "1d": "1 giorno prima",
+      "2h": "2 ore prima",
+      "30m": "30 min prima",
+      "custom": "Personalizzato"
+    },
     "actions": {
       "create": "Crea ticket",
-      "new": "Nuovo ticket"
+      "new": "Nuovo ticket",
+      "cycleStatus": "Cambia stato"
+    },
+    "form": {
+      "createTitle": "Nuovo ticket CRM",
+      "editTitle": "Modifica ticket",
+      "subtitle": "Salvato in locale, sincronizzato su tutti i dispositivi."
+    },
+    "history": {
+      "title": "Cronologia",
+      "created": "Creato il {date}",
+      "updated": "Ultimo aggiornamento {date}"
     },
     "searchPlaceholder": "Cerca ticket…",
     "filters": {
@@ -930,12 +961,15 @@
     "status": {
       "open": "Aperto",
       "pending": "In attesa",
-      "closed": "Chiuso"
+      "closed": "Completato"
     },
     "table": {
       "ticket": "Ticket",
       "status": "Stato"
     },
+    "overdue": "In ritardo",
+    "linkedBadge": "Collegato",
+    "tapToCycleHint": "Tocca per cambiare stato",
     "reminderDue": "Promemoria in scadenza",
     "duePrefix": "Scade:",
     "empty": "Nessun ticket ancora. Creane uno per follow-up e promemoria.",
@@ -953,7 +987,8 @@
       "savedLocally": "Salvato in locale.",
       "updatedTitle": "Ticket aggiornato",
       "updatedBody": "Stato: {status}",
-      "createFailedTitle": "Creazione ticket non riuscita"
+      "createFailedTitle": "Creazione ticket non riuscita",
+      "saveFailedTitle": "Impossibile salvare il ticket"
     }
   },
   "activities": {

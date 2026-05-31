@@ -437,12 +437,18 @@ function ticketToRow(t: Ticket, userId: string) {
     status: t.status,
     reminder_at: t.reminderAt ?? null,
     due_at: t.dueAt ?? null,
+    reminders_enabled: t.remindersEnabled ?? false,
+    reminder_preset: t.reminderPreset ?? null,
+    reminder_custom_at: t.reminderCustomAt ?? null,
+    reminder_pre_due_ack_at: t.reminderPreDueAckAt ?? null,
+    reminder_due_ack_at: t.reminderDueAckAt ?? null,
     created_at: t.createdAt,
     updated_at: t.updatedAt
   };
 }
 
 function ticketFromRow(r: Record<string, unknown>): Ticket {
+  const preset = r.reminder_preset as Ticket["reminderPreset"] | undefined;
   return {
     id: String(r.id),
     title: String(r.title),
@@ -453,6 +459,16 @@ function ticketFromRow(r: Record<string, unknown>): Ticket {
     status: r.status as Ticket["status"],
     reminderAt: r.reminder_at ? iso(r.reminder_at) : undefined,
     dueAt: r.due_at ? iso(r.due_at) : undefined,
+    remindersEnabled: Boolean(r.reminders_enabled),
+    reminderPreset:
+      preset === "1d" || preset === "2h" || preset === "30m" || preset === "custom"
+        ? preset
+        : undefined,
+    reminderCustomAt: r.reminder_custom_at ? iso(r.reminder_custom_at) : undefined,
+    reminderPreDueAckAt: r.reminder_pre_due_ack_at
+      ? iso(r.reminder_pre_due_ack_at)
+      : undefined,
+    reminderDueAckAt: r.reminder_due_ack_at ? iso(r.reminder_due_ack_at) : undefined,
     createdAt: iso(r.created_at),
     updatedAt: iso(r.updated_at),
     syncedAt: new Date().toISOString(),

@@ -11,6 +11,7 @@ import { KeyboardShortcutsDialog } from "@/components/shortcuts/keyboard-shortcu
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { InterventionRemindersProvider } from "@/components/interventions/intervention-reminders-provider";
 import { ActivityRemindersProvider } from "@/components/activities/activity-reminders-provider";
+import { TicketRemindersProvider } from "@/components/tickets/ticket-reminders-provider";
 import { MobileMenu } from "@/components/layout/mobile-menu";
 import { PROTECTED_NAV_ITEMS } from "@/lib/navigation/protected-nav";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
@@ -84,6 +85,8 @@ export default async function ProtectedLayout({
           <InterventionRemindersProvider />
           {/* Client: activity reminders (browser notification + in-app postpone prompt). */}
           <ActivityRemindersProvider />
+          {/* Client: CRM ticket reminders (pre-due + due browser notifications). */}
+          <TicketRemindersProvider />
           {children}
         </main>
       </div>

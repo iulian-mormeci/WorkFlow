@@ -135,16 +135,42 @@ export type StockMovement = {
   updatedAt?: string;
 } & SyncMeta;
 
+export type TicketStatus = "open" | "pending" | "closed";
+
+export type TicketPriority = "low" | "medium" | "high";
+
+export const TICKET_STATUSES: readonly TicketStatus[] = [
+  "open",
+  "pending",
+  "closed"
+] as const;
+
+export const TICKET_PRIORITIES: readonly TicketPriority[] = [
+  "low",
+  "medium",
+  "high"
+] as const;
+
 export type Ticket = {
   id: Id;
   title: string;
   description?: string;
   clientId?: Id;
   interventionId?: Id;
-  priority: "low" | "medium" | "high";
-  status: "open" | "pending" | "closed";
+  priority: TicketPriority;
+  status: TicketStatus;
+  /** @deprecated Legacy single reminder instant; kept in sync with `dueAt` for back-compat. */
   reminderAt?: string; // ISO
   dueAt?: string; // ISO
+  /** Pre-due + due reminder model (mirrors interventions / activities). */
+  remindersEnabled?: boolean;
+  reminderPreset?: ReminderPreset;
+  /** When preset is `custom`, wall time to fire the pre-due reminder (ISO). */
+  reminderCustomAt?: string;
+  /** Successful pre-due reminder delivery — ISO instant acked for that tier only. */
+  reminderPreDueAckAt?: string;
+  /** Successful due / overdue reminder delivery — ISO instant acked for that tier only. */
+  reminderDueAckAt?: string;
   createdAt: string;
   updatedAt: string;
 } & SyncMeta;

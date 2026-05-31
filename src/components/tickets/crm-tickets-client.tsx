@@ -1,31 +1,28 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { AlertCircle, Plus, Search } from "lucide-react";
-import { db, type Ticket } from "@/lib/db/workflow-db";
+import { AlarmClock, Bell, CalendarClock, Link2, Pencil, Plus, Search } from "lucide-react";
+import {
+  TICKET_PRIORITIES,
+  TICKET_STATUSES,
+  db,
+  type Ticket
+} from "@/lib/db/workflow-db";
+import {
+  getTicketReminderScheduledFireMs,
+  isTicketOverdue
+} from "@/lib/tickets/ticket-reminders";
+import { nextTicketStatus, setTicketStatus } from "@/lib/tickets/ticket-mutations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle
-} from "@/components/ui/dialog";
+import { TicketFormDialog } from "@/components/tickets/ticket-form-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
 import { useTranslations } from "next-intl";
 
-type Status = "all" | Ticket["status"];
-type Priority = Ticket["priority"] | "all";
-
-function toLocalDateInputValue(d: Date) {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
+type StatusFilter = "all" | Ticket["status"];
+type PriorityFilter = "all" | Ticket["priority"];
 
 function priorityPill(p: Ticket["priority"]) {
   if (p === "high") return "border-red-200 bg-red-50 text-red-800";
@@ -33,79 +30,91 @@ function priorityPill(p: Ticket["priority"]) {
   return "border-emerald-200 bg-emerald-50 text-emerald-900";
 }
 
+function statusPill(s: Ticket["status"]) {
+  if (s === "closed") return "border-emerald-200 bg-emerald-50 text-emerald-900";
+  if (s === "pending") return "border-amber-200 bg-amber-50 text-amber-900";
+  return "border-slate-200 bg-slate-50 text-slate-800";
+}
+
+function formatDue(iso: string) {
+  return new Date(iso).toLocaleString(undefined, {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
 export function CrmTicketsClient() {
   const t = useTranslations();
   const { toast } = useToast();
   const liveEpoch = useWorkflowLiveEpoch();
+
   const [q, setQ] = useState("");
-  const [status, setStatus] = useState<Status>("all");
-  const [priority, setPriority] = useState<Priority>("all");
-  const [open, setOpen] = useState(false);
+  const [status, setStatus] = useState<StatusFilter>("all");
+  const [priority, setPriority] = useState<PriorityFilter>("all");
+
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<Ticket | null>(null);
 
   const tickets = useLiveQuery(async () => {
     const all = await db.tickets.orderBy("updatedAt").reverse().toArray();
-    const nowIso = new Date().toISOString();
+    const now = Date.now();
+    const qv = q.trim().toLowerCase();
 
-    const filtered = all.filter((t) => {
-      const sOk = status === "all" ? true : t.status === status;
-      const pOk = priority === "all" ? true : t.priority === priority;
-      const qv = q.trim().toLowerCase();
+    const filtered = all.filter((tk) => {
+      const sOk = status === "all" ? true : tk.status === status;
+      const pOk = priority === "all" ? true : tk.priority === priority;
       const qOk =
         !qv ||
-        t.title.toLowerCase().includes(qv) ||
-        (t.description ?? "").toLowerCase().includes(qv);
+        tk.title.toLowerCase().includes(qv) ||
+        (tk.description ?? "").toLowerCase().includes(qv);
       return sOk && pOk && qOk;
     });
 
-    // Sort due reminders to top
+    const rank = (tk: Ticket) => {
+      if (tk.status === "closed") return 3;
+      if (isTicketOverdue(tk, now)) return 0;
+      if (tk.dueAt) return 1;
+      return 2;
+    };
+
     filtered.sort((a, b) => {
-      const aDue = (a.reminderAt ?? a.dueAt ?? "9999") <= nowIso ? 0 : 1;
-      const bDue = (b.reminderAt ?? b.dueAt ?? "9999") <= nowIso ? 0 : 1;
-      if (aDue !== bDue) return aDue - bDue;
+      const ra = rank(a);
+      const rb = rank(b);
+      if (ra !== rb) return ra - rb;
+      if (a.dueAt && b.dueAt && a.dueAt !== b.dueAt) return a.dueAt.localeCompare(b.dueAt);
       return (b.updatedAt ?? "").localeCompare(a.updatedAt ?? "");
     });
 
     return filtered;
   }, [q, status, priority, liveEpoch]);
 
-  const [form, setForm] = useState({
-    title: "",
-    description: "",
-    priority: "medium" as Ticket["priority"],
-    dueDate: toLocalDateInputValue(new Date())
-  });
+  const list = tickets ?? [];
 
-  const canSave = useMemo(() => form.title.trim().length > 2, [form.title]);
+  function openCreate() {
+    setEditing(null);
+    setFormOpen(true);
+  }
 
-  async function createTicket() {
-    const nowIso = new Date().toISOString();
-    const dueAt = form.dueDate ? new Date(form.dueDate).toISOString() : undefined;
-    const reminderAt = dueAt; // simple first version: reminder == due date
+  function openEdit(tk: Ticket) {
+    setEditing(tk);
+    setFormOpen(true);
+  }
 
+  async function cycleStatus(tk: Ticket) {
+    const next = nextTicketStatus(tk.status);
     try {
-      await db.tickets.add({
-        id: crypto.randomUUID(),
-        title: form.title.trim(),
-        description: form.description.trim() || undefined,
-        priority: form.priority,
-        status: "open",
-        dueAt,
-        reminderAt,
-        createdAt: nowIso,
-        updatedAt: nowIso
-      });
-      toast({ title: t("tickets.toasts.createdTitle"), description: t("tickets.toasts.savedLocally") });
-      setOpen(false);
-      setForm({
-        title: "",
-        description: "",
-        priority: "medium",
-        dueDate: toLocalDateInputValue(new Date())
-      });
-    } catch (e: any) {
+      await setTicketStatus(tk, next);
       toast({
-        title: t("tickets.toasts.createFailedTitle"),
-        description: e?.message ?? t("common.unknownError"),
+        title: t("tickets.toasts.updatedTitle"),
+        description: t("tickets.toasts.updatedBody", { status: t(`tickets.status.${next}`) })
+      });
+    } catch (e) {
+      toast({
+        title: t("tickets.toasts.saveFailedTitle"),
+        description: e instanceof Error ? e.message : t("common.unknownError"),
         variant: "destructive"
       });
     }
@@ -123,161 +132,131 @@ export function CrmTicketsClient() {
             className="pl-9"
           />
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {(["all", "open", "pending", "closed"] as const).map((s) => (
-            <Button
-              key={s}
-              variant={status === s ? "default" : "outline"}
-              onClick={() => setStatus(s)}
-            >
-              {s === "all" ? t("tickets.filters.statusAll") : t(`tickets.status.${s}`)}
-            </Button>
-          ))}
-          {(["all", "low", "medium", "high"] as const).map((p) => (
-            <Button
-              key={p}
-              variant={priority === p ? "default" : "outline"}
-              onClick={() => setPriority(p)}
-            >
-              {p === "all" ? t("tickets.filters.priorityAll") : t(`tickets.priority.${p}`)}
-            </Button>
-          ))}
-          <Button size="lg" onClick={() => setOpen(true)}>
-            <Plus className="h-5 w-5" />
-            {t("tickets.actions.new")}
+        <Button size="lg" onClick={openCreate} className="shrink-0">
+          <Plus className="h-5 w-5" />
+          {t("tickets.actions.new")}
+        </Button>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        {(["all", ...TICKET_STATUSES] as const).map((s) => (
+          <Button
+            key={s}
+            size="sm"
+            variant={status === s ? "default" : "outline"}
+            onClick={() => setStatus(s)}
+          >
+            {s === "all" ? t("tickets.filters.statusAll") : t(`tickets.status.${s}`)}
           </Button>
-        </div>
+        ))}
+        <span className="mx-1 hidden h-5 w-px bg-border sm:inline-block" aria-hidden />
+        {(["all", ...TICKET_PRIORITIES] as const).map((p) => (
+          <Button
+            key={p}
+            size="sm"
+            variant={priority === p ? "default" : "outline"}
+            onClick={() => setPriority(p)}
+          >
+            {p === "all" ? t("tickets.filters.priorityAll") : t(`tickets.priority.${p}`)}
+          </Button>
+        ))}
       </div>
 
-      <div className="overflow-hidden rounded-2xl border">
-        <div className="grid grid-cols-[1fr_auto] gap-3 border-b bg-muted px-4 py-3 text-sm font-medium">
-          <div>{t("tickets.table.ticket")}</div>
-          <div className="text-right">{t("tickets.table.status")}</div>
-        </div>
-        <div className="divide-y">
-          {(tickets ?? []).map((ticket) => {
-            const nowIso = new Date().toISOString();
-            const due =
-              (ticket.reminderAt ?? ticket.dueAt) &&
-              (ticket.reminderAt ?? ticket.dueAt)! <= nowIso;
-            return (
-              <button
-                key={ticket.id}
-                type="button"
-                className="w-full px-4 py-4 text-left hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-                onClick={async () => {
-                  const nextStatus =
-                    ticket.status === "open"
-                      ? "pending"
-                      : ticket.status === "pending"
-                        ? "closed"
-                        : "open";
-                  await db.tickets.update(ticket.id, {
-                    status: nextStatus,
-                    updatedAt: new Date().toISOString()
-                  });
-                  toast({
-                    title: t("tickets.toasts.updatedTitle"),
-                    description: t("tickets.toasts.updatedBody", {
-                      status: t(`tickets.status.${nextStatus}`)
-                    })
-                  });
-                }}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <div className="truncate text-base font-semibold">{ticket.title}</div>
-                      <span
-                        className={`rounded-full border px-2 py-0.5 text-xs ${priorityPill(ticket.priority)}`}
-                      >
-                        {ticket.priority}
-                      </span>
-                      {due ? (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs text-amber-900">
-                          <AlertCircle className="h-3.5 w-3.5" />
-                          {t("tickets.reminderDue")}
-                        </span>
-                      ) : null}
-                    </div>
-                    {ticket.description ? (
-                      <div className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                        {ticket.description}
-                      </div>
-                    ) : null}
-                    {ticket.dueAt ? (
-                      <div className="mt-2 text-xs text-muted-foreground">
-                        {t("tickets.duePrefix")}{" "}
-                        {new Date(ticket.dueAt).toLocaleDateString()}
-                      </div>
-                    ) : null}
-                  </div>
-                  <div className="text-right text-sm text-muted-foreground">
-                    {t(`tickets.status.${ticket.status}`)}
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-
-          {(tickets ?? []).length === 0 ? (
-            <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-              {t("tickets.empty")}
-            </div>
-          ) : null}
-        </div>
-      </div>
-
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t("tickets.dialog.title")}</DialogTitle>
-            <DialogDescription>{t("tickets.dialog.subtitle")}</DialogDescription>
-          </DialogHeader>
-
-          <div className="mt-4 grid gap-3">
-            <div className="grid gap-2">
-              <Label>{t("tickets.fields.title")}</Label>
-              <Input value={form.title} onChange={(e) => setForm((s) => ({ ...s, title: e.target.value }))} />
-            </div>
-            <div className="grid gap-2">
-              <Label>{t("tickets.fields.description")}</Label>
-              <Textarea value={form.description} onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))} />
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="grid gap-2">
-                <Label>{t("tickets.fields.priority")}</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(["low", "medium", "high"] as const).map((p) => (
-                    <Button
-                      key={p}
-                      variant={form.priority === p ? "default" : "outline"}
-                      onClick={() => setForm((s) => ({ ...s, priority: p }))}
-                      type="button"
+      <div className="grid gap-3">
+        {list.map((tk) => {
+          const overdue = isTicketOverdue(tk, Date.now());
+          const hasReminder =
+            tk.remindersEnabled && getTicketReminderScheduledFireMs(tk) != null;
+          return (
+            <div key={tk.id} className="rounded-2xl border p-4 transition-colors hover:bg-muted/40">
+              <div className="flex items-start justify-between gap-3">
+                {/* Fast action: tap to cycle status (open → pending → completed). */}
+                <button
+                  type="button"
+                  className="min-w-0 flex-1 text-left focus-visible:outline-none"
+                  onClick={() => cycleStatus(tk)}
+                  aria-label={t("tickets.actions.cycleStatus")}
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={`truncate text-base font-semibold ${
+                        tk.status === "closed" ? "text-muted-foreground line-through" : ""
+                      }`}
                     >
-                      {t(`tickets.priority.${p}`)}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-              <div className="grid gap-2">
-                <Label>{t("tickets.fields.dueDate")}</Label>
-                <Input type="date" value={form.dueDate} onChange={(e) => setForm((s) => ({ ...s, dueDate: e.target.value }))} />
-              </div>
-            </div>
+                      {tk.title}
+                    </span>
+                    <span
+                      className={`rounded-full border px-2 py-0.5 text-xs ${priorityPill(tk.priority)}`}
+                    >
+                      {t(`tickets.priority.${tk.priority}`)}
+                    </span>
+                    <span
+                      className={`rounded-full border px-2 py-0.5 text-xs ${statusPill(tk.status)}`}
+                    >
+                      {t(`tickets.status.${tk.status}`)}
+                    </span>
+                    {overdue ? (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs text-red-800">
+                        <AlarmClock className="h-3.5 w-3.5" />
+                        {t("tickets.overdue")}
+                      </span>
+                    ) : null}
+                  </div>
 
-            <div className="mt-2 flex items-center justify-end gap-2">
-              <Button variant="outline" onClick={() => setOpen(false)} type="button">
-                {t("common.cancel")}
-              </Button>
-              <Button disabled={!canSave} onClick={createTicket} type="button">
-                {t("common.save")}
-              </Button>
+                  {tk.description ? (
+                    <div className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                      {tk.description}
+                    </div>
+                  ) : null}
+
+                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                    {tk.dueAt ? (
+                      <span className="inline-flex items-center gap-1">
+                        <CalendarClock className="h-3.5 w-3.5" />
+                        {formatDue(tk.dueAt)}
+                      </span>
+                    ) : null}
+                    {hasReminder ? (
+                      <span className="inline-flex items-center gap-1">
+                        <Bell className="h-3.5 w-3.5" />
+                        {t(`tickets.reminderPresets.${tk.reminderPreset ?? "2h"}`)}
+                      </span>
+                    ) : null}
+                    {tk.interventionId ? (
+                      <span className="inline-flex items-center gap-1">
+                        <Link2 className="h-3.5 w-3.5" />
+                        {t("tickets.linkedBadge")}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="mt-2 text-[11px] text-muted-foreground">
+                    {t("tickets.tapToCycleHint")}
+                  </div>
+                </button>
+
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="shrink-0"
+                  onClick={() => openEdit(tk)}
+                >
+                  <Pencil className="h-4 w-4" />
+                  {t("common.edit")}
+                </Button>
+              </div>
             </div>
+          );
+        })}
+
+        {list.length === 0 ? (
+          <div className="rounded-2xl border px-4 py-12 text-center text-sm text-muted-foreground">
+            {t("tickets.empty")}
           </div>
-        </DialogContent>
-      </Dialog>
+        ) : null}
+      </div>
+
+      <TicketFormDialog open={formOpen} onOpenChange={setFormOpen} ticket={editing} />
     </div>
   );
 }
-
