@@ -8,6 +8,7 @@ import {
   Home,
   Layers,
   LineChart,
+  ListTodo,
   MessagesSquare,
   Package,
   Settings,
@@ -23,6 +24,7 @@ export type SidebarIconName =
   | "templates"
   | "documents"
   | "crmTickets"
+  | "activities"
   | "clients"
   | "spareParts"
   | "reports"
@@ -36,6 +38,7 @@ export const SIDEBAR_NAV_ICONS = {
   templates: Layers,
   documents: FileScan,
   crmTickets: MessagesSquare,
+  activities: ListTodo,
   clients: Users,
   spareParts: Package,
   reports: BarChart3,

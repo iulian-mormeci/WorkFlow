@@ -36,6 +36,10 @@ export {
   deleteStockMovementRemote,
   deleteTicketRemote,
   deleteOutboxRemote,
+  deleteActivityRemote,
+  performActivityCloudSyncDelete,
+  flushPendingActivityDeletes,
+  getPendingActivityPullSkipContext,
   type InterventionCloudDeleteResult,
   type ClientCloudDeleteResult,
   type EntityCloudDeleteResult
@@ -47,7 +51,8 @@ export {
   purgeStockMovementLocallyById,
   purgeTicketLocallyById,
   purgeTemplateLocallyById,
-  purgeOutboxLocallyById
+  purgeOutboxLocallyById,
+  purgeActivityLocallyById
 } from "./purge-entities-locally";
 export { pushSyncFailure, useSyncFailureQueue } from "./sync-failure-queue";
 export { syncAuditLog } from "./sync-audit";

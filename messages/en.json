@@ -29,6 +29,8 @@
     "remove": "Remove",
     "save": "Save",
     "saving": "Saving…",
+    "on": "On",
+    "off": "Off",
     "now": "Now",
     "back": "Back",
     "edit": "Edit",
@@ -660,6 +662,7 @@
     "templates": "Templates",
     "documents": "Documents",
     "crmTickets": "CRM tickets",
+    "activities": "Activities",
     "clients": "Clients",
     "spareParts": "Spare parts",
     "reports": "Reports",
@@ -951,6 +954,102 @@
       "updatedTitle": "Ticket updated",
       "updatedBody": "Status: {status}",
       "createFailedTitle": "Failed to create ticket"
+    }
+  },
+  "activities": {
+    "page": {
+      "title": "Activities",
+      "subtitle": "A flexible personal to-do list with reminders (offline-first, synced)."
+    },
+    "searchPlaceholder": "Search activities…",
+    "empty": "No activities yet. Create one to track tasks, deadlines and reminders.",
+    "overdue": "Overdue",
+    "noDue": "No deadline",
+    "postponedCount": "Postponed {count, plural, one {# time} other {# times}}",
+    "filters": {
+      "statusAll": "All",
+      "priorityAll": "Any priority"
+    },
+    "summary": {
+      "open": "Open",
+      "overdue": "Overdue",
+      "total": "Total"
+    },
+    "status": {
+      "open": "Open",
+      "in_progress": "In progress",
+      "completed": "Completed",
+      "postponed": "Postponed"
+    },
+    "priority": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "reminderPresets": {
+      "1d": "1 day before",
+      "2h": "2 hours before",
+      "30m": "30 min before",
+      "custom": "Custom"
+    },
+    "fields": {
+      "title": "Title",
+      "titlePlaceholder": "What needs to be done?",
+      "description": "Description / notes",
+      "descriptionPlaceholder": "Add details, links or notes…",
+      "dueDate": "Due date",
+      "dueTime": "Time",
+      "priority": "Priority",
+      "status": "Status",
+      "category": "Category / tags",
+      "categoryPlaceholder": "e.g. Home, Work, Health (comma separated)",
+      "reminders": "Reminder",
+      "remindersHint": "Notify before and at the deadline.",
+      "remindersNeedsDue": "Set a due date to enable reminders.",
+      "reminderPreset": "When to remind",
+      "reminderCustomDate": "Reminder date",
+      "reminderCustomTime": "Reminder time"
+    },
+    "actions": {
+      "new": "New activity",
+      "complete": "Complete",
+      "reopen": "Reopen",
+      "postpone": "Postpone"
+    },
+    "form": {
+      "createTitle": "New activity",
+      "editTitle": "Edit activity",
+      "subtitle": "Saved locally, synced across your devices."
+    },
+    "postpone": {
+      "title": "Postpone activity",
+      "subtitle": "Move the deadline and note why.",
+      "newDueDate": "New due date",
+      "newDueTime": "Time",
+      "reason": "Reason (optional)",
+      "reasonPlaceholder": "Why are you postponing this?",
+      "confirm": "Postpone"
+    },
+    "reminderPrompt": {
+      "title": "Activity reminder",
+      "subtitle": "This activity needs your attention.",
+      "duePrefix": "Due:",
+      "more": "+{count} more waiting",
+      "dismiss": "Dismiss"
+    },
+    "deleteDialog": {
+      "title": "Delete activity?",
+      "body": "“{title}” will be permanently deleted. This cannot be undone."
+    },
+    "toasts": {
+      "createdTitle": "Activity created",
+      "updatedTitle": "Activity updated",
+      "postponedTitle": "Activity postponed",
+      "deletedTitle": "Activity deleted",
+      "savedLocally": "Saved locally.",
+      "statusBody": "Status: {status}",
+      "saveFailedTitle": "Could not save activity",
+      "deleteFailedTitle": "Could not delete activity"
     }
   },
   "reports": {

@@ -10,6 +10,7 @@ export const PROTECTED_NAV_ITEMS = [
   { href: "/templates", labelKey: "nav.templates", label: "Templates", iconName: "templates" },
   { href: "/documents", labelKey: "nav.documents", label: "Documents", iconName: "documents" },
   { href: "/crm-tickets", labelKey: "nav.crmTickets", label: "CRM Tickets", iconName: "crmTickets" },
+  { href: "/activities", labelKey: "nav.activities", label: "Activities", iconName: "activities" },
   { href: "/clients", labelKey: "nav.clients", label: "Clients", iconName: "clients" },
   { href: "/spare-parts", labelKey: "nav.spareParts", label: "Spare parts", iconName: "spareParts" },
   { href: "/reports", labelKey: "nav.reports", label: "Reports", iconName: "reports" },

@@ -168,7 +168,7 @@ export function MobileMenu({ items }: Props) {
                       onClick={() => setOpen(false)}
                     >
                       <Icon icon={IconCmp} size="md" tone={active ? "default" : "muted"} />
-                      <span>{item.label}</span>
+                      <span>{item.labelKey ? t(item.labelKey) : item.label}</span>
                     </Link>
                   );
                 })}

@@ -149,6 +149,61 @@ export type Ticket = {
   updatedAt: string;
 } & SyncMeta;
 
+/** Activities ("Attività"): flexible personal task list, more general than CRM tickets. */
+export type ActivityStatus = "open" | "in_progress" | "completed" | "postponed";
+
+export type ActivityPriority = "low" | "medium" | "high";
+
+export const ACTIVITY_STATUSES: readonly ActivityStatus[] = [
+  "open",
+  "in_progress",
+  "completed",
+  "postponed"
+] as const;
+
+export const ACTIVITY_PRIORITIES: readonly ActivityPriority[] = [
+  "low",
+  "medium",
+  "high"
+] as const;
+
+/** One entry in an activity's postponement history (append-only). */
+export type ActivityPostponement = {
+  id: Id;
+  /** When the postponement was recorded (ISO). */
+  at: string;
+  /** User-provided reason for postponing. */
+  reason?: string;
+  /** Due date before this postponement (ISO), if any. */
+  previousDueAt?: string;
+  /** New due date set by this postponement (ISO), if any. */
+  newDueAt?: string;
+};
+
+export type Activity = {
+  id: Id;
+  title: string;
+  description?: string;
+  /** Optional deadline including time (ISO). */
+  dueAt?: string;
+  remindersEnabled?: boolean;
+  reminderPreset?: ReminderPreset;
+  /** When preset is `custom`, wall time to fire the pre-due reminder (ISO). */
+  reminderCustomAt?: string;
+  /** Successful pre-due reminder delivery — ISO instant acked for that tier only. */
+  reminderPreDueAckAt?: string;
+  /** Successful due / overdue reminder delivery — ISO instant acked for that tier only. */
+  reminderDueAckAt?: string;
+  status: ActivityStatus;
+  priority: ActivityPriority;
+  /** Free-text category / comma-separated tags. */
+  category?: string;
+  /** Append-only log of postponements. */
+  postponements?: ActivityPostponement[];
+  createdAt: string;
+  updatedAt: string;
+} & SyncMeta;
+
 export type Attachment = {
   id: Id;
   kind: "photo" | "document" | "audio";
@@ -216,6 +271,7 @@ export class WorkFlowDB extends Dexie {
   documents!: Table<Document, Id>;
   supportEmailOutbox!: Table<SupportEmailOutboxItem, Id>;
   templates!: Table<InterventionTemplate, Id>;
+  activities!: Table<Activity, Id>;
 
   constructor() {
     super("workflow");
@@ -475,6 +531,23 @@ export class WorkFlowDB extends Dexie {
             if (row.clientType == null) row.clientType = "other";
           });
       });
+
+    // Add the Activities ("Attività") store — flexible personal task list.
+    this.version(17).stores({
+      clients: "&id, name, clientType, updatedAt, syncedAt",
+      interventions:
+        "&id, clientId, startAt, updatedAt, status, createdBy, timerStartedAt, workCategory, dueAt, timerRunState, syncedAt",
+      spareParts: "&id, sku, name, updatedAt, syncedAt",
+      stockMovements: "&id, sparePartId, createdAt, interventionId, syncedAt",
+      tickets:
+        "&id, status, priority, reminderAt, dueAt, updatedAt, clientId, interventionId, syncedAt",
+      attachments: "&id, kind, createdAt, mime, syncedAt",
+      documents: "&id, interventionId, createdAt, title, syncedAt",
+      supportEmailOutbox:
+        "&id, status, to, createdAt, updatedAt, documentId, interventionId, syncedAt",
+      templates: "&id, name, updatedAt, workCategory, syncedAt",
+      activities: "&id, status, priority, dueAt, category, updatedAt, syncedAt"
+    });
   }
 }
 

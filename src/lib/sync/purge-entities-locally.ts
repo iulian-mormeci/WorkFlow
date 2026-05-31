@@ -9,6 +9,10 @@ export async function purgeTicketLocallyById(id: string): Promise<void> {
   await db.tickets.delete(id);
 }
 
+export async function purgeActivityLocallyById(id: string): Promise<void> {
+  await db.activities.delete(id);
+}
+
 export async function purgeTemplateLocallyById(id: string): Promise<void> {
   await db.templates.delete(id);
 }

@@ -4,6 +4,7 @@ import {
 } from "@/lib/interventions/delete-intervention";
 import { purgeClientLocallyById } from "@/lib/clients/purge-client-locally";
 import {
+  purgeActivityLocallyById,
   purgeAttachmentLocallyById,
   purgeDocumentLocallyById,
   purgeTemplateLocallyById
@@ -274,6 +275,7 @@ export async function performClientCloudSyncDelete(params: {
 const PENDING_DOCUMENT_DELETES_KEY = "workflow:pendingDocumentDeletes:v1";
 const PENDING_TEMPLATE_DELETES_KEY = "workflow:pendingTemplateDeletes:v1";
 const PENDING_ATTACHMENT_DELETES_KEY = "workflow:pendingAttachmentDeletes:v1";
+const PENDING_ACTIVITY_DELETES_KEY = "workflow:pendingActivityDeletes:v1";
 
 export type PendingDocumentDeleteSnapshot = {
   documentId: string;
@@ -364,6 +366,105 @@ export function dequeuePendingAttachmentDelete(attachmentId: string): void {
   savePendingAttachmentDeletes(
     loadPendingAttachmentDeletes().filter((x) => x.attachmentId !== attachmentId)
   );
+}
+
+// —— Pending deletes: activities (offline-first, mirrors templates) ——————
+
+function loadPendingActivityDeletes(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(PENDING_ACTIVITY_DELETES_KEY);
+    if (!raw) return [];
+    const v = JSON.parse(raw) as unknown;
+    return Array.isArray(v) ? (v as string[]).filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function savePendingActivityDeletes(ids: string[]) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(PENDING_ACTIVITY_DELETES_KEY, JSON.stringify(ids.slice(0, 80)));
+}
+
+export function enqueuePendingActivityDelete(activityId: string): void {
+  const cur = loadPendingActivityDeletes().filter((x) => x !== activityId);
+  savePendingActivityDeletes([activityId, ...cur]);
+}
+
+export function dequeuePendingActivityDelete(activityId: string): void {
+  savePendingActivityDeletes(loadPendingActivityDeletes().filter((x) => x !== activityId));
+}
+
+/** Skip pull/realtime upserts for activities still queued for cloud deletion. */
+export function getPendingActivityPullSkipContext(): { activityIds: Set<string> } {
+  return { activityIds: new Set(loadPendingActivityDeletes()) };
+}
+
+export async function deleteActivityRemote(
+  supabase: SupabaseClient,
+  userId: string,
+  activityId: string
+): Promise<void> {
+  const { error } = await supabase
+    .from("wf_activities")
+    .delete()
+    .eq("user_id", userId)
+    .eq("id", activityId);
+  if (error) throw new Error(error.message);
+  syncAuditLog("activity_deleted_remote", { activityId });
+}
+
+export async function flushPendingActivityDeletes(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<void> {
+  const ids = loadPendingActivityDeletes();
+  if (!ids.length) return;
+  const remaining: string[] = [];
+  for (const activityId of ids) {
+    try {
+      await deleteActivityRemote(supabase, userId, activityId);
+      dequeuePendingActivityDelete(activityId);
+      await purgeActivityLocallyById(activityId);
+      syncAuditLog("pending_activity_delete_flushed", { activityId });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      syncAuditLog("pending_activity_delete_flush_failed", { activityId, message: msg });
+      remaining.push(activityId);
+    }
+  }
+  savePendingActivityDeletes(remaining);
+}
+
+export async function performActivityCloudSyncDelete(params: {
+  activityId: string;
+  supabase: SupabaseClient | null;
+  userId: string | null;
+}): Promise<EntityCloudDeleteResult> {
+  enqueuePendingActivityDelete(params.activityId);
+  const client = params.supabase;
+  let resolvedUserId = params.userId;
+  if (client && !resolvedUserId) {
+    const { data } = await client.auth.getSession();
+    resolvedUserId = data.session?.user?.id ?? null;
+  }
+  const online = typeof navigator !== "undefined" && navigator.onLine === true;
+  const canRemote = Boolean(online && client && resolvedUserId);
+  if (canRemote) {
+    try {
+      await deleteActivityRemote(client!, resolvedUserId!, params.activityId);
+      await purgeActivityLocallyById(params.activityId);
+      dequeuePendingActivityDelete(params.activityId);
+      return { ok: true, mode: "cloud" };
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      pushSyncFailure({ kind: "delete", title: "Activity cloud delete failed", detail: message });
+      return { ok: false, message };
+    }
+  }
+  await purgeActivityLocallyById(params.activityId);
+  return { ok: true, mode: "queued" };
 }
 
 /**

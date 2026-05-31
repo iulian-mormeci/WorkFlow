@@ -29,6 +29,8 @@
     "remove": "Rimuovi",
     "save": "Salva",
     "saving": "Salvataggio…",
+    "on": "Attivo",
+    "off": "Disattivo",
     "now": "Ora",
     "back": "Indietro",
     "edit": "Modifica",
@@ -660,6 +662,7 @@
     "templates": "Modelli",
     "documents": "Documenti",
     "crmTickets": "Ticket CRM",
+    "activities": "Attività",
     "clients": "Clienti",
     "spareParts": "Ricambi",
     "reports": "Report",
@@ -951,6 +954,102 @@
       "updatedTitle": "Ticket aggiornato",
       "updatedBody": "Stato: {status}",
       "createFailedTitle": "Creazione ticket non riuscita"
+    }
+  },
+  "activities": {
+    "page": {
+      "title": "Attività",
+      "subtitle": "Una lista personale flessibile con promemoria (offline-first, sincronizzata)."
+    },
+    "searchPlaceholder": "Cerca attività…",
+    "empty": "Nessuna attività ancora. Creane una per gestire impegni, scadenze e promemoria.",
+    "overdue": "In ritardo",
+    "noDue": "Senza scadenza",
+    "postponedCount": "Posticipata {count, plural, one {# volta} other {# volte}}",
+    "filters": {
+      "statusAll": "Tutte",
+      "priorityAll": "Qualsiasi priorità"
+    },
+    "summary": {
+      "open": "Aperte",
+      "overdue": "In ritardo",
+      "total": "Totale"
+    },
+    "status": {
+      "open": "Aperta",
+      "in_progress": "In corso",
+      "completed": "Completata",
+      "postponed": "Posticipata"
+    },
+    "priority": {
+      "low": "Bassa",
+      "medium": "Media",
+      "high": "Alta"
+    },
+    "reminderPresets": {
+      "1d": "1 giorno prima",
+      "2h": "2 ore prima",
+      "30m": "30 min prima",
+      "custom": "Personalizzato"
+    },
+    "fields": {
+      "title": "Titolo",
+      "titlePlaceholder": "Cosa c'è da fare?",
+      "description": "Descrizione / note",
+      "descriptionPlaceholder": "Aggiungi dettagli, link o note…",
+      "dueDate": "Scadenza",
+      "dueTime": "Ora",
+      "priority": "Priorità",
+      "status": "Stato",
+      "category": "Categoria / tag",
+      "categoryPlaceholder": "es. Casa, Lavoro, Salute (separati da virgola)",
+      "reminders": "Promemoria",
+      "remindersHint": "Avvisa prima e alla scadenza.",
+      "remindersNeedsDue": "Imposta una scadenza per abilitare i promemoria.",
+      "reminderPreset": "Quando avvisare",
+      "reminderCustomDate": "Data promemoria",
+      "reminderCustomTime": "Ora promemoria"
+    },
+    "actions": {
+      "new": "Nuova attività",
+      "complete": "Completa",
+      "reopen": "Riapri",
+      "postpone": "Posticipa"
+    },
+    "form": {
+      "createTitle": "Nuova attività",
+      "editTitle": "Modifica attività",
+      "subtitle": "Salvata in locale, sincronizzata su tutti i dispositivi."
+    },
+    "postpone": {
+      "title": "Posticipa attività",
+      "subtitle": "Sposta la scadenza e indica il motivo.",
+      "newDueDate": "Nuova scadenza",
+      "newDueTime": "Ora",
+      "reason": "Motivo (facoltativo)",
+      "reasonPlaceholder": "Perché la stai posticipando?",
+      "confirm": "Posticipa"
+    },
+    "reminderPrompt": {
+      "title": "Promemoria attività",
+      "subtitle": "Questa attività richiede la tua attenzione.",
+      "duePrefix": "Scadenza:",
+      "more": "+{count} in attesa",
+      "dismiss": "Ignora"
+    },
+    "deleteDialog": {
+      "title": "Eliminare l'attività?",
+      "body": "«{title}» verrà eliminata definitivamente. L'azione non è reversibile."
+    },
+    "toasts": {
+      "createdTitle": "Attività creata",
+      "updatedTitle": "Attività aggiornata",
+      "postponedTitle": "Attività posticipata",
+      "deletedTitle": "Attività eliminata",
+      "savedLocally": "Salvata in locale.",
+      "statusBody": "Stato: {status}",
+      "saveFailedTitle": "Impossibile salvare l'attività",
+      "deleteFailedTitle": "Impossibile eliminare l'attività"
     }
   },
   "reports": {

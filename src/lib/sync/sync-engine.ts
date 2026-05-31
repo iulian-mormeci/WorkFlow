@@ -10,6 +10,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { purgeInterventionLocallyById } from "@/lib/interventions/delete-intervention";
 import { purgeClientLocallyById } from "@/lib/clients/purge-client-locally";
 import {
+  purgeActivityLocallyById,
   purgeAttachmentLocallyById,
   purgeDocumentLocallyById,
   purgeOutboxLocallyById,
@@ -19,11 +20,13 @@ import {
   purgeTemplateLocallyById
 } from "@/lib/sync/purge-entities-locally";
 import {
+  flushPendingActivityDeletes,
   flushPendingAttachmentDeletes,
   flushPendingClientDeletes,
   flushPendingDocumentDeletes,
   flushPendingInterventionDeletes,
   flushPendingTemplateDeletes,
+  getPendingActivityPullSkipContext,
   getPendingClientPullSkipContext,
   getPendingInterventionPullSkipContext,
   getPendingSyncPullSkipContext
@@ -39,6 +42,8 @@ import { uploadToSupabaseStorageWithRetries } from "@/lib/sync/storage-upload";
 import { useSyncUiStore } from "@/stores/sync-ui";
 import {
   db,
+  type Activity,
+  type ActivityPostponement,
   type Attachment,
   type Client,
   type Document,
@@ -455,6 +460,100 @@ function ticketFromRow(r: Record<string, unknown>): Ticket {
   };
 }
 
+function normalizeActivityStatus(v: unknown): Activity["status"] {
+  const s = typeof v === "string" ? v : "open";
+  if (s === "open" || s === "in_progress" || s === "completed" || s === "postponed") {
+    return s;
+  }
+  return "open";
+}
+
+function normalizeActivityPriority(v: unknown): Activity["priority"] {
+  const s = typeof v === "string" ? v : "medium";
+  if (s === "low" || s === "medium" || s === "high") return s;
+  return "medium";
+}
+
+function activityPostponementsToJson(
+  list: ActivityPostponement[] | undefined
+): ActivityPostponement[] | null {
+  if (!list || !list.length) return null;
+  return list.map((p) => ({
+    id: p.id,
+    at: p.at,
+    reason: p.reason,
+    previousDueAt: p.previousDueAt,
+    newDueAt: p.newDueAt
+  }));
+}
+
+function activityPostponementsFromJson(v: unknown): ActivityPostponement[] | undefined {
+  if (!Array.isArray(v) || v.length === 0) return undefined;
+  const out: ActivityPostponement[] = [];
+  for (const raw of v) {
+    if (!raw || typeof raw !== "object") continue;
+    const o = raw as Record<string, unknown>;
+    if (o.id == null || o.at == null) continue;
+    out.push({
+      id: String(o.id),
+      at: String(o.at),
+      reason: o.reason != null ? String(o.reason) : undefined,
+      previousDueAt: o.previousDueAt != null ? String(o.previousDueAt) : undefined,
+      newDueAt: o.newDueAt != null ? String(o.newDueAt) : undefined
+    });
+  }
+  return out.length ? out : undefined;
+}
+
+function activityToRow(a: Activity, userId: string) {
+  return {
+    id: a.id,
+    user_id: userId,
+    title: a.title,
+    description: a.description ?? null,
+    due_at: a.dueAt ?? null,
+    reminders_enabled: a.remindersEnabled ?? false,
+    reminder_preset: a.reminderPreset ?? null,
+    reminder_custom_at: a.reminderCustomAt ?? null,
+    reminder_pre_due_ack_at: a.reminderPreDueAckAt ?? null,
+    reminder_due_ack_at: a.reminderDueAckAt ?? null,
+    status: a.status,
+    priority: a.priority,
+    category: a.category ?? null,
+    postponements: activityPostponementsToJson(a.postponements),
+    created_at: a.createdAt,
+    updated_at: a.updatedAt
+  };
+}
+
+function activityFromRow(r: Record<string, unknown>): Activity {
+  const preset = r.reminder_preset as Activity["reminderPreset"] | undefined;
+  return {
+    id: String(r.id),
+    title: String(r.title),
+    description: (r.description as string) ?? undefined,
+    dueAt: r.due_at ? iso(r.due_at) : undefined,
+    remindersEnabled: Boolean(r.reminders_enabled),
+    reminderPreset:
+      preset === "1d" || preset === "2h" || preset === "30m" || preset === "custom"
+        ? preset
+        : undefined,
+    reminderCustomAt: r.reminder_custom_at ? iso(r.reminder_custom_at) : undefined,
+    reminderPreDueAckAt: r.reminder_pre_due_ack_at
+      ? iso(r.reminder_pre_due_ack_at)
+      : undefined,
+    reminderDueAckAt: r.reminder_due_ack_at ? iso(r.reminder_due_ack_at) : undefined,
+    status: normalizeActivityStatus(r.status),
+    priority: normalizeActivityPriority(r.priority),
+    category: (r.category as string) ?? undefined,
+    postponements: activityPostponementsFromJson(r.postponements),
+    createdAt: iso(r.created_at),
+    updatedAt: iso(r.updated_at),
+    syncedAt: new Date().toISOString(),
+    remoteId: String(r.id)
+  };
+}
+
 function documentToRow(d: Document, userId: string) {
   const u = d.updatedAt ?? d.createdAt;
   return {
@@ -634,7 +733,8 @@ async function markSynced(
     | "attachments"
     | "documents"
     | "supportEmailOutbox"
-    | "templates",
+    | "templates"
+    | "activities",
   id: string
 ) {
   const now = new Date().toISOString();
@@ -665,6 +765,9 @@ async function markSynced(
       break;
     case "templates":
       await db.templates.update(id, { syncedAt: now });
+      break;
+    case "activities":
+      await db.activities.update(id, { syncedAt: now });
       break;
     default:
       break;
@@ -839,6 +942,24 @@ async function pushTickets(supabase: SupabaseClient, userId: string) {
     );
     for (const t of batch) {
       await markSynced("tickets", t.id);
+      n += 1;
+    }
+  }
+  return n;
+}
+
+async function pushActivities(supabase: SupabaseClient, userId: string) {
+  const rows = await db.activities.toArray();
+  const dirty = rows.filter((r) => isDirty(r.updatedAt, r.syncedAt));
+  let n = 0;
+  for (const batch of chunk(dirty, 80)) {
+    await upsertBatch(
+      supabase,
+      "wf_activities",
+      batch.map((a) => activityToRow(a, userId))
+    );
+    for (const a of batch) {
+      await markSynced("activities", a.id);
       n += 1;
     }
   }
@@ -1077,6 +1198,32 @@ async function pullTickets(supabase: SupabaseClient, userId: string) {
   return n;
 }
 
+async function pullActivities(supabase: SupabaseClient, userId: string) {
+  const rows = await pullPaged(supabase, "wf_activities", userId, "updated_at");
+  const pend = getPendingActivityPullSkipContext();
+  const serverIds = new Set<string>();
+  let n = 0;
+  for (const r of rows) {
+    const id = String(r.id);
+    serverIds.add(id);
+    if (pend.activityIds.has(id)) continue;
+    const remoteU = iso(r.updated_at);
+    const local = await db.activities.get(id);
+    if (local && shouldSkipRemoteMerge(remoteU, local)) continue;
+    await db.activities.put(activityFromRow(r));
+    n += 1;
+  }
+  const locals = await db.activities.toArray();
+  for (const local of locals) {
+    if (serverIds.has(local.id)) continue;
+    if (pend.activityIds.has(local.id)) continue;
+    if (!local.syncedAt) continue;
+    console.info("[sync] pull: purging activity absent on server (remote delete)", local.id);
+    await purgeActivityLocallyById(local.id);
+  }
+  return n;
+}
+
 async function pullDocuments(supabase: SupabaseClient, userId: string) {
   const rows = await pullPaged(supabase, "wf_documents", userId, "updated_at");
   const pend = getPendingSyncPullSkipContext();
@@ -1254,6 +1401,9 @@ export function registerWorkflowDexieSyncHooks() {
   db.templates.hook("creating", hook);
   db.templates.hook("updating", hook);
   db.templates.hook("deleting", hook);
+  db.activities.hook("creating", hook);
+  db.activities.hook("updating", hook);
+  db.activities.hook("deleting", hook);
 }
 
 export async function runFullSync(
@@ -1300,6 +1450,7 @@ export async function runFullSync(
       await flushPendingDocumentDeletes(supabase, user.id);
       await flushPendingTemplateDeletes(supabase, user.id);
       await flushPendingAttachmentDeletes(supabase, user.id);
+      await flushPendingActivityDeletes(supabase, user.id);
       syncAuditLog("full_sync_start", { userId: user.id });
 
       // Push FK-safe order
@@ -1310,6 +1461,7 @@ export async function runFullSync(
       result.pushed.interventions = await pushInterventions(supabase, user.id);
       result.pushed.stockMovements = await pushStock(supabase, user.id);
       result.pushed.tickets = await pushTickets(supabase, user.id);
+      result.pushed.activities = await pushActivities(supabase, user.id);
       result.pushed.documents = await pushDocuments(supabase, user.id);
       result.pushed.supportEmailOutbox = await pushOutbox(supabase, user.id);
 
@@ -1321,6 +1473,7 @@ export async function runFullSync(
       result.pulled.interventions = await pullInterventions(supabase, user.id);
       result.pulled.stockMovements = await pullStock(supabase, user.id);
       result.pulled.tickets = await pullTickets(supabase, user.id);
+      result.pulled.activities = await pullActivities(supabase, user.id);
       result.pulled.documents = await pullDocuments(supabase, user.id);
       result.pulled.supportEmailOutbox = await pullOutbox(supabase, user.id);
 
@@ -1329,6 +1482,7 @@ export async function runFullSync(
       await flushPendingDocumentDeletes(supabase, user.id);
       await flushPendingTemplateDeletes(supabase, user.id);
       await flushPendingAttachmentDeletes(supabase, user.id);
+      await flushPendingActivityDeletes(supabase, user.id);
 
       result.ok = result.errors.length === 0;
 
@@ -1423,6 +1577,9 @@ export async function computePendingDirtyCount(): Promise<number> {
   for (const r of await db.templates.toArray()) {
     if (isDirty(r.updatedAt, r.syncedAt)) n += 1;
   }
+  for (const r of await db.activities.toArray()) {
+    if (isDirty(r.updatedAt, r.syncedAt)) n += 1;
+  }
   return n;
 }
 
@@ -1503,6 +1660,9 @@ export async function applyRealtimePostgresChange(
           break;
         case "wf_tickets":
           await purgeTicketLocallyById(id);
+          break;
+        case "wf_activities":
+          await purgeActivityLocallyById(id);
           break;
         case "wf_documents":
           await purgeDocumentLocallyById(id);
@@ -1588,6 +1748,14 @@ export async function applyRealtimePostgresChange(
         const local = await db.tickets.get(id);
         if (local && shouldSkipRemoteMerge(remoteU, local)) return;
         await db.tickets.put(ticketFromRow(row));
+        break;
+      }
+      case "wf_activities": {
+        const id = String(row.id);
+        if (getPendingActivityPullSkipContext().activityIds.has(id)) return;
+        const local = await db.activities.get(id);
+        if (local && shouldSkipRemoteMerge(remoteU, local)) return;
+        await db.activities.put(activityFromRow(row));
         break;
       }
       case "wf_documents": {

@@ -9,6 +9,7 @@ const TABLES = [
   "wf_interventions",
   "wf_stock_movements",
   "wf_tickets",
+  "wf_activities",
   "wf_documents",
   "wf_templates"
 ] as const;
