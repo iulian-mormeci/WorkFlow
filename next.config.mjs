@@ -61,6 +61,31 @@ const CONTENT_SECURITY_POLICY = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  /**
+   * Quiet non-actionable webpack noise so production builds stay clean:
+   *  - next-intl's production extractor uses a dynamic `import(t)` webpack can't
+   *    statically parse ("Build dependencies behind this expression are ignored").
+   *  - The webpack persistent cache logs "Serializing big strings" for our large
+   *    i18n message bundles (messages/*.json). Both are infra-logging warnings
+   *    (the `<w>` prefix), so we raise the infra log level to `error` and also add
+   *    `ignoreWarnings` as a safety net for any compilation-level variant.
+   * This is purely logging configuration — runtime behavior is unchanged.
+   */
+  webpack: (config) => {
+    // This runs after next-intl / next-pwa have applied their own webpack tweaks
+    // (both plugins invoke the user `webpack` last), so we only adjust logging here.
+    config.infrastructureLogging = {
+      ...config.infrastructureLogging,
+      level: "error"
+    };
+    config.ignoreWarnings = [
+      ...(config.ignoreWarnings ?? []),
+      { module: /next-intl[\\/].*[\\/]extractor[\\/]format[\\/]index\.js/ },
+      /Parsing of .* for build dependencies failed/,
+      /Serializing big strings/
+    ];
+    return config;
+  },
   async headers() {
     const base = [
       { key: "X-DNS-Prefetch-Control", value: "off" },
