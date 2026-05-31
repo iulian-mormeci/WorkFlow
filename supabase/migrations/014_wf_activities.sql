@@ -51,3 +51,6 @@ create policy wf_activities_delete on public.wf_activities
 
 alter publication supabase_realtime add table public.wf_activities;
 alter table public.wf_activities replica identity full;
+
+-- Refresh PostgREST schema cache so the new table is usable immediately.
+notify pgrst, 'reload schema';

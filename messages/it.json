@@ -1178,6 +1178,30 @@
         "forceSyncErrorTitle": "Errore sync forzata"
       }
     },
+    "workingHours": {
+      "title": "Orario di lavoro",
+      "subtitle": "Usato per conteggiare in modo accurato le ore e rilevare gli straordinari quando fermi il timer.",
+      "startLabel": "Inizio",
+      "endLabel": "Fine",
+      "daysLabel": "Giorni lavorativi",
+      "perDayLabel": "Orari diversi per giorno",
+      "perDayHint": "Imposta un orario specifico per ogni giorno della settimana.",
+      "perDayOn": "Attivo",
+      "perDayOff": "Disattivo",
+      "saveButton": "Salva orario",
+      "saving": "Salvataggio…",
+      "savedTitle": "Orario salvato",
+      "savedBody": "Le tue ore di lavoro sono state aggiornate.",
+      "dayLong": {
+        "mon": "Lunedì",
+        "tue": "Martedì",
+        "wed": "Mercoledì",
+        "thu": "Giovedì",
+        "fri": "Venerdì",
+        "sat": "Sabato",
+        "sun": "Domenica"
+      }
+    },
     "appearance": {
       "title": "Aspetto",
       "subtitle": "Ottimizzato per iPad, supporta la modalità scura.",
@@ -1393,7 +1417,28 @@
         "resumed": "Ripreso",
         "completedTitle": "Visita completata",
         "completedBodyWithDuration": "Durata salvata: {duration}",
-        "completedBodyFromTracked": "Durata salvata dal tempo tracciato."
+        "completedBodyFromTracked": "Durata salvata dal tempo tracciato.",
+        "countedBody": "Ore lavorative conteggiate: {total}",
+        "countedBodyOvertime": "Ore lavorative conteggiate: {total} (di cui {overtime} straordinari)"
+      },
+      "stopDialog": {
+        "title": "Conferma ore di lavoro",
+        "subtitle": "Parte del tempo cronometrato è fuori dal tuo orario di lavoro. Conferma quanto conteggiare.",
+        "hm": "{h}h {m}m",
+        "tracked": "Tempo cronometrato",
+        "withinHours": "Dentro l'orario di lavoro",
+        "outsideHours": "Fuori orario",
+        "overtimeQuestion": "Hai fatto degli straordinari?",
+        "overtimeYes": "Sì",
+        "overtimeNo": "No",
+        "overtimeStart": "Inizio straordinario",
+        "overtimeEnd": "Fine straordinario",
+        "overtimeInvalid": "Intervallo straordinario non valido.",
+        "noOvertimeNote": "Il tempo fuori orario verrà escluso dal conteggio.",
+        "counted": "Ore lavorative conteggiate: {total}",
+        "countedWithOvertime": "Ore lavorative conteggiate: {total} (di cui {overtime} straordinari)",
+        "cancel": "Annulla",
+        "confirm": "Conferma e completa"
       }
     },
     "form": {

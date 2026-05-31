@@ -27,6 +27,7 @@ import { getSupportEmailTo, setSupportEmailTo } from "@/lib/support-email/config
 import { useSyncFailureQueue } from "@/lib/sync/sync-failure-queue";
 import { useTranslations } from "next-intl";
 import { SettingsSecurityCard } from "@/components/settings/settings-security-card";
+import { WorkingHoursCard } from "@/components/settings/working-hours-card";
 import {
   refreshPendingDirtyCount,
   runForceFullWorkflowSync,
@@ -265,6 +266,8 @@ export function SettingsClient() {
       </Card>
 
       <SettingsSecurityCard />
+
+      <WorkingHoursCard />
 
       <Card className="rounded-2xl lg:col-span-2">
         <CardHeader className="space-y-2">

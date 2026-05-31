@@ -14,12 +14,23 @@ import {
   isInterventionCompleted,
   normalizeTimerRunState
 } from "@/lib/interventions/intervention-helpers";
+import {
+  analyzeTimerStop,
+  loadWorkingHours,
+  secondsToHm,
+  type TimerStopAnalysis
+} from "@/lib/interventions/working-hours";
+import { TimerStopDialog, type TimerStopResult } from "@/components/interventions/timer-stop-dialog";
+
+/** Below this, treat "outside hours" as rounding noise and skip the prompt. */
+const OUTSIDE_PROMPT_THRESHOLD_SECONDS = 60;
 
 export function InterventionTimerPanel({ interventionId }: { interventionId: string }) {
   const t = useTranslations();
   const { toast } = useToast();
   const iv = useLiveQuery(async () => db.interventions.get(interventionId), [interventionId]);
   const [tick, setTick] = useState(0);
+  const [stopAnalysis, setStopAnalysis] = useState<TimerStopAnalysis | null>(null);
 
   useEffect(() => {
     const t = window.setInterval(() => setTick((x) => x + 1), 1000);
@@ -40,6 +51,72 @@ export function InterventionTimerPanel({ interventionId }: { interventionId: str
     await db.interventions.update(interventionId, {
       ...patch,
       updatedAt: nowIso
+    });
+  }
+
+  /** Persist completion with the final counted minutes (raw tracked time kept truthful). */
+  async function finalizeStop(params: {
+    countedSeconds: number;
+    overtimeSeconds: number;
+    trackedSeconds: number;
+    endIso: string;
+  }) {
+    const minutes = params.countedSeconds > 0 ? Math.max(1, Math.round(params.countedSeconds / 60)) : 0;
+    await persist({
+      timerRunState: "idle",
+      timerStartedAt: undefined,
+      timerAccumulatedSeconds: params.trackedSeconds,
+      durationMinutes: minutes,
+      status: "completed",
+      endAt: params.endIso
+    });
+    syncWorkflowNow();
+
+    const counted = secondsToHm(params.countedSeconds);
+    const ot = secondsToHm(params.overtimeSeconds);
+    toast({
+      title: t("interventions.timer.toasts.completedTitle"),
+      description:
+        params.overtimeSeconds > 0
+          ? t("interventions.timer.toasts.countedBodyOvertime", {
+              total: t("interventions.timer.stopDialog.hm", { h: counted.h, m: counted.m }),
+              overtime: t("interventions.timer.stopDialog.hm", { h: ot.h, m: ot.m })
+            })
+          : t("interventions.timer.toasts.countedBody", {
+              total: t("interventions.timer.stopDialog.hm", { h: counted.h, m: counted.m })
+            })
+    });
+  }
+
+  /** Entry point for both stop buttons: prompt only when time fell outside hours. */
+  async function requestStop(trackedSeconds: number) {
+    const endIso = new Date().toISOString();
+    const analysis = analyzeTimerStop({
+      trackedSeconds,
+      stopAtMs: Date.now(),
+      config: loadWorkingHours()
+    });
+    if (analysis.outsideSeconds < OUTSIDE_PROMPT_THRESHOLD_SECONDS) {
+      await finalizeStop({
+        countedSeconds: trackedSeconds,
+        overtimeSeconds: 0,
+        trackedSeconds,
+        endIso
+      });
+      return;
+    }
+    setStopAnalysis(analysis);
+  }
+
+  function handleStopConfirm(result: TimerStopResult) {
+    const analysis = stopAnalysis;
+    setStopAnalysis(null);
+    if (!analysis) return;
+    void finalizeStop({
+      countedSeconds: result.countedSeconds,
+      overtimeSeconds: result.overtimeSeconds,
+      trackedSeconds: analysis.trackedSeconds,
+      endIso: new Date(analysis.windowEndMs).toISOString()
     });
   }
 
@@ -106,25 +183,7 @@ export function InterventionTimerPanel({ interventionId }: { interventionId: str
             <Button
               type="button"
               variant="default"
-              onClick={async () => {
-                const acc = getTimerElapsedSeconds(iv);
-                const endIso = new Date().toISOString();
-                await persist({
-                  timerRunState: "idle",
-                  timerStartedAt: undefined,
-                  timerAccumulatedSeconds: acc,
-                  durationMinutes: Math.max(1, Math.round(acc / 60)),
-                  status: "completed",
-                  endAt: endIso
-                });
-                syncWorkflowNow();
-                toast({
-                  title: t("interventions.timer.toasts.completedTitle"),
-                  description: t("interventions.timer.toasts.completedBodyWithDuration", {
-                    duration: formatElapsedHms(acc)
-                  })
-                });
-              }}
+              onClick={() => requestStop(getTimerElapsedSeconds(iv))}
             >
               <Square className="h-4 w-4" />
               {t("interventions.timer.actions.stopAndComplete")}
@@ -152,23 +211,7 @@ export function InterventionTimerPanel({ interventionId }: { interventionId: str
             <Button
               type="button"
               variant="default"
-              onClick={async () => {
-                const acc = Math.max(0, Math.floor(iv.timerAccumulatedSeconds ?? 0));
-                const endIso = new Date().toISOString();
-                await persist({
-                  timerRunState: "idle",
-                  timerStartedAt: undefined,
-                  timerAccumulatedSeconds: acc,
-                  durationMinutes: Math.max(1, Math.round(acc / 60)),
-                  status: "completed",
-                  endAt: endIso
-                });
-                syncWorkflowNow();
-                toast({
-                  title: t("interventions.timer.toasts.completedTitle"),
-                  description: t("interventions.timer.toasts.completedBodyFromTracked")
-                });
-              }}
+              onClick={() => requestStop(Math.max(0, Math.floor(iv.timerAccumulatedSeconds ?? 0)))}
             >
               <Square className="h-4 w-4" />
               {t("interventions.timer.actions.stopAndComplete")}
@@ -176,6 +219,15 @@ export function InterventionTimerPanel({ interventionId }: { interventionId: str
           </>
         ) : null}
       </div>
+
+      <TimerStopDialog
+        open={stopAnalysis !== null}
+        onOpenChange={(o) => {
+          if (!o) setStopAnalysis(null);
+        }}
+        analysis={stopAnalysis}
+        onConfirm={handleStopConfirm}
+      />
     </div>
   );
 }

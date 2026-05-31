@@ -1178,6 +1178,30 @@
         "forceSyncErrorTitle": "Force sync error"
       }
     },
+    "workingHours": {
+      "title": "Working hours",
+      "subtitle": "Used to count hours accurately and detect overtime when you stop the timer.",
+      "startLabel": "Start",
+      "endLabel": "End",
+      "daysLabel": "Working days",
+      "perDayLabel": "Different hours per day",
+      "perDayHint": "Set a specific schedule for each day of the week.",
+      "perDayOn": "On",
+      "perDayOff": "Off",
+      "saveButton": "Save hours",
+      "saving": "Saving…",
+      "savedTitle": "Hours saved",
+      "savedBody": "Your working hours have been updated.",
+      "dayLong": {
+        "mon": "Monday",
+        "tue": "Tuesday",
+        "wed": "Wednesday",
+        "thu": "Thursday",
+        "fri": "Friday",
+        "sat": "Saturday",
+        "sun": "Sunday"
+      }
+    },
     "appearance": {
       "title": "Appearance",
       "subtitle": "Optimized for iPad, supports dark mode.",
@@ -1393,7 +1417,28 @@
         "resumed": "Resumed",
         "completedTitle": "Visit completed",
         "completedBodyWithDuration": "Duration saved: {duration}",
-        "completedBodyFromTracked": "Duration saved from tracked time."
+        "completedBodyFromTracked": "Duration saved from tracked time.",
+        "countedBody": "Working hours counted: {total}",
+        "countedBodyOvertime": "Working hours counted: {total} ({overtime} overtime)"
+      },
+      "stopDialog": {
+        "title": "Confirm working hours",
+        "subtitle": "Some of the tracked time falls outside your working hours. Confirm how much to count.",
+        "hm": "{h}h {m}m",
+        "tracked": "Tracked time",
+        "withinHours": "Within working hours",
+        "outsideHours": "Outside hours",
+        "overtimeQuestion": "Did you work overtime?",
+        "overtimeYes": "Yes",
+        "overtimeNo": "No",
+        "overtimeStart": "Overtime start",
+        "overtimeEnd": "Overtime end",
+        "overtimeInvalid": "Invalid overtime range.",
+        "noOvertimeNote": "Time outside working hours will be excluded.",
+        "counted": "Working hours counted: {total}",
+        "countedWithOvertime": "Working hours counted: {total} ({overtime} overtime)",
+        "cancel": "Cancel",
+        "confirm": "Confirm and complete"
       }
     },
     "form": {

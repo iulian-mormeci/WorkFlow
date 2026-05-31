@@ -19,3 +19,7 @@ begin
       check (reminder_preset is null or reminder_preset in ('1d', '2h', '30m', 'custom'));
   end if;
 end $$;
+
+-- Force PostgREST to refresh its schema cache so the new columns are usable immediately
+-- (otherwise sync can fail with "Could not find the 'reminders_enabled' column ... in the schema cache").
+notify pgrst, 'reload schema';
