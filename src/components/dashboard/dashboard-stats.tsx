@@ -1,11 +1,13 @@
 "use client";
 
+import { Link } from "@/i18n/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ClipboardList, Clock3, MapPin, MessagesSquare } from "lucide-react";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/db/workflow-db";
 import { endOfDay, endOfMonth, startOfDay, startOfMonth } from "@/lib/dates";
 import { IconBubble } from "@/components/ui/icon";
+import { CLICKABLE_CARD } from "@/components/dashboard/clickable-card";
 import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
 import { useTranslations } from "next-intl";
 
@@ -57,19 +59,22 @@ export function DashboardStats() {
       title: t("dashboard.stats.interventionsToday.title"),
       icon: ClipboardList,
       value: interventionsToday ?? "—",
-      hint: t("dashboard.stats.interventionsToday.hint")
+      hint: t("dashboard.stats.interventionsToday.hint"),
+      href: "/interventions"
     },
     {
       title: t("dashboard.stats.hoursThisMonth.title"),
       icon: Clock3,
       value: monthTotals ? String(minutesToHours(monthTotals.durationMinutes)) : "—",
-      hint: t("dashboard.stats.hoursThisMonth.hint")
+      hint: t("dashboard.stats.hoursThisMonth.hint"),
+      href: "/statistics"
     },
     {
       title: t("dashboard.stats.kmThisMonth.title"),
       icon: MapPin,
       value: monthTotals ? String(Math.round(monthTotals.km)) : "—",
-      hint: t("dashboard.stats.kmThisMonth.hint")
+      hint: t("dashboard.stats.kmThisMonth.hint"),
+      href: "/statistics"
     },
     {
       title: t("dashboard.stats.pendingTickets.title"),
@@ -77,23 +82,30 @@ export function DashboardStats() {
       value: pendingTickets ? String(pendingTickets.due) : "—",
       hint: pendingTickets
         ? t("dashboard.stats.pendingTickets.hintWithTotal", { total: pendingTickets.total })
-        : t("dashboard.stats.pendingTickets.hintFallback")
+        : t("dashboard.stats.pendingTickets.hintFallback"),
+      href: "/crm-tickets"
     }
   ] as const;
 
   return (
     <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       {cards.map((c) => (
-        <Card key={c.title} className="rounded-2xl">
-          <CardHeader className="space-y-2">
-            <div className="flex items-start justify-between gap-3">
-              <CardDescription className="text-xs">{c.title}</CardDescription>
-              <IconBubble icon={c.icon} />
-            </div>
-            <CardTitle className="text-3xl tracking-tight sm:text-4xl">{c.value}</CardTitle>
-            <div className="text-xs text-muted-foreground">{c.hint}</div>
-          </CardHeader>
-        </Card>
+        <Link
+          key={c.title}
+          href={c.href}
+          className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+        >
+          <Card className={`h-full rounded-2xl ${CLICKABLE_CARD}`}>
+            <CardHeader className="space-y-2">
+              <div className="flex items-start justify-between gap-3">
+                <CardDescription className="text-xs">{c.title}</CardDescription>
+                <IconBubble icon={c.icon} />
+              </div>
+              <CardTitle className="text-3xl tracking-tight sm:text-4xl">{c.value}</CardTitle>
+              <div className="text-xs text-muted-foreground">{c.hint}</div>
+            </CardHeader>
+          </Card>
+        </Link>
       ))}
     </section>
   );

@@ -679,6 +679,14 @@
   "dashboard": {
     "title": "Dashboard",
     "subtitle": "Panoramica della giornata, ottimizzata per il lavoro sul campo.",
+    "viewAll": "Vedi tutti",
+    "activities": {
+      "title": "Attività",
+      "subtitle": "Aperte, scadute e in scadenza oggi.",
+      "open": "Aperte",
+      "overdue": "Scadute",
+      "dueToday": "Oggi"
+    },
     "stats": {
       "interventionsToday": {
         "title": "Interventi (oggi)",

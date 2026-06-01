@@ -679,6 +679,14 @@
   "dashboard": {
     "title": "Dashboard",
     "subtitle": "Your daily overview, optimised for field work.",
+    "viewAll": "View all",
+    "activities": {
+      "title": "Activities",
+      "subtitle": "Open, overdue and due today.",
+      "open": "Open",
+      "overdue": "Overdue",
+      "dueToday": "Due today"
+    },
     "stats": {
       "interventionsToday": {
         "title": "Interventions (today)",

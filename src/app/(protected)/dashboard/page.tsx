@@ -1,4 +1,5 @@
 import { DashboardStats } from "@/components/dashboard/dashboard-stats";
+import { DashboardActivities } from "@/components/dashboard/dashboard-activities";
 import { OfflineBanner } from "@/components/offline/offline-banner";
 import { DashboardRecent } from "@/components/dashboard/dashboard-recent";
 import { DashboardQuickActions } from "@/components/dashboard/dashboard-quick-actions";
@@ -23,6 +24,8 @@ export default async function ProtectedDashboardPage() {
       <OfflineBanner />
       <InstallPromptBanner />
       <DashboardStats />
+
+      <DashboardActivities />
 
       <DashboardAttention />
 

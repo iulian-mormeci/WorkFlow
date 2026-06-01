@@ -5,6 +5,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { Target } from "lucide-react";
 import { db } from "@/lib/db/workflow-db";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ViewAllLink } from "@/components/dashboard/clickable-card";
 import { DueCountdown } from "@/components/interventions/due-countdown";
 import { InterventionStatusBadge } from "@/components/interventions/intervention-status-badge";
 import { endOfDay, startOfDay } from "@/lib/dates";
@@ -69,7 +70,10 @@ export function TodaysFocus() {
               <CardTitle className="text-base">{t("dashboard.todaysFocus.title")}</CardTitle>
               <CardDescription>{t("dashboard.todaysFocus.subtitle")}</CardDescription>
           </div>
-          <IconBubble icon={Target} />
+          <div className="flex items-center gap-2">
+            <ViewAllLink href="/interventions" label={t("dashboard.viewAll")} />
+            <IconBubble icon={Target} />
+          </div>
         </div>
       </CardHeader>
 

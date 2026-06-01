@@ -4,6 +4,7 @@ import { Link } from "@/i18n/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db/workflow-db";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { ViewAllLink } from "@/components/dashboard/clickable-card";
 import { InterventionStatusBadge } from "@/components/interventions/intervention-status-badge";
 import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
 import { useTranslations } from "next-intl";
@@ -32,8 +33,13 @@ export function DashboardRecent() {
   return (
     <Card className="rounded-2xl">
       <CardHeader className="space-y-2">
-          <CardTitle className="text-base">{t("dashboard.recent.title")}</CardTitle>
-          <CardDescription>{t("dashboard.recent.subtitle")}</CardDescription>
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1">
+            <CardTitle className="text-base">{t("dashboard.recent.title")}</CardTitle>
+            <CardDescription>{t("dashboard.recent.subtitle")}</CardDescription>
+          </div>
+          <ViewAllLink href="/interventions" label={t("dashboard.viewAll")} />
+        </div>
       </CardHeader>
 
       <div className="px-2 pb-2">
