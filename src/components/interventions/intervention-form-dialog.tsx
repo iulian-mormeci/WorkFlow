@@ -58,6 +58,7 @@ import {
   DialogTitle
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 type Props = {
   open: boolean;
@@ -641,8 +642,13 @@ export function InterventionFormDialog(props: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85dvh] overflow-auto">
-        <DialogHeader>
+      <DialogContent
+        className={cn(
+          "flex max-h-[88dvh] w-[calc(100%-1.5rem)] max-w-xl flex-col overflow-hidden p-0",
+          "max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:left-0 max-md:max-h-[94dvh] max-md:w-full max-md:max-w-none max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-b-none max-md:rounded-t-2xl max-md:border-b-0"
+        )}
+      >
+        <DialogHeader className="shrink-0 space-y-1 border-b px-4 py-3 md:px-6 md:py-4">
           <DialogTitle>
             {mode === "new" ? t("interventions.form.titleNew") : t("interventions.form.titleEdit")}
           </DialogTitle>
@@ -651,13 +657,14 @@ export function InterventionFormDialog(props: Props) {
           </DialogDescription>
         </DialogHeader>
 
+        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-4 py-4 md:px-6">
         {error ? (
-          <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
           </div>
         ) : null}
 
-        <div className="mt-4 grid gap-5">
+        <div className="grid min-w-0 gap-4 md:gap-5">
           {/* Client */}
           <ClientPickerField
             clients={clients}
@@ -673,16 +680,17 @@ export function InterventionFormDialog(props: Props) {
               }
             }}
             disabled={saving}
+            active={open}
           />
 
           {/* Intervention vs activity */}
-          <div className="grid gap-2">
+          <div className="grid min-w-0 gap-2">
             <Label>{t("interventions.form.recordAs")}</Label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-2 md:gap-3">
               <button
                 type="button"
                 onClick={() => setWorkCategory("intervention")}
-                className={`rounded-2xl border-2 p-4 text-left transition ${
+                className={`min-h-12 touch-manipulation rounded-xl border-2 p-3 text-left transition md:rounded-2xl md:p-4 ${
                   workCategory === "intervention"
                     ? "border-primary bg-primary/5"
                     : "border-muted bg-muted/30 hover:bg-muted/50"
@@ -694,7 +702,7 @@ export function InterventionFormDialog(props: Props) {
               <button
                 type="button"
                 onClick={() => setWorkCategory("activity")}
-                className={`rounded-2xl border-2 p-4 text-left transition ${
+                className={`min-h-12 touch-manipulation rounded-xl border-2 p-3 text-left transition md:rounded-2xl md:p-4 ${
                   workCategory === "activity"
                     ? "border-primary bg-primary/5"
                     : "border-muted bg-muted/30 hover:bg-muted/50"
@@ -707,7 +715,7 @@ export function InterventionFormDialog(props: Props) {
           </div>
 
           {workCategory === "activity" ? (
-            <div className="flex items-center gap-3 rounded-xl border bg-muted/40 px-4 py-3">
+            <div className="flex min-h-12 items-center gap-3 rounded-xl border bg-muted/40 px-4 py-3">
               <Checkbox
                 id="iv-office"
                 checked={isOfficeActivity}
@@ -720,14 +728,14 @@ export function InterventionFormDialog(props: Props) {
           ) : null}
 
           {/* Job type (free text) */}
-          <div className="grid gap-2">
+          <div className="grid min-w-0 gap-2">
             <Label>{t("interventions.form.jobType")}</Label>
             <Input
               value={type}
               onChange={(e) => setType(e.target.value)}
               placeholder={t("interventions.form.jobTypePlaceholder")}
               list="intervention-job-type-presets"
-              className="text-base"
+              className="min-h-12 w-full min-w-0 max-w-full text-base"
             />
             <datalist id="intervention-job-type-presets">
               {JOB_TYPE_PRESETS.map((p) => (
@@ -749,59 +757,60 @@ export function InterventionFormDialog(props: Props) {
           ) : null}
 
           {/* Time (optional) */}
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="grid gap-2">
-              <div className="flex items-center justify-between">
+          <div className="grid min-w-0 gap-3 md:grid-cols-2">
+            <div className="grid min-w-0 gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <Label className="flex items-center gap-2">
                   <Icon icon={Clock3} />
                   {t("interventions.form.start")}
                 </Label>
-                <Button variant="outline" size="sm" type="button" onClick={() => setNow("start")}>
+                <Button variant="outline" size="sm" type="button" className="min-h-10 touch-manipulation" onClick={() => setNow("start")}>
                   <TimerReset className="h-4 w-4" />
                   {t("common.now")}
                 </Button>
               </div>
-              <Input type="datetime-local" value={startAtLocal} onChange={(e) => setStartAtLocal(e.target.value)} />
+              <Input type="datetime-local" value={startAtLocal} onChange={(e) => setStartAtLocal(e.target.value)} className="min-h-12 w-full min-w-0 max-w-full text-base" />
               <div className="text-xs text-muted-foreground">
                 {t("interventions.form.startHint")}
               </div>
             </div>
-            <div className="grid gap-2">
-              <div className="flex items-center justify-between">
+            <div className="grid min-w-0 gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <Label className="flex items-center gap-2">
                   <Icon icon={Clock3} />
                   {t("interventions.form.end")}
                 </Label>
-                <Button variant="outline" size="sm" type="button" onClick={() => setNow("end")}>
+                <Button variant="outline" size="sm" type="button" className="min-h-10 touch-manipulation" onClick={() => setNow("end")}>
                   <TimerReset className="h-4 w-4" />
                   {t("common.now")}
                 </Button>
               </div>
-              <Input type="datetime-local" value={endAtLocal} onChange={(e) => setEndAtLocal(e.target.value)} />
+              <Input type="datetime-local" value={endAtLocal} onChange={(e) => setEndAtLocal(e.target.value)} className="min-h-12 w-full min-w-0 max-w-full text-base" />
             </div>
           </div>
 
-          <div className="flex items-center justify-between rounded-xl border bg-muted px-4 py-3 text-sm">
+          <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-xl border bg-muted px-4 py-3 text-sm">
             <div className="text-muted-foreground">{t("interventions.form.autoDuration")}</div>
             <div className="font-semibold">
               {durationMinutes != null ? t("common.minutesShort", { minutes: durationMinutes }) : "—"}
             </div>
           </div>
 
-          <div className="grid gap-2">
+          <div className="grid min-w-0 gap-2">
             <Label>{t("interventions.form.durationOverride")}</Label>
             <Input
               inputMode="numeric"
               value={durationOverride}
               onChange={(e) => setDurationOverride(e.target.value)}
               placeholder={t("interventions.form.durationOverridePlaceholder")}
+              className="min-h-12 w-full min-w-0 max-w-full text-base"
             />
             <div className="text-xs text-muted-foreground">
               {t("interventions.form.durationOverrideHint")}
             </div>
           </div>
 
-          <div className="grid gap-2 rounded-2xl border bg-muted/30 p-4">
+          <div className="grid min-w-0 gap-2 rounded-xl border bg-muted/30 p-3 md:rounded-2xl md:p-4">
             <Label className="flex items-center gap-2 text-base font-semibold">
               <Clock3 className="h-4 w-4" />
               {t("interventions.form.mustCompleteBy")}
@@ -810,15 +819,15 @@ export function InterventionFormDialog(props: Props) {
               type="datetime-local"
               value={dueAtLocal}
               onChange={(e) => setDueAtLocal(e.target.value)}
-              className="text-base"
+              className="min-h-12 w-full min-w-0 max-w-full text-base"
             />
             <p className="text-xs text-muted-foreground">
               {t("interventions.form.mustCompleteByHint")}
             </p>
           </div>
 
-          <div className="grid gap-4 rounded-2xl border p-4">
-            <div className="flex items-center gap-3">
+          <div className="grid min-w-0 gap-4 rounded-xl border p-3 md:rounded-2xl md:p-4">
+            <div className="flex min-h-12 items-center gap-3">
               <Checkbox
                 id="rem-on"
                 checked={remindersEnabled}
@@ -872,7 +881,7 @@ export function InterventionFormDialog(props: Props) {
                       type="datetime-local"
                       value={reminderCustomAtLocal}
                       onChange={(e) => setReminderCustomAtLocal(e.target.value)}
-                      className="text-base"
+                      className="min-h-12 w-full min-w-0 max-w-full text-base"
                     />
                   </div>
                 ) : null}
@@ -883,7 +892,7 @@ export function InterventionFormDialog(props: Props) {
                     onChange={(e) => setReminderEmailTo(e.target.value)}
                     placeholder={t("interventions.form.reminderEmailPlaceholder")}
                     inputMode="email"
-                    className="text-base"
+                    className="min-h-12 w-full min-w-0 max-w-full text-base"
                   />
                   <p className="text-xs text-muted-foreground">
                     {t("interventions.form.reminderEmailHint")}
@@ -896,8 +905,8 @@ export function InterventionFormDialog(props: Props) {
           {mode === "edit" && interventionId ? (
             <RouteStopsEditor interventionId={interventionId} />
           ) : (
-            <div className="grid gap-3">
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-muted/20 p-4">
+            <div className="grid min-w-0 gap-3">
+              <div className="flex flex-col gap-3 rounded-xl border bg-muted/20 p-3 md:flex-row md:items-center md:justify-between md:rounded-2xl md:p-4">
                 <div className="min-w-0">
                   <div className="text-base font-semibold">{t("interventions.form.roundTrip.title")}</div>
                   <div className="mt-0.5 text-xs text-muted-foreground">
@@ -907,7 +916,7 @@ export function InterventionFormDialog(props: Props) {
                 <Button
                   type="button"
                   size="lg"
-                  className="min-h-14 min-w-[11rem] touch-manipulation px-5 text-base font-semibold"
+                  className="min-h-12 w-full touch-manipulation px-5 text-base font-semibold md:min-h-14 md:min-w-[11rem] md:w-auto"
                   onClick={async () => {
                     const officeAddress =
                       typeof window !== "undefined"
@@ -974,9 +983,9 @@ export function InterventionFormDialog(props: Props) {
               </div>
 
               {draftStops.length >= 2 && roundTripAirKm > 0 ? (
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-primary/5 px-4 py-3 sm:px-5">
+                <div className="flex min-w-0 flex-col gap-3 rounded-xl border bg-primary/5 px-3 py-3 md:flex-row md:items-center md:justify-between md:rounded-2xl md:px-5">
                   <span className="text-sm text-muted-foreground">{t("interventions.form.roundTripEstimate")}</span>
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                  <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
                     <span className="text-xl font-bold tabular-nums tracking-tight">
                       {roundTripAirKm.toFixed(1)} km
                     </span>
@@ -1014,8 +1023,8 @@ export function InterventionFormDialog(props: Props) {
           )}
 
           {/* KM + Notes */}
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="grid gap-2">
+          <div className="grid min-w-0 gap-3 md:grid-cols-2">
+            <div className="grid min-w-0 gap-2">
               <div className="flex flex-wrap items-end justify-between gap-2">
                 <Label>{t("interventions.form.kmManual")}</Label>
                 {locationKmAuto != null ? (
@@ -1023,7 +1032,7 @@ export function InterventionFormDialog(props: Props) {
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="shrink-0"
+                    className="min-h-10 shrink-0 touch-manipulation"
                     onClick={() => setKm(String(locationKmAuto))}
                   >
                     {t("interventions.form.useAutoKm", { km: locationKmAuto })}
@@ -1035,28 +1044,29 @@ export function InterventionFormDialog(props: Props) {
                 value={km}
                 onChange={(e) => setKm(e.target.value)}
                 placeholder={t("common.numericZero")}
+                className="min-h-12 w-full min-w-0 max-w-full text-base"
               />
               {locationKmAuto != null ? (
                 <p className="text-xs text-muted-foreground">{t("interventions.form.autoFromRouteKm", { km: locationKmAuto })}</p>
               ) : null}
             </div>
-            <div className="grid gap-2">
+            <div className="grid min-w-0 gap-2">
               <Label className="flex items-center gap-2">
                 <Icon icon={NotebookPen} />
                 {t("interventions.form.notes")}
               </Label>
-              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t("interventions.form.notesPlaceholder")} />
+              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t("interventions.form.notesPlaceholder")} className="min-h-24 w-full min-w-0 max-w-full text-base" />
             </div>
           </div>
 
           {/* Spare parts used */}
-          <div className="grid gap-2">
-            <div className="flex items-center justify-between">
+          <div className="grid min-w-0 gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <Label className="flex items-center gap-2">
                 <Icon icon={Package} />
                 {t("interventions.form.sparePartsUsed")}
               </Label>
-              <Button variant="outline" size="sm" type="button" onClick={addPartLine}>
+              <Button variant="outline" size="sm" type="button" className="min-h-10 touch-manipulation" onClick={addPartLine}>
                 <Plus className="h-4 w-4" />
                 {t("common.add")}
               </Button>
@@ -1072,10 +1082,10 @@ export function InterventionFormDialog(props: Props) {
                   const part: SparePart | undefined = spareParts?.find((p) => p.id === line.sparePartId);
                   const available = line.sparePartId ? stockByPartId?.get(line.sparePartId) ?? 0 : null;
                   return (
-                    <div key={idx} className="grid gap-2 rounded-xl border p-3 sm:grid-cols-[1fr_140px_auto] sm:items-center">
-                      <div className="grid gap-1">
+                    <div key={idx} className="grid min-w-0 gap-2 rounded-xl border p-3 md:grid-cols-[1fr_140px_auto] md:items-center">
+                      <div className="grid min-w-0 gap-1">
                         <select
-                          className="h-11 w-full rounded-xl border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                          className="min-h-12 w-full min-w-0 max-w-full rounded-xl border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
                           value={line.sparePartId}
                           onChange={(e) => updatePartLine(idx, { sparePartId: e.target.value })}
                         >
@@ -1101,9 +1111,10 @@ export function InterventionFormDialog(props: Props) {
                         value={line.qty}
                         onChange={(e) => updatePartLine(idx, { qty: e.target.value })}
                         placeholder={t("interventions.form.qty")}
+                        className="min-h-12 w-full min-w-0 max-w-full text-base"
                       />
 
-                      <Button variant="ghost" type="button" onClick={() => removePartLine(idx)}>
+                      <Button variant="ghost" type="button" className="min-h-12 touch-manipulation" onClick={() => removePartLine(idx)}>
                         {t("common.remove")}
                       </Button>
                     </div>
@@ -1113,7 +1124,7 @@ export function InterventionFormDialog(props: Props) {
             )}
           </div>
 
-          <div className="grid gap-3">
+          <div className="grid min-w-0 gap-3">
             <Label className="flex items-center gap-2">
               <Icon icon={ListChecks} />
               {t("interventions.form.checklist")}
@@ -1128,12 +1139,17 @@ export function InterventionFormDialog(props: Props) {
               suggestions={checklistSuggestions ?? []}
             />
           </div>
+        </div>
+        </div>
 
-          <div className="flex flex-wrap items-center justify-end gap-2 pt-2 sm:gap-3">
+        <div
+          className="flex shrink-0 flex-col-reverse gap-2 border-t bg-background px-4 py-3 sm:flex-row sm:items-center sm:justify-end md:gap-3 md:px-6"
+          style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+        >
             <Button
               variant="outline"
               type="button"
-              className="min-h-12 min-w-[5.5rem] touch-manipulation"
+              className="min-h-12 w-full touch-manipulation sm:min-w-[5.5rem] sm:w-auto"
               onClick={() => onOpenChange(false)}
             >
               {t("common.cancel")}
@@ -1141,13 +1157,12 @@ export function InterventionFormDialog(props: Props) {
             <Button
               disabled={!canSave || saving}
               type="button"
-              className="min-h-12 min-w-[8rem] touch-manipulation"
+              className="min-h-12 w-full touch-manipulation sm:min-w-[8rem] sm:w-auto"
               onClick={save}
             >
               <Save className="h-4 w-4" />
               {saving ? t("common.saving") : t("common.save")}
             </Button>
-          </div>
         </div>
       </DialogContent>
     </Dialog>

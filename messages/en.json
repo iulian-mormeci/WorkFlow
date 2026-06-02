@@ -429,6 +429,7 @@
   "clientPicker": {
     "placeholder": "Search or type a name",
     "hint": "Pick a saved client or type a new name — it will be created when you save.",
+    "hintMobile": "Type at least 2 characters to see suggestions, or enter a new client name.",
     "suggestionsAriaLabel": "Client suggestions",
     "suggestionsTitle": "Suggestions ({count})"
   },

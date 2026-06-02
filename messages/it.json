@@ -429,6 +429,7 @@
   "clientPicker": {
     "placeholder": "Cerca o scrivi un nome",
     "hint": "Scegli un cliente salvato oppure scrivi un nuovo nome — verrà creato quando salvi.",
+    "hintMobile": "Digita almeno 2 caratteri per i suggerimenti, oppure inserisci un nuovo cliente.",
     "suggestionsAriaLabel": "Suggerimenti clienti",
     "suggestionsTitle": "Suggerimenti ({count})"
   },
