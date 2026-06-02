@@ -7,6 +7,8 @@ import { db } from "@/lib/db/workflow-db";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { syncWorkflowNow } from "@/lib/sync/sync-engine";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { maybeAutoExportCompletedIntervention } from "@/lib/calendar/auto-export-completed";
 import { useTranslations } from "next-intl";
 import {
   formatElapsedHms,
@@ -72,19 +74,29 @@ export function InterventionTimerPanel({ interventionId }: { interventionId: str
     });
     syncWorkflowNow();
 
+    const supabase = createSupabaseBrowserClient();
+    const {
+      data: { user }
+    } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
+    const autoExported = await maybeAutoExportCompletedIntervention(interventionId, user?.id);
+
     const counted = secondsToHm(params.countedSeconds);
     const ot = secondsToHm(params.overtimeSeconds);
     toast({
-      title: t("interventions.timer.toasts.completedTitle"),
+      title: autoExported
+        ? t("calendar.toasts.autoExportedTitle")
+        : t("interventions.timer.toasts.completedTitle"),
       description:
-        params.overtimeSeconds > 0
-          ? t("interventions.timer.toasts.countedBodyOvertime", {
-              total: t("interventions.timer.stopDialog.hm", { h: counted.h, m: counted.m }),
-              overtime: t("interventions.timer.stopDialog.hm", { h: ot.h, m: ot.m })
-            })
-          : t("interventions.timer.toasts.countedBody", {
-              total: t("interventions.timer.stopDialog.hm", { h: counted.h, m: counted.m })
-            })
+        autoExported
+          ? t("calendar.toasts.autoExportedBody")
+          : params.overtimeSeconds > 0
+            ? t("interventions.timer.toasts.countedBodyOvertime", {
+                total: t("interventions.timer.stopDialog.hm", { h: counted.h, m: counted.m }),
+                overtime: t("interventions.timer.stopDialog.hm", { h: ot.h, m: ot.m })
+              })
+            : t("interventions.timer.toasts.countedBody", {
+                total: t("interventions.timer.stopDialog.hm", { h: counted.h, m: counted.m })
+              })
     });
   }
 

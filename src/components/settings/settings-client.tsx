@@ -28,6 +28,7 @@ import { useSyncFailureQueue } from "@/lib/sync/sync-failure-queue";
 import { useTranslations } from "next-intl";
 import { SettingsSecurityCard } from "@/components/settings/settings-security-card";
 import { WorkingHoursCard } from "@/components/settings/working-hours-card";
+import { CalendarSettingsCard } from "@/components/settings/calendar-settings-card";
 import {
   refreshPendingDirtyCount,
   runForceFullWorkflowSync,
@@ -268,6 +269,8 @@ export function SettingsClient() {
       <SettingsSecurityCard />
 
       <WorkingHoursCard />
+
+      <CalendarSettingsCard />
 
       <Card className="rounded-2xl lg:col-span-2">
         <CardHeader className="space-y-2">

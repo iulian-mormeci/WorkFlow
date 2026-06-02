@@ -1189,6 +1189,37 @@
       "imageFailedTitle": "Could not add image"
     }
   },
+  "suggestions": {
+    "title": "Smart suggestions",
+    "subtitle": "Based on your history, client and brand/model — tap to add.",
+    "loading": "Finding relevant items…",
+    "checklists": "Checklist items",
+    "procedures": "Procedures",
+    "duration": "Typical duration",
+    "durationChip": "~{minutes} min (from {count} similar visits)",
+    "addProcedure": "Add procedure"
+  },
+  "calendar": {
+    "exportButton": "Export to calendar",
+    "dialog": {
+      "title": "Add to calendar",
+      "subtitle": "Download an ICS file or open your calendar app directly.",
+      "downloadIcs": "Download .ics file",
+      "downloadIcsHint": "Works with Outlook, Apple Calendar and most apps.",
+      "google": "Google Calendar",
+      "googleHint": "Opens a new event in your browser.",
+      "apple": "Apple Calendar",
+      "appleHint": "Downloads the event — open the file on iPhone or iPad."
+    },
+    "toasts": {
+      "downloadedTitle": "Calendar file ready",
+      "downloadedBody": "The .ics file was downloaded.",
+      "appleTitle": "Open in Calendar",
+      "appleBody": "Tap the downloaded file to import the event.",
+      "autoExportedTitle": "Exported to calendar",
+      "autoExportedBody": "A calendar file was downloaded automatically."
+    }
+  },
   "reports": {
     "page": {
       "title": "Reports",
@@ -1320,6 +1351,17 @@
         "sat": "Saturday",
         "sun": "Sunday"
       }
+    },
+    "calendar": {
+      "title": "Calendar",
+      "subtitle": "Export interventions and activities, optionally auto-export when completed.",
+      "autoExportLabel": "Auto-export completed interventions",
+      "autoExportHint": "When you mark an intervention complete, download a calendar file automatically (offline-friendly).",
+      "autoExportOn": "Auto-export is on",
+      "autoExportOff": "Auto-export is off",
+      "turnOn": "Turn on",
+      "turnOff": "Turn off",
+      "saving": "Saving…"
     },
     "appearance": {
       "title": "Appearance",

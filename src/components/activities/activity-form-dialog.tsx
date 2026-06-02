@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Bell, BellOff } from "lucide-react";
+import { useLiveQuery } from "dexie-react-hooks";
 import {
   ACTIVITY_PRIORITIES,
   ACTIVITY_STATUSES,
@@ -13,6 +14,13 @@ import {
   updateActivity,
   type ActivityFormValues
 } from "@/lib/activities/activity-mutations";
+import { FormSuggestionsPanel } from "@/components/suggestions/form-suggestions-panel";
+import {
+  formatProcedureReference,
+  getIntelligentSuggestions,
+  loadProcedureSuggestion,
+  type ProcedureSuggestion
+} from "@/lib/suggestions/intelligent-suggestions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -104,6 +112,38 @@ export function ActivityFormDialog({ open, onOpenChange, activity, onSaved }: Pr
   }, [open, activity]);
 
   const canSave = useMemo(() => title.trim().length > 1, [title]);
+
+  const descriptionKey = `${description}\n${category}`;
+  const intelligentSuggestions = useLiveQuery(
+    async () => {
+      if (!open || isEdit) return null;
+      return getIntelligentSuggestions({
+        kind: "activity",
+        title,
+        description,
+        category,
+        existingChecklistLabels: description
+          .split("\n")
+          .map((l) => l.replace(/^•\s*/, "").trim())
+          .filter(Boolean)
+      });
+    },
+    [open, isEdit, title, descriptionKey, category]
+  );
+
+  function addTaskSuggestion(label: string) {
+    const clean = label.trim();
+    if (!clean) return;
+    const bullet = `• ${clean}`;
+    setDescription((prev) => (prev.includes(bullet) ? prev : prev ? `${prev}\n${bullet}` : bullet));
+  }
+
+  async function addProcedureSuggestion(proc: ProcedureSuggestion) {
+    const loaded = await loadProcedureSuggestion(proc);
+    if (!loaded) return;
+    const ref = formatProcedureReference(loaded);
+    setDescription((prev) => (prev.includes(ref) ? prev : prev ? `${prev}\n\n${ref}` : ref));
+  }
 
   async function handleSave() {
     if (!canSave || saving) return;
@@ -240,6 +280,18 @@ export function ActivityFormDialog({ open, onOpenChange, activity, onSaved }: Pr
               placeholder={t("activities.fields.categoryPlaceholder")}
             />
           </div>
+
+          {!isEdit ? (
+            <FormSuggestionsPanel
+              suggestions={intelligentSuggestions ?? undefined}
+              loading={intelligentSuggestions === undefined}
+              onAddChecklist={addTaskSuggestion}
+              onAddProcedure={(proc) => void addProcedureSuggestion(proc)}
+              onApplyDuration={() => {}}
+              showDuration={false}
+              disabled={saving}
+            />
+          ) : null}
 
           <div className="rounded-xl border p-3">
             <div className="flex items-center justify-between gap-3">

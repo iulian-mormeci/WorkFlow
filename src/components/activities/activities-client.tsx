@@ -28,6 +28,11 @@ import {
 import { setActivityStatus } from "@/lib/activities/activity-mutations";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { performActivityCloudSyncDelete } from "@/lib/sync/cloud-delete";
+import { CalendarExportButton } from "@/components/calendar/calendar-export-button";
+import {
+  activityToCalendarEvent,
+  calendarFilename
+} from "@/lib/calendar/calendar-events";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -251,6 +256,7 @@ export function ActivitiesClient() {
           const overdue = isActivityOverdue(a, Date.now());
           const hasReminder = a.remindersEnabled && getActivityReminderScheduledFireMs(a) != null;
           const postponedCount = a.postponements?.length ?? 0;
+          const calendarEvent = activityToCalendarEvent(a);
           const tags = (a.category ?? "")
             .split(",")
             .map((s) => s.trim())
@@ -361,6 +367,13 @@ export function ActivitiesClient() {
                   <AlarmClock className="h-4 w-4" />
                   {t("activities.actions.postpone")}
                 </Button>
+                {calendarEvent ? (
+                  <CalendarExportButton
+                    event={calendarEvent}
+                    filename={calendarFilename(a.title, a.id)}
+                    triggerSize="sm"
+                  />
+                ) : null}
                 <Button type="button" size="sm" variant="outline" onClick={() => openEdit(a)}>
                   <Pencil className="h-4 w-4" />
                   {t("common.edit")}

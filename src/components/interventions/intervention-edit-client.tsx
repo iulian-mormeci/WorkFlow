@@ -39,6 +39,12 @@ import { SendToSupportDialog } from "@/components/support/send-to-support-dialog
 import { InterventionPdfView } from "@/components/pdf/intervention-pdf-view";
 import { exportInterventionPdf } from "@/lib/pdf/export-intervention-pdf";
 import { exportInterventionForCrm } from "@/lib/export/crm-export";
+import { CalendarExportButton } from "@/components/calendar/calendar-export-button";
+import {
+  calendarFilename,
+  interventionToCalendarEvent
+} from "@/lib/calendar/calendar-events";
+import { maybeAutoExportCompletedIntervention } from "@/lib/calendar/auto-export-completed";
 import { VoiceNoteRecorder } from "@/components/voice/voice-note-recorder";
 import { VoiceNotesList } from "@/components/voice/voice-notes-list";
 import { QuickNoteFab } from "@/components/notes/quick-note-fab";
@@ -150,6 +156,12 @@ export function InterventionEditClient({ id }: { id: string }) {
   const [markingComplete, setMarkingComplete] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
+  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
+
+  const calendarEvent = useMemo(() => {
+    if (!intervention) return null;
+    return interventionToCalendarEvent(intervention, client ?? undefined);
+  }, [intervention, client]);
   const [, setClock] = useState(0);
   useEffect(() => {
     const t = window.setInterval(() => setClock((c) => c + 1), 1000);
@@ -215,6 +227,11 @@ export function InterventionEditClient({ id }: { id: string }) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <InterventionStatusBadge intervention={intervention} />
+          <CalendarExportButton
+            event={calendarEvent}
+            filename={calendarFilename(client?.name ?? "intervention", intervention.id)}
+            triggerSize="sm"
+          />
           <Button type="button" variant="outline" onClick={() => setPdfOpen(true)}>
             <FileDown className="h-4 w-4" />
             {t("common.pdf")}
@@ -268,6 +285,19 @@ export function InterventionEditClient({ id }: { id: string }) {
                     updatedAt: nowIso
                   });
                   scheduleWorkflowSync();
+                  const {
+                    data: { user }
+                  } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
+                  const autoExported = await maybeAutoExportCompletedIntervention(
+                    intervention.id,
+                    user?.id
+                  );
+                  if (autoExported) {
+                    toast({
+                      title: t("calendar.toasts.autoExportedTitle"),
+                      description: t("calendar.toasts.autoExportedBody")
+                    });
+                  }
                   toast({
                     title: t("interventions.detail.toasts.markedCompleteTitle"),
                     description:

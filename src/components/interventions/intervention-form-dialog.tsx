@@ -16,6 +16,13 @@ import {
 import { DynamicChecklistEditor, type ChecklistRow } from "@/components/checklist/dynamic-checklist-editor";
 import { ChecklistProgress } from "@/components/checklist/checklist-progress";
 import { getFrequentChecklistLabels } from "@/lib/checklist/checklist-suggestions";
+import { FormSuggestionsPanel } from "@/components/suggestions/form-suggestions-panel";
+import {
+  formatProcedureReference,
+  getIntelligentSuggestions,
+  loadProcedureSuggestion,
+  type ProcedureSuggestion
+} from "@/lib/suggestions/intelligent-suggestions";
 import { ClientPickerField } from "@/components/clients/client-picker-field";
 import { InterventionLocationFields } from "@/components/interventions/intervention-location-fields";
 import { RouteStopsEditor, buildRoundTripStops } from "@/components/interventions/route-stops-editor";
@@ -162,6 +169,21 @@ export function InterventionFormDialog(props: Props) {
   const [durationOverride, setDurationOverride] = useState("");
   const [checklist, setChecklist] = useState<ChecklistRow[]>([]);
   const checklistLabelKey = checklist.map((x) => x.label).join("\n");
+  const intelligentSuggestions = useLiveQuery(
+    async () => {
+      if (!open || mode !== "new") return null;
+      return getIntelligentSuggestions({
+        kind: "intervention",
+        clientId: selectedClientId,
+        clientName,
+        interventionType: type,
+        notes,
+        excludeInterventionId: interventionId,
+        existingChecklistLabels: checklist.map((x) => x.label)
+      });
+    },
+    [open, mode, selectedClientId, clientName, type, notes, interventionId, checklistLabelKey]
+  );
   const checklistSuggestions = useLiveQuery(
     async () => {
       if (!open) return [];
@@ -315,6 +337,32 @@ export function InterventionFormDialog(props: Props) {
     const v = toLocalDateTimeInputValue(now);
     if (which === "start") setStartAtLocal(v);
     else setEndAtLocal(v);
+  }
+
+  function addChecklistLabel(label: string) {
+    const clean = label.trim();
+    if (clean.length < 2) return;
+    const key = clean.toLowerCase();
+    if (checklist.some((x) => x.label.trim().toLowerCase() === key)) return;
+    setChecklist([...checklist, { id: crypto.randomUUID(), label: clean, done: false }]);
+  }
+
+  async function addProcedureSuggestion(proc: ProcedureSuggestion) {
+    const loaded = await loadProcedureSuggestion(proc);
+    if (!loaded) return;
+    const ref = formatProcedureReference(loaded);
+    setNotes((prev) => (prev.includes(ref) ? prev : prev ? `${prev}\n\n${ref}` : ref));
+    addChecklistLabel(loaded.title);
+  }
+
+  function applySuggestedDuration(minutes: number) {
+    setDurationOverride(String(minutes));
+    if (startAtLocal && !endAtLocal) {
+      const start = new Date(startAtLocal);
+      if (!Number.isNaN(start.getTime())) {
+        setEndAtLocal(toLocalDateTimeInputValue(new Date(start.getTime() + minutes * 60_000)));
+      }
+    }
   }
 
   function addPartLine() {
@@ -685,6 +733,18 @@ export function InterventionFormDialog(props: Props) {
               ))}
             </datalist>
           </div>
+
+          {mode === "new" ? (
+            <FormSuggestionsPanel
+              suggestions={intelligentSuggestions ?? undefined}
+              loading={intelligentSuggestions === undefined}
+              onAddChecklist={addChecklistLabel}
+              onAddProcedure={(proc) => void addProcedureSuggestion(proc)}
+              onApplyDuration={applySuggestedDuration}
+              existingChecklistLabels={checklist.map((x) => x.label)}
+              disabled={saving}
+            />
+          ) : null}
 
           {/* Time (optional) */}
           <div className="grid gap-3 sm:grid-cols-2">

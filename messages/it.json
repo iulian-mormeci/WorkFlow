@@ -1189,6 +1189,37 @@
       "imageFailedTitle": "Impossibile aggiungere l'immagine"
     }
   },
+  "suggestions": {
+    "title": "Suggerimenti intelligenti",
+    "subtitle": "In base alla cronologia, al cliente e a marca/modello — tocca per aggiungere.",
+    "loading": "Ricerca elementi pertinenti…",
+    "checklists": "Voci checklist",
+    "procedures": "Procedure",
+    "duration": "Durata tipica",
+    "durationChip": "~{minutes} min (da {count} interventi simili)",
+    "addProcedure": "Aggiungi procedura"
+  },
+  "calendar": {
+    "exportButton": "Esporta in calendario",
+    "dialog": {
+      "title": "Aggiungi al calendario",
+      "subtitle": "Scarica un file ICS o apri direttamente l'app calendario.",
+      "downloadIcs": "Scarica file .ics",
+      "downloadIcsHint": "Compatibile con Outlook, Apple Calendar e la maggior parte delle app.",
+      "google": "Google Calendar",
+      "googleHint": "Apre un nuovo evento nel browser.",
+      "apple": "Apple Calendar",
+      "appleHint": "Scarica l'evento — apri il file su iPhone o iPad."
+    },
+    "toasts": {
+      "downloadedTitle": "File calendario pronto",
+      "downloadedBody": "Il file .ics è stato scaricato.",
+      "appleTitle": "Apri in Calendario",
+      "appleBody": "Tocca il file scaricato per importare l'evento.",
+      "autoExportedTitle": "Esportato in calendario",
+      "autoExportedBody": "Un file calendario è stato scaricato automaticamente."
+    }
+  },
   "reports": {
     "page": {
       "title": "Report",
@@ -1320,6 +1351,17 @@
         "sat": "Sabato",
         "sun": "Domenica"
       }
+    },
+    "calendar": {
+      "title": "Calendario",
+      "subtitle": "Esporta interventi e attività; opzione di esportazione automatica al completamento.",
+      "autoExportLabel": "Esporta automaticamente gli interventi completati",
+      "autoExportHint": "Quando segni un intervento come completato, scarica automaticamente un file calendario (funziona offline).",
+      "autoExportOn": "Esportazione automatica attiva",
+      "autoExportOff": "Esportazione automatica disattivata",
+      "turnOn": "Attiva",
+      "turnOff": "Disattiva",
+      "saving": "Salvataggio…"
     },
     "appearance": {
       "title": "Aspetto",

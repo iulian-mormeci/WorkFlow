@@ -75,6 +75,7 @@ import {
   ensureUserSettingsRow
 } from "@/lib/user-settings/working-hours-sync";
 import { isGlobalProcedureAdmin } from "@/lib/procedures/global-procedure-admin";
+import { normalizeUserPreferences } from "@/lib/user-settings/user-preferences";
 
 const PAGE_SIZE = 500;
 const SYNC_DEBOUNCE_MS = 2000;
@@ -701,6 +702,7 @@ function userSettingsToRow(s: UserSettings, userId: string) {
     id: userId,
     user_id: userId,
     working_hours: s.workingHours,
+    preferences: s.preferences ?? {},
     updated_at: s.updatedAt
   };
 }
@@ -710,6 +712,7 @@ function userSettingsFromRow(r: Record<string, unknown>): UserSettings {
   return {
     id: String(r.id),
     workingHours: normalizeWorkingHours(r.working_hours),
+    preferences: normalizeUserPreferences(r.preferences),
     createdAt: r.created_at != null ? iso(r.created_at) : updatedAt,
     updatedAt,
     syncedAt: new Date().toISOString(),

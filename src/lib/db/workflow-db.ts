@@ -307,10 +307,16 @@ export type SupportEmailOutboxItem = {
   updatedAt: string;
 } & SyncMeta;
 
+/** Per-user toggles synced via wf_user_settings.preferences. */
+export type UserPreferences = {
+  calendarAutoExportCompleted?: boolean;
+};
+
 /** Per-user settings row (id === user_id). Working hours sync across devices. */
 export type UserSettings = {
   id: Id;
   workingHours: WorkingHoursConfig;
+  preferences?: UserPreferences;
   createdAt: string;
   updatedAt: string;
 } & SyncMeta;
