@@ -7,6 +7,7 @@ import {
   purgeActivityLocallyById,
   purgeAttachmentLocallyById,
   purgeDocumentLocallyById,
+  purgeProcedureLocallyById,
   purgeTemplateLocallyById
 } from "@/lib/sync/purge-entities-locally";
 import { db } from "@/lib/db/workflow-db";
@@ -19,6 +20,9 @@ import { syncAuditLog } from "@/lib/sync/sync-audit";
 
 const PENDING_INTERVENTION_DELETES_KEY = "workflow:pendingInterventionDeletes:v1";
 const PENDING_CLIENT_DELETES_KEY = "workflow:pendingClientDeletes:v1";
+const PENDING_PROCEDURE_DELETES_KEY = "workflow:pendingProcedureDeletes:v1";
+const PENDING_STANDALONE_ATTACHMENT_DELETES_KEY =
+  "workflow:pendingStandaloneAttachmentDeletes:v1";
 
 export type InterventionDeleteSnapshot = {
   interventionId: string;
@@ -467,6 +471,237 @@ export async function performActivityCloudSyncDelete(params: {
   return { ok: true, mode: "queued" };
 }
 
+// —— Pending deletes: standalone attachments (procedure images, no parent intervention) ——
+
+function loadPendingStandaloneAttachmentDeletes(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(PENDING_STANDALONE_ATTACHMENT_DELETES_KEY);
+    if (!raw) return [];
+    const v = JSON.parse(raw) as unknown;
+    return Array.isArray(v) ? (v as string[]).filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function savePendingStandaloneAttachmentDeletes(ids: string[]) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(
+    PENDING_STANDALONE_ATTACHMENT_DELETES_KEY,
+    JSON.stringify([...new Set(ids)].slice(0, 200))
+  );
+}
+
+export function enqueuePendingStandaloneAttachmentDelete(attachmentId: string): void {
+  const cur = loadPendingStandaloneAttachmentDeletes().filter((x) => x !== attachmentId);
+  savePendingStandaloneAttachmentDeletes([attachmentId, ...cur]);
+}
+
+export function dequeuePendingStandaloneAttachmentDelete(attachmentId: string): void {
+  savePendingStandaloneAttachmentDeletes(
+    loadPendingStandaloneAttachmentDeletes().filter((x) => x !== attachmentId)
+  );
+}
+
+/** Remove a standalone attachment's storage object + row (no intervention linkage). */
+export async function deleteStandaloneAttachmentRemote(
+  supabase: SupabaseClient,
+  userId: string,
+  attachmentId: string
+): Promise<void> {
+  const { data: att, error: selErr } = await supabase
+    .from("wf_attachments")
+    .select("storage_path")
+    .eq("user_id", userId)
+    .eq("id", attachmentId)
+    .maybeSingle();
+  if (selErr) throw new Error(selErr.message);
+  const path = att?.storage_path ? String(att.storage_path) : "";
+  if (path) {
+    assertUserStoragePath(path, userId);
+    const { error: stErr } = await supabase.storage.from(STORAGE_BUCKET).remove([path]);
+    if (stErr) throw new Error(stErr.message);
+  } else {
+    const legacy = legacyAttachmentStoragePath(userId, attachmentId);
+    await supabase.storage.from(STORAGE_BUCKET).remove([legacy]);
+  }
+  const { error: delErr } = await supabase
+    .from("wf_attachments")
+    .delete()
+    .eq("user_id", userId)
+    .eq("id", attachmentId);
+  if (delErr) throw new Error(delErr.message);
+  syncAuditLog("standalone_attachment_deleted_remote", { attachmentId });
+}
+
+export async function flushPendingStandaloneAttachmentDeletes(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<void> {
+  const ids = loadPendingStandaloneAttachmentDeletes();
+  if (!ids.length) return;
+  const remaining: string[] = [];
+  for (const attachmentId of ids) {
+    try {
+      await deleteStandaloneAttachmentRemote(supabase, userId, attachmentId);
+      dequeuePendingStandaloneAttachmentDelete(attachmentId);
+      await purgeAttachmentLocallyById(attachmentId);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      syncAuditLog("pending_standalone_attachment_delete_flush_failed", { attachmentId, message: msg });
+      remaining.push(attachmentId);
+    }
+  }
+  savePendingStandaloneAttachmentDeletes(remaining);
+}
+
+/** Delete one procedure image attachment (offline-first, queued for cloud). */
+export async function performStandaloneAttachmentCloudDelete(params: {
+  attachmentId: string;
+  supabase: SupabaseClient | null;
+  userId: string | null;
+}): Promise<EntityCloudDeleteResult> {
+  enqueuePendingStandaloneAttachmentDelete(params.attachmentId);
+  const client = params.supabase;
+  let resolvedUserId = params.userId;
+  if (client && !resolvedUserId) {
+    const { data } = await client.auth.getSession();
+    resolvedUserId = data.session?.user?.id ?? null;
+  }
+  const online = typeof navigator !== "undefined" && navigator.onLine === true;
+  const canRemote = Boolean(online && client && resolvedUserId);
+  if (canRemote) {
+    try {
+      await deleteStandaloneAttachmentRemote(client!, resolvedUserId!, params.attachmentId);
+      await purgeAttachmentLocallyById(params.attachmentId);
+      dequeuePendingStandaloneAttachmentDelete(params.attachmentId);
+      return { ok: true, mode: "cloud" };
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      pushSyncFailure({ kind: "delete", title: "Image cloud delete failed", detail: message });
+      return { ok: false, message };
+    }
+  }
+  await purgeAttachmentLocallyById(params.attachmentId);
+  return { ok: true, mode: "queued" };
+}
+
+// —— Pending deletes: procedures (offline-first, mirrors activities) ——————
+
+function loadPendingProcedureDeletes(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(PENDING_PROCEDURE_DELETES_KEY);
+    if (!raw) return [];
+    const v = JSON.parse(raw) as unknown;
+    return Array.isArray(v) ? (v as string[]).filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function savePendingProcedureDeletes(ids: string[]) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(PENDING_PROCEDURE_DELETES_KEY, JSON.stringify(ids.slice(0, 80)));
+}
+
+export function enqueuePendingProcedureDelete(procedureId: string): void {
+  const cur = loadPendingProcedureDeletes().filter((x) => x !== procedureId);
+  savePendingProcedureDeletes([procedureId, ...cur]);
+}
+
+export function dequeuePendingProcedureDelete(procedureId: string): void {
+  savePendingProcedureDeletes(loadPendingProcedureDeletes().filter((x) => x !== procedureId));
+}
+
+/** Skip pull/realtime upserts for procedures still queued for cloud deletion. */
+export function getPendingProcedurePullSkipContext(): { procedureIds: Set<string> } {
+  return { procedureIds: new Set(loadPendingProcedureDeletes()) };
+}
+
+export async function deleteProcedureRemote(
+  supabase: SupabaseClient,
+  userId: string,
+  procedureId: string
+): Promise<void> {
+  const { error } = await supabase
+    .from("wf_procedures")
+    .delete()
+    .eq("user_id", userId)
+    .eq("id", procedureId);
+  if (error) throw new Error(error.message);
+  syncAuditLog("procedure_deleted_remote", { procedureId });
+}
+
+export async function flushPendingProcedureDeletes(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<void> {
+  const ids = loadPendingProcedureDeletes();
+  if (!ids.length) return;
+  const remaining: string[] = [];
+  for (const procedureId of ids) {
+    try {
+      await deleteProcedureRemote(supabase, userId, procedureId);
+      dequeuePendingProcedureDelete(procedureId);
+      await purgeProcedureLocallyById(procedureId);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      syncAuditLog("pending_procedure_delete_flush_failed", { procedureId, message: msg });
+      remaining.push(procedureId);
+    }
+  }
+  savePendingProcedureDeletes(remaining);
+}
+
+/**
+ * Delete a procedure and its image attachments (offline-first). The procedure row and
+ * each referenced image are independently queued so partial failures still converge.
+ */
+export async function performProcedureCloudSyncDelete(params: {
+  procedureId: string;
+  imageIds: string[];
+  supabase: SupabaseClient | null;
+  userId: string | null;
+}): Promise<EntityCloudDeleteResult> {
+  enqueuePendingProcedureDelete(params.procedureId);
+
+  // Image attachments are removed via the standalone attachment queue.
+  for (const imageId of params.imageIds) {
+    if (imageId) {
+      await performStandaloneAttachmentCloudDelete({
+        attachmentId: imageId,
+        supabase: params.supabase,
+        userId: params.userId
+      });
+    }
+  }
+
+  const client = params.supabase;
+  let resolvedUserId = params.userId;
+  if (client && !resolvedUserId) {
+    const { data } = await client.auth.getSession();
+    resolvedUserId = data.session?.user?.id ?? null;
+  }
+  const online = typeof navigator !== "undefined" && navigator.onLine === true;
+  const canRemote = Boolean(online && client && resolvedUserId);
+  if (canRemote) {
+    try {
+      await deleteProcedureRemote(client!, resolvedUserId!, params.procedureId);
+      await purgeProcedureLocallyById(params.procedureId);
+      dequeuePendingProcedureDelete(params.procedureId);
+      return { ok: true, mode: "cloud" };
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      pushSyncFailure({ kind: "delete", title: "Procedure cloud delete failed", detail: message });
+      return { ok: false, message };
+    }
+  }
+  await purgeProcedureLocallyById(params.procedureId);
+  return { ok: true, mode: "queued" };
+}
+
 /**
  * Merged pull-skip context: intervention pending deletes + document/template/voice
  * pending queues so pull does not resurrect rows we are still deleting from the cloud.
@@ -487,6 +722,9 @@ export function getPendingSyncPullSkipContext(): {
   const attachmentIds = new Set(iv.attachmentIds);
   for (const s of loadPendingAttachmentDeletes()) {
     attachmentIds.add(s.attachmentId);
+  }
+  for (const id of loadPendingStandaloneAttachmentDeletes()) {
+    attachmentIds.add(id);
   }
   const templateIds = new Set(loadPendingTemplateDeletes());
   return {

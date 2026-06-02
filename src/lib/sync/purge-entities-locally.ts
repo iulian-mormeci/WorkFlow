@@ -13,6 +13,15 @@ export async function purgeActivityLocallyById(id: string): Promise<void> {
   await db.activities.delete(id);
 }
 
+/** Single procedure row (Dexie only). Image attachments are purged separately. */
+export async function purgeProcedureLocallyById(id: string): Promise<void> {
+  await db.procedures.delete(id);
+}
+
+export async function purgeUserSettingsLocallyById(id: string): Promise<void> {
+  await db.userSettings.delete(id);
+}
+
 export async function purgeTemplateLocallyById(id: string): Promise<void> {
   await db.templates.delete(id);
 }

@@ -6,6 +6,7 @@
  * version bumps here must stay in sync with migration expectations on the server.
  */
 import Dexie, { type Table } from "dexie";
+import type { WorkingHoursConfig } from "@/lib/interventions/working-hours";
 
 export type Id = string;
 
@@ -230,6 +231,30 @@ export type Activity = {
   updatedAt: string;
 } & SyncMeta;
 
+/** Procedures & Troubleshooting: stored technical guides for on-site reference. */
+export type ProcedureCategory = "general" | "brand_model";
+
+export const PROCEDURE_CATEGORIES: readonly ProcedureCategory[] = [
+  "general",
+  "brand_model"
+] as const;
+
+export type Procedure = {
+  id: Id;
+  title: string;
+  category: ProcedureCategory;
+  brand?: string;
+  model?: string;
+  /** Sanitized rich-text body (HTML). */
+  content?: string;
+  /** Free-form tags for search/filtering. */
+  tags?: string[];
+  /** Attachment ids (kind "photo") shown in the procedure gallery. */
+  imageIds?: Id[];
+  createdAt: string;
+  updatedAt: string;
+} & SyncMeta;
+
 export type Attachment = {
   id: Id;
   kind: "photo" | "document" | "audio";
@@ -267,6 +292,14 @@ export type SupportEmailOutboxItem = {
   updatedAt: string;
 } & SyncMeta;
 
+/** Per-user settings row (id === user_id). Working hours sync across devices. */
+export type UserSettings = {
+  id: Id;
+  workingHours: WorkingHoursConfig;
+  createdAt: string;
+  updatedAt: string;
+} & SyncMeta;
+
 export type InterventionTemplate = {
   id: Id;
   name: string;
@@ -298,6 +331,8 @@ export class WorkFlowDB extends Dexie {
   supportEmailOutbox!: Table<SupportEmailOutboxItem, Id>;
   templates!: Table<InterventionTemplate, Id>;
   activities!: Table<Activity, Id>;
+  procedures!: Table<Procedure, Id>;
+  userSettings!: Table<UserSettings, Id>;
 
   constructor() {
     super("workflow");
@@ -573,6 +608,42 @@ export class WorkFlowDB extends Dexie {
         "&id, status, to, createdAt, updatedAt, documentId, interventionId, syncedAt",
       templates: "&id, name, updatedAt, workCategory, syncedAt",
       activities: "&id, status, priority, dueAt, category, updatedAt, syncedAt"
+    });
+
+    // Add the Procedures & Troubleshooting store.
+    this.version(18).stores({
+      clients: "&id, name, clientType, updatedAt, syncedAt",
+      interventions:
+        "&id, clientId, startAt, updatedAt, status, createdBy, timerStartedAt, workCategory, dueAt, timerRunState, syncedAt",
+      spareParts: "&id, sku, name, updatedAt, syncedAt",
+      stockMovements: "&id, sparePartId, createdAt, interventionId, syncedAt",
+      tickets:
+        "&id, status, priority, reminderAt, dueAt, updatedAt, clientId, interventionId, syncedAt",
+      attachments: "&id, kind, createdAt, mime, syncedAt",
+      documents: "&id, interventionId, createdAt, title, syncedAt",
+      supportEmailOutbox:
+        "&id, status, to, createdAt, updatedAt, documentId, interventionId, syncedAt",
+      templates: "&id, name, updatedAt, workCategory, syncedAt",
+      activities: "&id, status, priority, dueAt, category, updatedAt, syncedAt",
+      procedures: "&id, category, brand, model, updatedAt, syncedAt"
+    });
+
+    this.version(19).stores({
+      clients: "&id, name, clientType, updatedAt, syncedAt",
+      interventions:
+        "&id, clientId, startAt, updatedAt, status, createdBy, timerStartedAt, workCategory, dueAt, timerRunState, syncedAt",
+      spareParts: "&id, sku, name, updatedAt, syncedAt",
+      stockMovements: "&id, sparePartId, createdAt, interventionId, syncedAt",
+      tickets:
+        "&id, status, priority, reminderAt, dueAt, updatedAt, clientId, interventionId, syncedAt",
+      attachments: "&id, kind, createdAt, mime, syncedAt",
+      documents: "&id, interventionId, createdAt, title, syncedAt",
+      supportEmailOutbox:
+        "&id, status, to, createdAt, updatedAt, documentId, interventionId, syncedAt",
+      templates: "&id, name, updatedAt, workCategory, syncedAt",
+      activities: "&id, status, priority, dueAt, category, updatedAt, syncedAt",
+      procedures: "&id, category, brand, model, updatedAt, syncedAt",
+      userSettings: "&id, updatedAt, syncedAt"
     });
   }
 }

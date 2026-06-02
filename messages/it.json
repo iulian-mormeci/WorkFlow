@@ -663,6 +663,7 @@
     "documents": "Documenti",
     "crmTickets": "Ticket CRM",
     "activities": "Attività",
+    "procedures": "Procedure",
     "clients": "Clienti",
     "spareParts": "Ricambi",
     "reports": "Report",
@@ -1095,6 +1096,79 @@
       "deleteFailedTitle": "Impossibile eliminare l'attività"
     }
   },
+  "procedures": {
+    "page": {
+      "title": "Procedure & Troubleshooting",
+      "subtitle": "Le tue guide tecniche e soluzioni, pronte sul campo (offline-first, sincronizzate)."
+    },
+    "searchPlaceholder": "Cerca per titolo, contenuto, marca, modello, tag…",
+    "empty": "Nessuna procedura. Aggiungi guide e passaggi di troubleshooting per una consultazione rapida sul posto.",
+    "emptyFiltered": "Nessuna procedura corrisponde alla ricerca o ai filtri attuali.",
+    "categories": {
+      "general": "Generale",
+      "brand_model": "Marca / modello"
+    },
+    "filters": {
+      "categoryAll": "Tutte",
+      "brand": "Marca",
+      "brandAll": "Tutte le marche",
+      "model": "Modello",
+      "modelAll": "Tutti i modelli"
+    },
+    "fields": {
+      "title": "Titolo",
+      "titlePlaceholder": "es. Reset errore E04 sulla caldaia",
+      "category": "Categoria",
+      "brand": "Marca",
+      "brandPlaceholder": "es. Bosch",
+      "model": "Modello",
+      "modelPlaceholder": "es. Condens 7000",
+      "content": "Contenuto",
+      "tags": "Tag",
+      "tagsPlaceholder": "es. caldaia, codice-errore, reset",
+      "tagsHint": "Separa i tag con le virgole. Usati per ricerca e consultazione rapida."
+    },
+    "editor": {
+      "contentLabel": "Contenuto della procedura",
+      "placeholder": "Scrivi qui i passaggi, le note e le soluzioni…",
+      "bold": "Grassetto",
+      "italic": "Corsivo",
+      "underline": "Sottolineato",
+      "heading": "Titolo",
+      "bulletList": "Elenco puntato",
+      "numberedList": "Elenco numerato",
+      "undo": "Annulla",
+      "redo": "Ripristina",
+      "addImages": "Aggiungi immagini",
+      "removeImage": "Rimuovi immagine",
+      "noImages": "Ancora nessuna immagine. Aggiungi foto, schemi o screenshot."
+    },
+    "view": {
+      "noContent": "Questa procedura non ha ancora contenuto scritto."
+    },
+    "actions": {
+      "new": "Nuova procedura",
+      "open": "Apri"
+    },
+    "form": {
+      "createTitle": "Nuova procedura",
+      "editTitle": "Modifica procedura",
+      "subtitle": "Salvata localmente, sincronizzata su tutti i tuoi dispositivi."
+    },
+    "deleteDialog": {
+      "title": "Eliminare la procedura?",
+      "body": "“{title}” e le sue immagini verranno eliminate definitivamente. L'operazione non è reversibile."
+    },
+    "toasts": {
+      "createdTitle": "Procedura creata",
+      "updatedTitle": "Procedura aggiornata",
+      "deletedTitle": "Procedura eliminata",
+      "savedLocally": "Salvata localmente.",
+      "saveFailedTitle": "Impossibile salvare la procedura",
+      "deleteFailedTitle": "Impossibile eliminare la procedura",
+      "imageFailedTitle": "Impossibile aggiungere l'immagine"
+    }
+  },
   "reports": {
     "page": {
       "title": "Report",
@@ -1208,6 +1282,15 @@
       "saving": "Salvataggio…",
       "savedTitle": "Orario salvato",
       "savedBody": "Le tue ore di lavoro sono state aggiornate.",
+      "saveFailedTitle": "Impossibile salvare l'orario",
+      "saveFailedBody": "Le modifiche restano su questo dispositivo e verranno sincronizzate appena possibile.",
+      "sync": {
+        "loading": "Caricamento orario…",
+        "synced": "Sincronizzato su tutti i dispositivi",
+        "syncedAt": "Sincronizzato {when}",
+        "pending": "Salvataggio sul cloud…",
+        "offline": "Salvato su questo dispositivo — si sincronizza quando sei online"
+      },
       "dayLong": {
         "mon": "Lunedì",
         "tue": "Martedì",

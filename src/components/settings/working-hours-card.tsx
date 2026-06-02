@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Clock, Coffee, Plus, X } from "lucide-react";
+import { useLiveQuery } from "dexie-react-hooks";
+import { Clock, Cloud, CloudOff, Coffee, Loader2, Plus, X } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { db } from "@/lib/db/workflow-db";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -10,57 +12,94 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { IconBubble } from "@/components/ui/icon";
 import { useToast } from "@/hooks/use-toast";
+import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
 import { useTranslations } from "next-intl";
+import { scheduleWorkflowSync } from "@/lib/sync/sync-engine";
+import {
+  ensureUserSettingsRow,
+  saveUserWorkingHours
+} from "@/lib/user-settings/working-hours-sync";
 import {
   DEFAULT_WORKING_HOURS,
   WEEKDAY_KEYS,
-  WORKING_HOURS_STORAGE_KEY,
+  cloneConfig,
   dayScheduledMinutes,
   hhmmToMinutes,
   loadWorkingHours,
   normalizeWorkingHours,
-  saveWorkingHoursLocal,
   secondsToHm,
   type TimeRange,
   type WorkingHoursConfig
 } from "@/lib/interventions/working-hours";
+import type { UserSettings } from "@/lib/db/workflow-db";
 
 type Schedule = { slots: TimeRange[]; breaks: TimeRange[] };
 
+function isSettingsPendingSync(row: UserSettings | undefined): boolean {
+  if (!row) return true;
+  if (!row.syncedAt) return true;
+  return new Date(row.updatedAt).getTime() > new Date(row.syncedAt).getTime();
+}
+
+function formatRelativeSynced(
+  iso: string,
+  tRel: ReturnType<typeof useTranslations<"syncStatus">>
+): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  if (!Number.isFinite(ms) || ms < 0) return tRel("relative.justNow");
+  const sec = Math.floor(ms / 1000);
+  if (sec < 45) return tRel("relative.justNow");
+  if (sec < 3600) return tRel("relative.secondsAgo", { seconds: sec });
+  const min = Math.floor(sec / 60);
+  if (min < 120) return tRel("relative.minutesAgo", { minutes: min });
+  const hr = Math.floor(min / 60);
+  return tRel("relative.hoursAgo", { hours: hr });
+}
+
 export function WorkingHoursCard() {
   const t = useTranslations("settings.workingHours");
+  const tSync = useTranslations("settings.workingHours.sync");
+  const tRel = useTranslations("syncStatus");
   const { toast } = useToast();
+  const liveEpoch = useWorkflowLiveEpoch();
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
+  const [userId, setUserId] = useState<string | null>(null);
   const [config, setConfig] = useState<WorkingHoursConfig>(() => loadWorkingHours());
   const [saving, setSaving] = useState(false);
+  const [bootstrapped, setBootstrapped] = useState(false);
 
-  // Hydrate from cloud only when nothing is stored locally yet.
+  const settingsRow = useLiveQuery(
+    async () => (userId ? db.userSettings.get(userId) : undefined),
+    [userId, liveEpoch]
+  );
+
   useEffect(() => {
     if (!supabase) return;
-    let hasLocal = false;
-    try {
-      hasLocal = Boolean(window.localStorage.getItem(WORKING_HOURS_STORAGE_KEY));
-    } catch {
-      /* ignore */
-    }
-    if (hasLocal) return;
     let cancelled = false;
     void (async () => {
       const {
         data: { user }
       } = await supabase.auth.getUser();
       if (cancelled || !user) return;
-      const meta = user.user_metadata?.working_hours;
-      if (meta && typeof meta === "object") {
-        const next = normalizeWorkingHours(meta);
-        setConfig(next);
-        saveWorkingHoursLocal(next);
-      }
+      setUserId(user.id);
+      await ensureUserSettingsRow(user.id, {
+        seedFromLocalStorage: true,
+        legacyMetadata: user.user_metadata?.working_hours
+      });
+      if (!cancelled) setBootstrapped(true);
     })();
     return () => {
       cancelled = true;
     };
   }, [supabase]);
+
+  useEffect(() => {
+    if (!settingsRow?.workingHours || saving) return;
+    setConfig(cloneConfig(settingsRow.workingHours));
+  }, [settingsRow, saving]);
+
+  const pendingSync = isSettingsPendingSync(settingsRow);
+  const online = typeof navigator !== "undefined" ? navigator.onLine : true;
 
   function toggleDayEnabled(index: number) {
     setConfig((prev) => ({
@@ -69,7 +108,6 @@ export function WorkingHoursCard() {
     }));
   }
 
-  /** Apply a schedule (slots + breaks) to one day, or to all days in shared mode. */
   function setSchedule(index: number, next: Schedule) {
     setConfig((prev) => {
       const clone = (s: Schedule): Schedule => ({
@@ -92,7 +130,6 @@ export function WorkingHoursCard() {
   function setPerDay(perDay: boolean) {
     setConfig((prev) => {
       if (perDay) return { ...prev, perDay };
-      // Collapsing to shared: adopt the first enabled day's schedule everywhere.
       const template = prev.days.find((d) => d.enabled) ?? prev.days[0];
       return {
         ...prev,
@@ -107,19 +144,23 @@ export function WorkingHoursCard() {
   }
 
   async function handleSave() {
-    if (saving) return;
+    if (saving || !userId) return;
     setSaving(true);
     const next = normalizeWorkingHours(config);
-    saveWorkingHoursLocal(next);
-    setConfig(next);
     try {
-      if (supabase) await supabase.auth.updateUser({ data: { working_hours: next } });
-    } catch {
-      /* offline / auth error — local copy still works */
+      await saveUserWorkingHours(userId, next);
+      setConfig(next);
+      scheduleWorkflowSync();
+      toast({ title: t("savedTitle"), description: t("savedBody") });
+    } catch (e) {
+      toast({
+        title: t("saveFailedTitle"),
+        description: e instanceof Error ? e.message : t("saveFailedBody"),
+        variant: "destructive"
+      });
     } finally {
       setSaving(false);
     }
-    toast({ title: t("savedTitle"), description: t("savedBody") });
   }
 
   const sharedTemplate = config.days[0] ?? DEFAULT_WORKING_HOURS.days[0];
@@ -135,7 +176,16 @@ export function WorkingHoursCard() {
           <IconBubble icon={Clock} />
         </div>
 
-        {/* Per-day toggle */}
+        <WorkingHoursSyncBadge
+          bootstrapped={bootstrapped}
+          pending={pendingSync}
+          online={online}
+          syncedWhen={
+            settingsRow?.syncedAt ? formatRelativeSynced(settingsRow.syncedAt, tRel) : null
+          }
+          t={tSync}
+        />
+
         <div className="flex items-center justify-between gap-3 rounded-xl border px-3 py-2">
           <div>
             <div className="text-sm font-medium">{t("perDayLabel")}</div>
@@ -151,18 +201,13 @@ export function WorkingHoursCard() {
           </Button>
         </div>
 
-        {/* Shared schedule editor */}
         {!config.perDay ? (
           <div className="rounded-xl border bg-muted/20 p-3">
-            <ScheduleEditor
-              schedule={sharedTemplate}
-              onChange={(s) => setSchedule(0, s)}
-            />
+            <ScheduleEditor schedule={sharedTemplate} onChange={(s) => setSchedule(0, s)} />
             <DayTimeline slots={sharedTemplate.slots} breaks={sharedTemplate.breaks} />
           </div>
         ) : null}
 
-        {/* Days */}
         <div className="grid gap-2">
           <Label>{t("daysLabel")}</Label>
           <div className="grid gap-2">
@@ -198,7 +243,7 @@ export function WorkingHoursCard() {
         <div className="flex justify-end">
           <Button
             type="button"
-            disabled={saving}
+            disabled={saving || !userId}
             onClick={handleSave}
             className="min-h-12 touch-manipulation"
           >
@@ -207,6 +252,51 @@ export function WorkingHoursCard() {
         </div>
       </CardHeader>
     </Card>
+  );
+}
+
+function WorkingHoursSyncBadge({
+  bootstrapped,
+  pending,
+  online,
+  syncedWhen,
+  t
+}: {
+  bootstrapped: boolean;
+  pending: boolean;
+  online: boolean;
+  syncedWhen: string | null;
+  t: ReturnType<typeof useTranslations<"settings.workingHours.sync">>;
+}) {
+  if (!bootstrapped) {
+    return (
+      <div className="flex items-center gap-2 rounded-xl border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        {t("loading")}
+      </div>
+    );
+  }
+  if (!online) {
+    return (
+      <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+        <CloudOff className="h-4 w-4 shrink-0" />
+        <span>{t("offline")}</span>
+      </div>
+    );
+  }
+  if (pending) {
+    return (
+      <div className="flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900">
+        <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+        <span>{t("pending")}</span>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+      <Cloud className="h-4 w-4 shrink-0" />
+      <span>{syncedWhen ? t("syncedAt", { when: syncedWhen }) : t("synced")}</span>
+    </div>
   );
 }
 
@@ -227,7 +317,8 @@ function ScheduleEditor({
     });
   }
   function addRange(kind: "slots" | "breaks") {
-    const fallback: TimeRange = kind === "slots" ? { start: "09:00", end: "13:00" } : { start: "13:00", end: "14:00" };
+    const fallback: TimeRange =
+      kind === "slots" ? { start: "09:00", end: "13:00" } : { start: "13:00", end: "14:00" };
     onChange({ ...schedule, [kind]: [...schedule[kind], fallback] });
   }
   function removeRange(kind: "slots" | "breaks", i: number) {
@@ -338,7 +429,6 @@ function RangeList({
   );
 }
 
-/** 24h horizontal preview: green = working slots, amber = breaks. */
 function DayTimeline({ slots, breaks }: { slots: TimeRange[]; breaks: TimeRange[] }) {
   const toPct = (m: number) => (m / (24 * 60)) * 100;
   const bars = (rows: TimeRange[]) =>

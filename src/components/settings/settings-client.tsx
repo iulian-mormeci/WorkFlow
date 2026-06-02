@@ -435,6 +435,9 @@ export function SettingsClient() {
                     spareParts: await db.spareParts.toArray(),
                     stockMovements: await db.stockMovements.toArray(),
                     tickets: await db.tickets.toArray(),
+                    activities: await db.activities.toArray(),
+                    procedures: await db.procedures.toArray(),
+                    userSettings: await db.userSettings.toArray(),
                     documents: await db.documents.toArray(),
                     supportEmailOutbox: await db.supportEmailOutbox.toArray(),
                     templates: await db.templates.toArray(),
@@ -506,6 +509,9 @@ export function SettingsClient() {
                           db.spareParts.clear(),
                           db.stockMovements.clear(),
                           db.tickets.clear(),
+                          db.activities.clear(),
+                          db.procedures.clear(),
+                          db.userSettings.clear(),
                           db.documents.clear(),
                           db.supportEmailOutbox.clear(),
                           db.templates.clear(),
@@ -517,6 +523,9 @@ export function SettingsClient() {
                         if (parsed.spareParts?.length) await db.spareParts.bulkAdd(parsed.spareParts);
                         if (parsed.stockMovements?.length) await db.stockMovements.bulkAdd(parsed.stockMovements);
                         if (parsed.tickets?.length) await db.tickets.bulkAdd(parsed.tickets);
+                        if (parsed.activities?.length) await db.activities.bulkAdd(parsed.activities);
+                        if (parsed.procedures?.length) await db.procedures.bulkAdd(parsed.procedures);
+                        if (parsed.userSettings?.length) await db.userSettings.bulkAdd(parsed.userSettings);
                         if (parsed.documents?.length) await db.documents.bulkAdd(parsed.documents);
                         if (parsed.supportEmailOutbox?.length) await db.supportEmailOutbox.bulkAdd(parsed.supportEmailOutbox);
                         if (parsed.templates?.length) await db.templates.bulkAdd(parsed.templates);
@@ -611,6 +620,9 @@ export function SettingsClient() {
                     spareParts: await db.spareParts.toArray(),
                     stockMovements: await db.stockMovements.toArray(),
                     tickets: await db.tickets.toArray(),
+                    activities: await db.activities.toArray(),
+                    procedures: await db.procedures.toArray(),
+                    userSettings: await db.userSettings.toArray(),
                     documents: await db.documents.toArray(),
                     supportEmailOutbox: await db.supportEmailOutbox.toArray(),
                     templates: await db.templates.toArray(),
@@ -696,6 +708,9 @@ export function SettingsClient() {
                         "wf_documents",
                         "wf_stock_movements",
                         "wf_tickets",
+                        "wf_activities",
+                        "wf_procedures",
+                        "wf_user_settings",
                         "wf_interventions",
                         "wf_templates",
                         "wf_spare_parts",

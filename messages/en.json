@@ -663,6 +663,7 @@
     "documents": "Documents",
     "crmTickets": "CRM tickets",
     "activities": "Activities",
+    "procedures": "Procedures",
     "clients": "Clients",
     "spareParts": "Spare parts",
     "reports": "Reports",
@@ -1095,6 +1096,79 @@
       "deleteFailedTitle": "Could not delete activity"
     }
   },
+  "procedures": {
+    "page": {
+      "title": "Procedures & Troubleshooting",
+      "subtitle": "Your technical guides and fixes, ready for the field (offline-first, synced)."
+    },
+    "searchPlaceholder": "Search title, content, brand, model, tags…",
+    "empty": "No procedures yet. Add guides and troubleshooting steps for quick on-site reference.",
+    "emptyFiltered": "No procedures match the current search or filters.",
+    "categories": {
+      "general": "General",
+      "brand_model": "Brand / model"
+    },
+    "filters": {
+      "categoryAll": "All",
+      "brand": "Brand",
+      "brandAll": "All brands",
+      "model": "Model",
+      "modelAll": "All models"
+    },
+    "fields": {
+      "title": "Title",
+      "titlePlaceholder": "e.g. Reset error E04 on the boiler",
+      "category": "Category",
+      "brand": "Brand",
+      "brandPlaceholder": "e.g. Bosch",
+      "model": "Model",
+      "modelPlaceholder": "e.g. Condens 7000",
+      "content": "Content",
+      "tags": "Tags",
+      "tagsPlaceholder": "e.g. boiler, error-code, reset",
+      "tagsHint": "Separate tags with commas. Used for search and quick reference."
+    },
+    "editor": {
+      "contentLabel": "Procedure content",
+      "placeholder": "Write the steps, notes and fixes here…",
+      "bold": "Bold",
+      "italic": "Italic",
+      "underline": "Underline",
+      "heading": "Heading",
+      "bulletList": "Bullet list",
+      "numberedList": "Numbered list",
+      "undo": "Undo",
+      "redo": "Redo",
+      "addImages": "Add images",
+      "removeImage": "Remove image",
+      "noImages": "No images yet. Add photos, diagrams or screenshots."
+    },
+    "view": {
+      "noContent": "This procedure has no written content yet."
+    },
+    "actions": {
+      "new": "New procedure",
+      "open": "Open"
+    },
+    "form": {
+      "createTitle": "New procedure",
+      "editTitle": "Edit procedure",
+      "subtitle": "Saved locally, synced across your devices."
+    },
+    "deleteDialog": {
+      "title": "Delete procedure?",
+      "body": "“{title}” and its images will be permanently deleted. This cannot be undone."
+    },
+    "toasts": {
+      "createdTitle": "Procedure created",
+      "updatedTitle": "Procedure updated",
+      "deletedTitle": "Procedure deleted",
+      "savedLocally": "Saved locally.",
+      "saveFailedTitle": "Could not save procedure",
+      "deleteFailedTitle": "Could not delete procedure",
+      "imageFailedTitle": "Could not add image"
+    }
+  },
   "reports": {
     "page": {
       "title": "Reports",
@@ -1208,6 +1282,15 @@
       "saving": "Saving…",
       "savedTitle": "Hours saved",
       "savedBody": "Your working hours have been updated.",
+      "saveFailedTitle": "Could not save hours",
+      "saveFailedBody": "Your changes are kept on this device and will sync when possible.",
+      "sync": {
+        "loading": "Loading schedule…",
+        "synced": "Synced across your devices",
+        "syncedAt": "Synced {when}",
+        "pending": "Saving to cloud…",
+        "offline": "Saved on this device — will sync when you are online"
+      },
       "dayLong": {
         "mon": "Monday",
         "tue": "Tuesday",

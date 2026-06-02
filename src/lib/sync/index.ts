@@ -40,6 +40,12 @@ export {
   performActivityCloudSyncDelete,
   flushPendingActivityDeletes,
   getPendingActivityPullSkipContext,
+  deleteProcedureRemote,
+  performProcedureCloudSyncDelete,
+  performStandaloneAttachmentCloudDelete,
+  flushPendingProcedureDeletes,
+  flushPendingStandaloneAttachmentDeletes,
+  getPendingProcedurePullSkipContext,
   type InterventionCloudDeleteResult,
   type ClientCloudDeleteResult,
   type EntityCloudDeleteResult
@@ -52,7 +58,9 @@ export {
   purgeTicketLocallyById,
   purgeTemplateLocallyById,
   purgeOutboxLocallyById,
-  purgeActivityLocallyById
+  purgeActivityLocallyById,
+  purgeProcedureLocallyById,
+  purgeUserSettingsLocallyById
 } from "./purge-entities-locally";
 export { pushSyncFailure, useSyncFailureQueue } from "./sync-failure-queue";
 export { syncAuditLog } from "./sync-audit";

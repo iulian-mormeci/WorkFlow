@@ -14,6 +14,8 @@ import {
   purgeAttachmentLocallyById,
   purgeDocumentLocallyById,
   purgeOutboxLocallyById,
+  purgeProcedureLocallyById,
+  purgeUserSettingsLocallyById,
   purgeSparePartLocallyById,
   purgeStockMovementLocallyById,
   purgeTicketLocallyById,
@@ -25,10 +27,13 @@ import {
   flushPendingClientDeletes,
   flushPendingDocumentDeletes,
   flushPendingInterventionDeletes,
+  flushPendingProcedureDeletes,
+  flushPendingStandaloneAttachmentDeletes,
   flushPendingTemplateDeletes,
   getPendingActivityPullSkipContext,
   getPendingClientPullSkipContext,
   getPendingInterventionPullSkipContext,
+  getPendingProcedurePullSkipContext,
   getPendingSyncPullSkipContext
 } from "@/lib/sync/cloud-delete";
 import { pushSyncFailure, useSyncFailureQueue } from "@/lib/sync/sync-failure-queue";
@@ -49,11 +54,24 @@ import {
   type Document,
   type Intervention,
   type InterventionTemplate,
+  type Procedure,
   type SparePart,
   type StockMovement,
   type SupportEmailOutboxItem,
-  type Ticket
+  type Ticket,
+  type UserSettings
 } from "@/lib/db/workflow-db";
+import {
+  cloneConfig,
+  DEFAULT_WORKING_HOURS,
+  clearWorkingHoursMemoryCache,
+  normalizeWorkingHours,
+  setWorkingHoursMemoryCache
+} from "@/lib/interventions/working-hours";
+import {
+  applyWorkingHoursFromUserSettingsRow,
+  ensureUserSettingsRow
+} from "@/lib/user-settings/working-hours-sync";
 
 const PAGE_SIZE = 500;
 const SYNC_DEBOUNCE_MS = 2000;
@@ -570,6 +588,70 @@ function activityFromRow(r: Record<string, unknown>): Activity {
   };
 }
 
+function normalizeProcedureCategory(v: unknown): Procedure["category"] {
+  return v === "brand_model" ? "brand_model" : "general";
+}
+
+function stringArrayFromJson(v: unknown): string[] | undefined {
+  if (!Array.isArray(v)) return undefined;
+  const out = v.map((x) => (typeof x === "string" ? x.trim() : "")).filter(Boolean);
+  return out.length ? out : undefined;
+}
+
+function procedureToRow(p: Procedure, userId: string) {
+  return {
+    id: p.id,
+    user_id: userId,
+    title: p.title,
+    category: p.category,
+    brand: p.brand ?? null,
+    model: p.model ?? null,
+    content: p.content ?? null,
+    tags: p.tags?.length ? p.tags : null,
+    image_ids: p.imageIds?.length ? p.imageIds : null,
+    created_at: p.createdAt,
+    updated_at: p.updatedAt
+  };
+}
+
+function procedureFromRow(r: Record<string, unknown>): Procedure {
+  return {
+    id: String(r.id),
+    title: String(r.title),
+    category: normalizeProcedureCategory(r.category),
+    brand: (r.brand as string) ?? undefined,
+    model: (r.model as string) ?? undefined,
+    content: (r.content as string) ?? undefined,
+    tags: stringArrayFromJson(r.tags),
+    imageIds: stringArrayFromJson(r.image_ids),
+    createdAt: iso(r.created_at),
+    updatedAt: iso(r.updated_at),
+    syncedAt: new Date().toISOString(),
+    remoteId: String(r.id)
+  };
+}
+
+function userSettingsToRow(s: UserSettings, userId: string) {
+  return {
+    id: userId,
+    user_id: userId,
+    working_hours: s.workingHours,
+    created_at: s.createdAt,
+    updated_at: s.updatedAt
+  };
+}
+
+function userSettingsFromRow(r: Record<string, unknown>): UserSettings {
+  return {
+    id: String(r.id),
+    workingHours: normalizeWorkingHours(r.working_hours),
+    createdAt: iso(r.created_at),
+    updatedAt: iso(r.updated_at),
+    syncedAt: new Date().toISOString(),
+    remoteId: String(r.id)
+  };
+}
+
 function documentToRow(d: Document, userId: string) {
   const u = d.updatedAt ?? d.createdAt;
   return {
@@ -750,7 +832,9 @@ async function markSynced(
     | "documents"
     | "supportEmailOutbox"
     | "templates"
-    | "activities",
+    | "activities"
+    | "procedures"
+    | "userSettings",
   id: string
 ) {
   const now = new Date().toISOString();
@@ -784,6 +868,12 @@ async function markSynced(
       break;
     case "activities":
       await db.activities.update(id, { syncedAt: now });
+      break;
+    case "procedures":
+      await db.procedures.update(id, { syncedAt: now });
+      break;
+    case "userSettings":
+      await db.userSettings.update(id, { syncedAt: now });
       break;
     default:
       break;
@@ -976,6 +1066,33 @@ async function pushActivities(supabase: SupabaseClient, userId: string) {
     );
     for (const a of batch) {
       await markSynced("activities", a.id);
+      n += 1;
+    }
+  }
+  return n;
+}
+
+async function pushUserSettings(supabase: SupabaseClient, userId: string) {
+  const row = await db.userSettings.get(userId);
+  if (!row || !isDirty(row.updatedAt, row.syncedAt)) return 0;
+  await upsertBatch(supabase, "wf_user_settings", [userSettingsToRow(row, userId)]);
+  await markSynced("userSettings", userId);
+  applyWorkingHoursFromUserSettingsRow(row);
+  return 1;
+}
+
+async function pushProcedures(supabase: SupabaseClient, userId: string) {
+  const rows = await db.procedures.toArray();
+  const dirty = rows.filter((r) => isDirty(r.updatedAt, r.syncedAt));
+  let n = 0;
+  for (const batch of chunk(dirty, 60)) {
+    await upsertBatch(
+      supabase,
+      "wf_procedures",
+      batch.map((p) => procedureToRow(p, userId))
+    );
+    for (const p of batch) {
+      await markSynced("procedures", p.id);
       n += 1;
     }
   }
@@ -1240,6 +1357,63 @@ async function pullActivities(supabase: SupabaseClient, userId: string) {
   return n;
 }
 
+async function pullUserSettings(
+  supabase: SupabaseClient,
+  userId: string,
+  legacyMetadata?: unknown
+) {
+  const rows = await pullPaged(supabase, "wf_user_settings", userId, "updated_at");
+  let n = 0;
+  if (rows.length > 0) {
+    const r = rows[0];
+    const id = String(r.id);
+    const remoteU = iso(r.updated_at);
+    const local = await db.userSettings.get(id);
+    if (!local || !shouldSkipRemoteMerge(remoteU, local)) {
+      const row = userSettingsFromRow(r);
+      await db.userSettings.put(row);
+      applyWorkingHoursFromUserSettingsRow(row);
+      n += 1;
+    }
+  } else {
+    const local = await db.userSettings.get(userId);
+    if (!local) {
+      await ensureUserSettingsRow(userId, {
+        seedFromLocalStorage: true,
+        legacyMetadata
+      });
+      n += 1;
+    }
+  }
+  return n;
+}
+
+async function pullProcedures(supabase: SupabaseClient, userId: string) {
+  const rows = await pullPaged(supabase, "wf_procedures", userId, "updated_at");
+  const pend = getPendingProcedurePullSkipContext();
+  const serverIds = new Set<string>();
+  let n = 0;
+  for (const r of rows) {
+    const id = String(r.id);
+    serverIds.add(id);
+    if (pend.procedureIds.has(id)) continue;
+    const remoteU = iso(r.updated_at);
+    const local = await db.procedures.get(id);
+    if (local && shouldSkipRemoteMerge(remoteU, local)) continue;
+    await db.procedures.put(procedureFromRow(r));
+    n += 1;
+  }
+  const locals = await db.procedures.toArray();
+  for (const local of locals) {
+    if (serverIds.has(local.id)) continue;
+    if (pend.procedureIds.has(local.id)) continue;
+    if (!local.syncedAt) continue;
+    console.info("[sync] pull: purging procedure absent on server (remote delete)", local.id);
+    await purgeProcedureLocallyById(local.id);
+  }
+  return n;
+}
+
 async function pullDocuments(supabase: SupabaseClient, userId: string) {
   const rows = await pullPaged(supabase, "wf_documents", userId, "updated_at");
   const pend = getPendingSyncPullSkipContext();
@@ -1420,6 +1594,12 @@ export function registerWorkflowDexieSyncHooks() {
   db.activities.hook("creating", hook);
   db.activities.hook("updating", hook);
   db.activities.hook("deleting", hook);
+  db.procedures.hook("creating", hook);
+  db.procedures.hook("updating", hook);
+  db.procedures.hook("deleting", hook);
+  db.userSettings.hook("creating", hook);
+  db.userSettings.hook("updating", hook);
+  db.userSettings.hook("deleting", hook);
 }
 
 export async function runFullSync(
@@ -1458,6 +1638,7 @@ export async function runFullSync(
     }
 
     rememberUser(user.id);
+    const legacyWorkingHoursMeta = user.user_metadata?.working_hours;
     useSyncUiStore.getState().setPhase("syncing");
     syncMutationDepth += 1;
     try {
@@ -1467,10 +1648,13 @@ export async function runFullSync(
       await flushPendingTemplateDeletes(supabase, user.id);
       await flushPendingAttachmentDeletes(supabase, user.id);
       await flushPendingActivityDeletes(supabase, user.id);
+      await flushPendingStandaloneAttachmentDeletes(supabase, user.id);
+      await flushPendingProcedureDeletes(supabase, user.id);
       syncAuditLog("full_sync_start", { userId: user.id });
 
       // Push FK-safe order
       result.pushed.clients = await pushClients(supabase, user.id);
+      result.pushed.userSettings = await pushUserSettings(supabase, user.id);
       result.pushed.spareParts = await pushSpareParts(supabase, user.id);
       result.pushed.attachments = await pushAttachments(supabase, user.id, result.errors);
       result.pushed.templates = await pushTemplates(supabase, user.id);
@@ -1478,11 +1662,17 @@ export async function runFullSync(
       result.pushed.stockMovements = await pushStock(supabase, user.id);
       result.pushed.tickets = await pushTickets(supabase, user.id);
       result.pushed.activities = await pushActivities(supabase, user.id);
+      result.pushed.procedures = await pushProcedures(supabase, user.id);
       result.pushed.documents = await pushDocuments(supabase, user.id);
       result.pushed.supportEmailOutbox = await pushOutbox(supabase, user.id);
 
       // Pull same order (attachments before docs that reference them is satisfied after interventions)
       result.pulled.clients = await pullClients(supabase, user.id);
+      result.pulled.userSettings = await pullUserSettings(
+        supabase,
+        user.id,
+        legacyWorkingHoursMeta
+      );
       result.pulled.spareParts = await pullSpares(supabase, user.id);
       result.pulled.attachments = await pullAttachments(supabase, user.id);
       result.pulled.templates = await pullTemplates(supabase, user.id);
@@ -1490,6 +1680,7 @@ export async function runFullSync(
       result.pulled.stockMovements = await pullStock(supabase, user.id);
       result.pulled.tickets = await pullTickets(supabase, user.id);
       result.pulled.activities = await pullActivities(supabase, user.id);
+      result.pulled.procedures = await pullProcedures(supabase, user.id);
       result.pulled.documents = await pullDocuments(supabase, user.id);
       result.pulled.supportEmailOutbox = await pullOutbox(supabase, user.id);
 
@@ -1499,6 +1690,8 @@ export async function runFullSync(
       await flushPendingTemplateDeletes(supabase, user.id);
       await flushPendingAttachmentDeletes(supabase, user.id);
       await flushPendingActivityDeletes(supabase, user.id);
+      await flushPendingStandaloneAttachmentDeletes(supabase, user.id);
+      await flushPendingProcedureDeletes(supabase, user.id);
 
       result.ok = result.errors.length === 0;
 
@@ -1596,6 +1789,12 @@ export async function computePendingDirtyCount(): Promise<number> {
   for (const r of await db.activities.toArray()) {
     if (isDirty(r.updatedAt, r.syncedAt)) n += 1;
   }
+  for (const r of await db.procedures.toArray()) {
+    if (isDirty(r.updatedAt, r.syncedAt)) n += 1;
+  }
+  for (const r of await db.userSettings.toArray()) {
+    if (isDirty(r.updatedAt, r.syncedAt)) n += 1;
+  }
   return n;
 }
 
@@ -1679,6 +1878,14 @@ export async function applyRealtimePostgresChange(
           break;
         case "wf_activities":
           await purgeActivityLocallyById(id);
+          break;
+        case "wf_procedures":
+          await purgeProcedureLocallyById(id);
+          break;
+        case "wf_user_settings":
+          await purgeUserSettingsLocallyById(id);
+          clearWorkingHoursMemoryCache();
+          setWorkingHoursMemoryCache(cloneConfig(DEFAULT_WORKING_HOURS));
           break;
         case "wf_documents":
           await purgeDocumentLocallyById(id);
@@ -1772,6 +1979,23 @@ export async function applyRealtimePostgresChange(
         const local = await db.activities.get(id);
         if (local && shouldSkipRemoteMerge(remoteU, local)) return;
         await db.activities.put(activityFromRow(row));
+        break;
+      }
+      case "wf_procedures": {
+        const id = String(row.id);
+        if (getPendingProcedurePullSkipContext().procedureIds.has(id)) return;
+        const local = await db.procedures.get(id);
+        if (local && shouldSkipRemoteMerge(remoteU, local)) return;
+        await db.procedures.put(procedureFromRow(row));
+        break;
+      }
+      case "wf_user_settings": {
+        const id = String(row.id);
+        const local = await db.userSettings.get(id);
+        if (local && shouldSkipRemoteMerge(remoteU, local)) return;
+        const next = userSettingsFromRow(row);
+        await db.userSettings.put(next);
+        applyWorkingHoursFromUserSettingsRow(next);
         break;
       }
       case "wf_documents": {

@@ -3,6 +3,7 @@
 import { Link, usePathname } from "@/i18n/navigation";
 import {
   BarChart3,
+  BookOpen,
   ClipboardList,
   FileScan,
   Home,
@@ -25,6 +26,7 @@ export type SidebarIconName =
   | "documents"
   | "crmTickets"
   | "activities"
+  | "procedures"
   | "clients"
   | "spareParts"
   | "reports"
@@ -39,6 +41,7 @@ export const SIDEBAR_NAV_ICONS = {
   documents: FileScan,
   crmTickets: MessagesSquare,
   activities: ListTodo,
+  procedures: BookOpen,
   clients: Users,
   spareParts: Package,
   reports: BarChart3,

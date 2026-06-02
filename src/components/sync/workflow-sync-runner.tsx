@@ -5,6 +5,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { startWorkflowRealtime } from "@/lib/sync/realtime-subscriptions";
 import { maybeToastSyncFailure } from "@/lib/sync/sync-notify";
 import { useSyncFailureQueue } from "@/lib/sync/sync-failure-queue";
+import { WorkingHoursHydrator } from "@/components/settings/working-hours-hydrator";
 import {
   cancelAutomatedSyncRetry,
   registerWorkflowDexieSyncHooks,
@@ -70,5 +71,5 @@ export function WorkflowSyncRunner() {
     };
   }, [supabase]);
 
-  return null;
+  return <WorkingHoursHydrator />;
 }

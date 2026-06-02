@@ -6,9 +6,9 @@
  * (e.g. lunch). Effective working time = union(slots) minus union(breaks),
  * intersected with the timer window.
  *
- * Storage is offline-first: localStorage is the source of truth the timer reads
- * synchronously, and the Settings page mirrors it into Supabase user metadata
- * for cross-device hydration. No table/migration is required.
+ * Storage is offline-first: Dexie `userSettings` syncs to `wf_user_settings` (Supabase)
+ * with realtime. The timer reads a memory cache + localStorage mirror updated on
+ * every pull, save, or realtime change.
  *
  * Keep these helpers deterministic: callers pass `now`/`stopAtMs` explicitly so
  * UI is testable and SSR-safe.
@@ -133,16 +133,18 @@ export function normalizeWorkingHours(raw: unknown): WorkingHoursConfig {
   return { perDay: obj.perDay === true, days };
 }
 
-/** Read the locally persisted config (offline-first); falls back to defaults. */
+/** Read config for timer stop (sync): memory cache → localStorage → defaults. */
 export function loadWorkingHours(): WorkingHoursConfig {
-  if (typeof window === "undefined") return cloneConfig(DEFAULT_WORKING_HOURS);
-  try {
-    const raw = window.localStorage.getItem(WORKING_HOURS_STORAGE_KEY);
-    if (!raw) return cloneConfig(DEFAULT_WORKING_HOURS);
-    return normalizeWorkingHours(JSON.parse(raw));
-  } catch {
-    return cloneConfig(DEFAULT_WORKING_HOURS);
+  if (workingHoursMemoryCache) return workingHoursMemoryCache;
+  if (typeof window !== "undefined") {
+    try {
+      const raw = window.localStorage.getItem(WORKING_HOURS_STORAGE_KEY);
+      if (raw) return normalizeWorkingHours(JSON.parse(raw));
+    } catch {
+      /* ignore */
+    }
   }
+  return cloneConfig(DEFAULT_WORKING_HOURS);
 }
 
 export function saveWorkingHoursLocal(cfg: WorkingHoursConfig): void {
@@ -152,6 +154,24 @@ export function saveWorkingHoursLocal(cfg: WorkingHoursConfig): void {
   } catch {
     /* private mode / quota — in-memory state still works for this session */
   }
+}
+
+/** In-memory copy for synchronous timer reads; updated on sync/save. */
+let workingHoursMemoryCache: WorkingHoursConfig | null = null;
+
+export function getWorkingHoursMemoryCache(): WorkingHoursConfig | null {
+  return workingHoursMemoryCache;
+}
+
+export function setWorkingHoursMemoryCache(cfg: WorkingHoursConfig): WorkingHoursConfig {
+  const next = normalizeWorkingHours(cfg);
+  workingHoursMemoryCache = next;
+  saveWorkingHoursLocal(next);
+  return next;
+}
+
+export function clearWorkingHoursMemoryCache(): void {
+  workingHoursMemoryCache = null;
 }
 
 /** Mon=0 .. Sun=6 from a Date (JS `getDay()` is Sun=0). */
