@@ -12,7 +12,8 @@ import {
   Pencil,
   Phone,
   Plus,
-  Wrench
+  Wrench,
+  Zap
 } from "lucide-react";
 import { db } from "@/lib/db/workflow-db";
 import { interventionStatsByClientId } from "@/lib/clients/client-intervention-stats";
@@ -42,10 +43,17 @@ function formatWhen(iso?: string) {
   });
 }
 
+function todayLocalDateTimeInput(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export function ClientDetailClient({ id }: { id: string }) {
   const t = useTranslations();
   useWorkflowLiveEpoch();
   const [ivOpen, setIvOpen] = useState(false);
+  const [quickIvOpen, setQuickIvOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
 
   const client = useLiveQuery(async () => db.clients.get(id), [id]);
@@ -90,7 +98,7 @@ export function ClientDetailClient({ id }: { id: string }) {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 pb-24 md:pb-8">
+    <div className="mx-auto max-w-4xl space-y-4 pb-4 md:pb-6">
       <div className="flex flex-wrap items-center gap-3">
         <Link
           href="/clients"
@@ -101,8 +109,8 @@ export function ClientDetailClient({ id }: { id: string }) {
         </Link>
       </div>
 
-      <div className="rounded-2xl border bg-card p-5 shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="rounded-xl border bg-card p-4 shadow-sm sm:p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <Building2 className="h-6 w-6 shrink-0 text-muted-foreground" />
@@ -134,12 +142,23 @@ export function ClientDetailClient({ id }: { id: string }) {
               </span>
             </div>
           </div>
-          <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:min-w-[11rem]">
-            <Button className="min-h-12 w-full gap-2" onClick={() => setIvOpen(true)}>
+          <div className="flex w-full shrink-0 flex-col gap-2 sm:flex-row lg:w-auto lg:min-w-[12rem] lg:flex-col">
+            <Button
+              className="min-h-11 flex-1 gap-2 bg-primary font-semibold shadow-sm lg:w-full"
+              onClick={() => setQuickIvOpen(true)}
+            >
+              <Zap className="h-4 w-4" />
+              {t("clients.detail.actions.quickIntervention")}
+            </Button>
+            <Button
+              variant="outline"
+              className="min-h-11 flex-1 gap-2 lg:w-full"
+              onClick={() => setIvOpen(true)}
+            >
               <Plus className="h-4 w-4" />
               {t("clients.detail.actions.newIntervention")}
             </Button>
-            <Button variant="outline" className="min-h-12 w-full gap-2" onClick={() => setEditOpen(true)}>
+            <Button variant="outline" className="min-h-11 flex-1 gap-2 lg:w-full" onClick={() => setEditOpen(true)}>
               <Pencil className="h-4 w-4" />
               {t("clients.detail.actions.editClient")}
             </Button>
@@ -228,6 +247,17 @@ export function ClientDetailClient({ id }: { id: string }) {
           </div>
         ) : null}
       </div>
+
+      <InterventionFormDialog
+        open={quickIvOpen}
+        onOpenChange={setQuickIvOpen}
+        mode="new"
+        initial={{
+          clientName: client.name,
+          defaultClientId: client.id,
+          defaultStartAt: todayLocalDateTimeInput()
+        }}
+      />
 
       <InterventionFormDialog
         open={ivOpen}

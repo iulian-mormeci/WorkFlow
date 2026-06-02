@@ -197,52 +197,61 @@ export function InterventionEditClient({ id }: { id: string }) {
   }
 
   return (
-    <div className="space-y-5">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-1">
-          <div className="flex items-center gap-3">
-            <Link className="inline-flex items-center gap-2 text-sm underline" href="/interventions">
-              <ChevronLeft className="h-4 w-4" />
-              {t("common.back")}
-            </Link>
+    <div className="space-y-4">
+      <header className="space-y-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div className="space-y-1">
+            <div className="flex items-center gap-3">
+              <Link className="inline-flex items-center gap-2 text-sm underline" href="/interventions">
+                <ChevronLeft className="h-4 w-4" />
+                {t("common.back")}
+              </Link>
+            </div>
+            <h1 className="mt-1 text-xl font-semibold tracking-tight md:text-2xl">
+              {client?.name ?? t("common.intervention")}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {intervention.startAt ? (
+                <span suppressHydrationWarning>{new Date(intervention.startAt).toLocaleString()}</span>
+              ) : (
+                <span>{t("common.noDate")}</span>
+              )}
+              {intervention.dueAt ? (
+                <>
+                  {" "}
+                  · {t("interventions.detail.mustCompleteByPrefix")}{" "}
+                  <span suppressHydrationWarning>{new Date(intervention.dueAt).toLocaleString()}</span> (
+                  <DueCountdown intervention={intervention} />)
+                </>
+              ) : null}
+            </p>
           </div>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-            {client?.name ?? t("common.intervention")}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {intervention.startAt ? (
-              <span suppressHydrationWarning>{new Date(intervention.startAt).toLocaleString()}</span>
-            ) : (
-              <span>{t("common.noDate")}</span>
-            )}
-            {intervention.dueAt ? (
-              <>
-                {" "}
-                · {t("interventions.detail.mustCompleteByPrefix")}{" "}
-                <span suppressHydrationWarning>{new Date(intervention.dueAt).toLocaleString()}</span> (
-                <DueCountdown intervention={intervention} />)
-              </>
-            ) : null}
-          </p>
+          <div className="shrink-0">
+            <InterventionStatusBadge intervention={intervention} />
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <InterventionStatusBadge intervention={intervention} />
+
+        {calendarEvent ? (
           <CalendarExportButton
             event={calendarEvent}
             filename={calendarFilename(client?.name ?? "intervention", intervention.id)}
-            triggerSize="sm"
+            prominent
           />
-          <Button type="button" variant="outline" onClick={() => setPdfOpen(true)}>
+        ) : null}
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" variant="outline" size="sm" onClick={() => setPdfOpen(true)}>
             <FileDown className="h-4 w-4" />
             {t("common.pdf")}
           </Button>
-          <Button type="button" variant="outline" onClick={() => setTicketOpen(true)}>
+          <Button type="button" variant="outline" size="sm" onClick={() => setTicketOpen(true)}>
             <MessageSquarePlus className="h-4 w-4" />
             {t("common.ticket")}
           </Button>
           <Button
             type="button"
             variant="outline"
+            size="sm"
             onClick={async () => {
               try {
                 await exportInterventionForCrm(id);
@@ -261,7 +270,7 @@ export function InterventionEditClient({ id }: { id: string }) {
           >
             {t("interventions.detail.actions.exportForCrm")}
           </Button>
-          <Button type="button" onClick={() => setOpen(true)} variant="outline">
+          <Button type="button" onClick={() => setOpen(true)} variant="outline" size="sm">
             <Pencil className="h-4 w-4" />
             {t("common.edit")}
           </Button>

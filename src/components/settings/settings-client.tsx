@@ -149,12 +149,12 @@ export function SettingsClient() {
   };
 
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
+    <div className="grid gap-3 md:gap-4 lg:grid-cols-2">
       <div className="lg:col-span-2 text-xs text-muted-foreground">
         {t("appVersion", { appName: tCommon("appName"), version: APP_VERSION })}
       </div>
-      <Card className="rounded-2xl">
-        <CardHeader className="space-y-2">
+      <Card className="rounded-2xl lg:col-span-2">
+        <CardHeader className="space-y-2 p-4 md:p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
               <CardTitle className="text-base">{t("profile.title")}</CardTitle>
@@ -273,7 +273,7 @@ export function SettingsClient() {
       <CalendarSettingsCard />
 
       <Card className="rounded-2xl lg:col-span-2">
-        <CardHeader className="space-y-2">
+        <CardHeader className="space-y-2 p-4 md:p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
               <CardTitle className="text-base">{t("sync.title")}</CardTitle>
@@ -283,10 +283,11 @@ export function SettingsClient() {
             </div>
             <IconBubble icon={Cloud} />
           </div>
-          <div className="mt-2 flex flex-wrap gap-2">
+          <div className="mt-1 grid gap-2 sm:grid-cols-2 lg:max-w-xl">
             <Button
               variant="outline"
               disabled={syncBusy || !supabase}
+              className="min-h-11 justify-start"
               onClick={async () => {
                 setSyncBusy(true);
                 try {
@@ -310,6 +311,7 @@ export function SettingsClient() {
             <Button
               variant="secondary"
               disabled={syncBusy || !supabase}
+              className="min-h-11 justify-start"
               onClick={async () => {
                 setSyncBusy(true);
                 try {
@@ -383,7 +385,7 @@ export function SettingsClient() {
       </Card>
 
       <Card className="rounded-2xl">
-        <CardHeader className="space-y-2">
+        <CardHeader className="space-y-2 p-4 md:p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
               <CardTitle className="text-base">{t("appearance.title")}</CardTitle>
@@ -416,7 +418,7 @@ export function SettingsClient() {
       </Card>
 
       <Card className="rounded-2xl lg:col-span-2">
-        <CardHeader className="space-y-2">
+        <CardHeader className="space-y-2 p-4 md:p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
               <CardTitle className="text-base">{t("offlineData.title")}</CardTitle>
@@ -425,9 +427,11 @@ export function SettingsClient() {
             <IconBubble icon={Database} />
           </div>
 
-          <div className="mt-2 flex flex-wrap gap-2">
-            <Button
+          <div className="mt-1 grid gap-3 sm:grid-cols-3">
+            <button
+              type="button"
               disabled={busy}
+              className="flex min-h-[5.5rem] touch-manipulation flex-col items-start gap-2 rounded-xl border bg-background p-3 text-left transition hover:bg-muted/40 disabled:opacity-50 active:scale-[0.99] sm:min-h-[6rem] sm:p-4"
               onClick={async () => {
                 setBusy(true);
                 try {
@@ -474,13 +478,15 @@ export function SettingsClient() {
                 }
               }}
             >
-              <Download className="h-4 w-4" />
-              {t("offlineData.actions.exportFullBackup")}
-            </Button>
+              <Download className="h-5 w-5 text-primary" />
+              <span className="text-sm font-medium">{t("offlineData.actions.exportFullBackup")}</span>
+              <span className="text-xs text-muted-foreground">{t("offlineData.actions.exportFullBackupHint")}</span>
+            </button>
 
-            <Button
-              variant="outline"
+            <button
+              type="button"
               disabled={busy}
+              className="flex min-h-[5.5rem] touch-manipulation flex-col items-start gap-2 rounded-xl border bg-background p-3 text-left transition hover:bg-muted/40 disabled:opacity-50 active:scale-[0.99] sm:min-h-[6rem] sm:p-4"
               onClick={() => {
                 const input = document.createElement("input");
                 input.type = "file";
@@ -550,13 +556,15 @@ export function SettingsClient() {
                 input.click();
               }}
             >
-              <Upload className="h-4 w-4" />
-              {t("offlineData.actions.importBackup")}
-            </Button>
+              <Upload className="h-5 w-5 text-primary" />
+              <span className="text-sm font-medium">{t("offlineData.actions.importBackup")}</span>
+              <span className="text-xs text-muted-foreground">{t("offlineData.actions.importBackupHint")}</span>
+            </button>
 
-            <Button
-              variant="outline"
+            <button
+              type="button"
               disabled={busy}
+              className="flex min-h-[5.5rem] touch-manipulation flex-col items-start gap-2 rounded-xl border border-destructive/30 bg-background p-3 text-left transition hover:bg-destructive/5 disabled:opacity-50 active:scale-[0.99] sm:min-h-[6rem] sm:p-4"
               onClick={async () => {
                 if (!confirm(t("offlineData.confirmClearLocal"))) return;
                 setBusy(true);
@@ -569,19 +577,20 @@ export function SettingsClient() {
                 }
               }}
             >
-              <Trash2 className="h-4 w-4" />
-              {t("offlineData.actions.clearLocalDb")}
-            </Button>
+              <Trash2 className="h-5 w-5 text-destructive" />
+              <span className="text-sm font-medium">{t("offlineData.actions.clearLocalDb")}</span>
+              <span className="text-xs text-muted-foreground">{t("offlineData.actions.clearLocalDbHint")}</span>
+            </button>
           </div>
 
-          <div className="mt-2 text-xs text-muted-foreground">
+          <div className="mt-1 text-xs text-muted-foreground">
             {t("offlineData.keyboardHint")}
           </div>
         </CardHeader>
       </Card>
 
       <Card className="rounded-2xl lg:col-span-2">
-        <CardHeader className="space-y-2">
+        <CardHeader className="space-y-2 p-4 md:p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
               <CardTitle className="text-base">{t("rights.title")}</CardTitle>

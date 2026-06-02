@@ -236,22 +236,22 @@ export function ActivitiesClient() {
         ))}
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-xl border bg-muted/40 p-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:max-w-md">
+        <div className="rounded-xl border bg-muted/40 p-2.5 sm:p-3">
           <div className="text-xs text-muted-foreground">{t("activities.summary.open")}</div>
-          <div className="text-xl font-semibold tabular-nums">{counts.open}</div>
+          <div className="text-lg font-semibold tabular-nums sm:text-xl">{counts.open}</div>
         </div>
-        <div className="rounded-xl border bg-muted/40 p-3">
+        <div className="rounded-xl border bg-muted/40 p-2.5 sm:p-3">
           <div className="text-xs text-muted-foreground">{t("activities.summary.overdue")}</div>
-          <div className="text-xl font-semibold tabular-nums text-red-700">{counts.overdue}</div>
+          <div className="text-lg font-semibold tabular-nums text-red-700 sm:text-xl">{counts.overdue}</div>
         </div>
-        <div className="rounded-xl border bg-muted/40 p-3">
+        <div className="rounded-xl border bg-muted/40 p-2.5 sm:p-3">
           <div className="text-xs text-muted-foreground">{t("activities.summary.total")}</div>
-          <div className="text-xl font-semibold tabular-nums">{counts.total}</div>
+          <div className="text-lg font-semibold tabular-nums sm:text-xl">{counts.total}</div>
         </div>
       </div>
 
-      <div className="grid gap-3">
+      <div className="grid gap-2.5 lg:gap-3">
         {list.map((a) => {
           const overdue = isActivityOverdue(a, Date.now());
           const hasReminder = a.remindersEnabled && getActivityReminderScheduledFireMs(a) != null;
@@ -264,9 +264,9 @@ export function ActivitiesClient() {
           return (
             <div
               key={a.id}
-              className="rounded-2xl border p-4 transition-colors hover:bg-muted/40"
+              className="rounded-xl border p-3.5 transition-colors hover:bg-muted/40 sm:p-4"
             >
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <button
                   type="button"
                   className="min-w-0 flex-1 text-left focus-visible:outline-none"
@@ -344,12 +344,12 @@ export function ActivitiesClient() {
                     </div>
                   ) : null}
                 </button>
-              </div>
 
-              <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3">
+              <div className="flex flex-wrap items-center gap-2 border-t pt-3 lg:max-w-md lg:shrink-0 lg:flex-col lg:items-stretch lg:border-t-0 lg:border-l lg:pl-4 lg:pt-0">
                 <Button
                   type="button"
                   size="sm"
+                  className="min-h-10 flex-1 sm:flex-none"
                   variant={a.status === "completed" ? "outline" : "default"}
                   onClick={() => toggleComplete(a)}
                 >
@@ -361,6 +361,7 @@ export function ActivitiesClient() {
                 <Button
                   type="button"
                   size="sm"
+                  className="min-h-10 flex-1 sm:flex-none"
                   variant="outline"
                   onClick={() => setPostponeTarget(a)}
                 >
@@ -372,22 +373,24 @@ export function ActivitiesClient() {
                     event={calendarEvent}
                     filename={calendarFilename(a.title, a.id)}
                     triggerSize="sm"
+                    className="min-h-10 flex-1 sm:flex-none"
                   />
                 ) : null}
-                <Button type="button" size="sm" variant="outline" onClick={() => openEdit(a)}>
+                <Button type="button" size="sm" className="min-h-10" variant="outline" onClick={() => openEdit(a)}>
                   <Pencil className="h-4 w-4" />
                   {t("common.edit")}
                 </Button>
                 <Button
                   type="button"
                   size="sm"
+                  className="min-h-10"
                   variant="outline"
-                  className="text-red-700 hover:bg-red-50"
                   onClick={() => setDeleteTarget(a)}
                 >
                   <Trash2 className="h-4 w-4" />
                   {t("common.delete")}
                 </Button>
+              </div>
               </div>
             </div>
           );

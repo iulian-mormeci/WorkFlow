@@ -49,32 +49,33 @@ export function CalendarSettingsCard() {
 
   return (
     <Card className="rounded-2xl">
-      <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+      <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0 p-4 md:p-5">
         <div className="space-y-1">
           <CardTitle className="text-base">{t("title")}</CardTitle>
           <CardDescription>{t("subtitle")}</CardDescription>
         </div>
         <IconBubble icon={CalendarPlus} />
       </CardHeader>
-      <div className="space-y-3 px-5 pb-5 md:px-6 md:pb-6">
-        <div className="flex flex-col gap-3 rounded-xl border bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="space-y-2 px-4 pb-4 md:px-5 md:pb-5">
+        <div className="grid gap-3 rounded-xl border bg-muted/30 p-3 sm:grid-cols-[1fr_auto] sm:items-center sm:p-4">
           <div>
             <p className="text-sm font-medium">{t("autoExportLabel")}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{t("autoExportHint")}</p>
-            <p className="mt-2 text-xs font-medium text-muted-foreground">
+            <p className="mt-0.5 text-xs text-muted-foreground">{t("autoExportHint")}</p>
+            <p className="mt-1.5 text-xs font-medium text-muted-foreground">
               {autoExport ? t("autoExportOn") : t("autoExportOff")}
             </p>
           </div>
           <Button
             type="button"
             variant={autoExport ? "default" : "outline"}
-            className="min-h-11 shrink-0 touch-manipulation"
+            className="min-h-11 w-full shrink-0 touch-manipulation sm:w-auto"
             disabled={!userId || saving}
             onClick={toggleAutoExport}
           >
             {saving ? t("saving") : autoExport ? t("turnOff") : t("turnOn")}
           </Button>
         </div>
+        <p className="text-xs text-muted-foreground">{t("manualExportHint")}</p>
       </div>
     </Card>
   );

@@ -104,15 +104,15 @@ export function ClientsClient() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5 pb-24 md:pb-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div className="mx-auto max-w-6xl space-y-4 pb-4 md:pb-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{t("clients.page.title")}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <h1 className="text-xl font-semibold tracking-tight md:text-2xl">{t("clients.page.title")}</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
             {t("clients.page.subtitle")}
           </p>
         </div>
-        <Button size="lg" className="min-h-12 shrink-0 gap-2" onClick={openNew}>
+        <Button size="lg" className="min-h-11 shrink-0 gap-2" onClick={openNew}>
           <Plus className="h-5 w-5" />
           {t("clients.actions.new")}
         </Button>
@@ -160,7 +160,7 @@ export function ClientsClient() {
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {(filtered as Client[]).map((c) => {
           const st = stats.get(c.id);
           const last = st?.lastStartAt;
@@ -169,7 +169,7 @@ export function ClientsClient() {
             <div
               key={c.id}
               className={cn(
-                "flex flex-col rounded-2xl border bg-card p-4 text-left shadow-sm transition",
+                "flex flex-col rounded-xl border bg-card p-3.5 text-left shadow-sm transition sm:p-4",
                 "hover:border-primary/30 hover:bg-muted/30"
               )}
             >

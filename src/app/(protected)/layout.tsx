@@ -40,8 +40,8 @@ export default async function ProtectedLayout({
         paddingTop: "env(safe-area-inset-top)"
       }}
     >
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 px-3 py-3 max-md:pt-[3.75rem] md:grid-cols-[300px_1fr] md:px-6 md:py-6 md:pt-6">
-        <aside className="hidden rounded-2xl border bg-background p-4 md:sticky md:top-6 md:block md:h-[calc(100dvh-3rem)] md:overflow-auto">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-3 px-3 py-2 max-md:pt-[3.25rem] md:grid-cols-[260px_1fr] md:gap-4 md:px-5 md:py-5 md:pt-5 lg:px-6 lg:py-6">
+        <aside className="hidden rounded-2xl border bg-background p-3.5 md:sticky md:top-5 md:block md:h-[calc(100dvh-2.5rem)] md:overflow-auto lg:p-4">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <div className="text-base font-semibold tracking-tight">
@@ -61,13 +61,13 @@ export default async function ProtectedLayout({
             <LanguageSwitcher />
           </div>
 
-          <GlobalSearch />
+          <GlobalSearch compact />
 
           <SyncStatus />
 
           <SidebarNav items={PROTECTED_NAV_ITEMS} />
 
-          <div className="mt-6 rounded-xl border bg-muted p-3 text-xs text-muted-foreground">
+          <div className="mt-4 rounded-xl border bg-muted p-2.5 text-xs text-muted-foreground lg:mt-5 lg:p-3">
             {t("protectedShell.offlineFirstNote")}
           </div>
 
@@ -80,7 +80,9 @@ export default async function ProtectedLayout({
           </div>
         </aside>
 
-        <main className="rounded-2xl border bg-background p-4 pb-24 max-md:pb-28 md:p-6 md:pb-6">
+        <main
+          className="rounded-2xl border bg-background p-3 max-md:pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:p-5 md:pb-5 lg:p-6"
+        >
           {/* Client: polls Dexie every 45s for due reminders (notifications + email). */}
           <InterventionRemindersProvider />
           {/* Client: activity reminders (browser notification + in-app postpone prompt). */}

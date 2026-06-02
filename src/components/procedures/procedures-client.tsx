@@ -158,25 +158,9 @@ export function ProceduresClient() {
   }
 
   return (
-    <div className="space-y-4">
-      <Button
-        type="button"
-        size="lg"
-        variant="secondary"
-        className="h-12 w-full justify-center gap-2 border-violet-200 bg-violet-50 text-violet-950 hover:bg-violet-100 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-100 dark:hover:bg-violet-950/60 sm:min-h-[3rem]"
-        onClick={() => setGlobalSearchOpen(true)}
-      >
-        <Globe className="h-5 w-5 shrink-0" />
-        <span className="text-base font-semibold">{t("procedures.global.searchButton")}</span>
-      </Button>
-      {(globalCount ?? 0) > 0 ? (
-        <p className="text-center text-xs text-muted-foreground sm:text-left">
-          {t("procedures.global.presetsAvailable", { count: globalCount ?? 0 })}
-        </p>
-      ) : null}
-
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="relative flex-1">
+    <div className="space-y-3">
+      <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+        <div className="relative min-w-0 flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={q}
@@ -185,11 +169,27 @@ export function ProceduresClient() {
             className="h-11 pl-9"
           />
         </div>
-        <Button size="lg" onClick={openCreate} className="h-11 shrink-0">
-          <Plus className="h-5 w-5" />
-          {t("procedures.actions.new")}
-        </Button>
+        <div className="flex flex-col gap-2 sm:flex-row lg:shrink-0">
+          <Button
+            type="button"
+            variant="secondary"
+            className="h-11 gap-2 border-violet-200 bg-violet-50 text-violet-950 hover:bg-violet-100 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-100 dark:hover:bg-violet-950/60"
+            onClick={() => setGlobalSearchOpen(true)}
+          >
+            <Globe className="h-4 w-4 shrink-0" />
+            <span className="font-semibold">{t("procedures.global.searchButton")}</span>
+          </Button>
+          <Button size="lg" onClick={openCreate} className="h-11 shrink-0">
+            <Plus className="h-5 w-5" />
+            {t("procedures.actions.new")}
+          </Button>
+        </div>
       </div>
+      {(globalCount ?? 0) > 0 ? (
+        <p className="text-xs text-muted-foreground">
+          {t("procedures.global.presetsAvailable", { count: globalCount ?? 0 })}
+        </p>
+      ) : null}
 
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Badge className="border-sky-300 bg-sky-50 text-sky-900">
@@ -240,7 +240,7 @@ export function ProceduresClient() {
         </select>
       </div>
 
-      <div className="grid gap-3">
+      <div className="grid gap-2.5 lg:grid-cols-2 lg:gap-3">
         {list.map((p) => {
           const preview = procedureHtmlToText(p.content ?? "");
           const imageCount = p.imageIds?.length ?? 0;

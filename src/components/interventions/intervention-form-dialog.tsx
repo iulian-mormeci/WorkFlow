@@ -68,6 +68,7 @@ type Props = {
   initial?: Partial<{
     clientName: string;
     defaultClientId?: string | null;
+    defaultStartAt?: string;
     type: string;
     workCategory?: WorkCategory;
     isOfficeActivity?: boolean;
@@ -234,7 +235,7 @@ export function InterventionFormDialog(props: Props) {
       setType(initial?.type ?? "maintenance");
       setWorkCategory(initial?.workCategory ?? "intervention");
       setIsOfficeActivity(initial?.isOfficeActivity ?? false);
-      setStartAtLocal("");
+      setStartAtLocal(initial?.defaultStartAt ?? "");
       setEndAtLocal("");
       setKm(initial?.km != null ? String(initial.km) : "");
       setNotes(initial?.notes ?? "");
@@ -309,7 +310,8 @@ export function InterventionFormDialog(props: Props) {
     initial?.notes,
     initial?.checklist,
     initial?.sparePartsUsed,
-    initial?.defaultDurationMinutes
+    initial?.defaultDurationMinutes,
+    initial?.defaultStartAt
   ]);
 
   useEffect(() => {

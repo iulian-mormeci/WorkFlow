@@ -5,9 +5,9 @@ import { getTranslations } from "next-intl/server";
 export default async function SettingsPage() {
   const t = await getTranslations("settings");
   return (
-    <div className="space-y-5">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">{t("page.title")}</h1>
+    <div className="space-y-3">
+      <header className="space-y-0.5">
+        <h1 className="text-xl font-semibold tracking-tight md:text-2xl">{t("page.title")}</h1>
         <p className="text-sm text-muted-foreground">
           {t("page.subtitle")}
         </p>

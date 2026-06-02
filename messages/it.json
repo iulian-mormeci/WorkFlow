@@ -147,6 +147,7 @@
       "lastVisitPrefix": "Ultima visita:",
       "interventionsCount": "{count, plural, one {# intervento} other {# interventi}}",
       "actions": {
+        "quickIntervention": "Crea intervento rapido",
         "newIntervention": "Nuovo intervento",
         "editClient": "Modifica cliente"
       },
@@ -230,6 +231,7 @@
   "mobileMenu": {
     "openMenu": "Apri menu",
     "closeMenu": "Chiudi menu",
+    "bottomNavLabel": "Navigazione principale",
     "mainNavigation": "Navigazione principale",
     "primaryNavigation": "Navigazione primaria",
     "menuTitle": "Menu",
@@ -244,10 +246,25 @@
     "global": {
       "buttonPlaceholder": "Cerca… (⌘K)",
       "dialogTitle": "Ricerca globale",
-      "inputPlaceholder": "Cerca interventi, clienti, documenti…",
+      "inputPlaceholder": "Cerca interventi, attività, procedure, clienti, documenti, ticket…",
+      "keyboardHint": "↑↓ naviga · Invio apre · Esc chiude",
       "pages": "{count, plural, one {# pagina} other {# pagine}}",
       "emptyNoResults": "Nessun risultato.",
-      "emptyTypeToSearch": "Inizia a scrivere per cercare."
+      "emptyTypeToSearch": "Scrivi per cercare in tutti i dati su questo dispositivo.",
+      "categories": {
+        "intervention": "Intervento",
+        "activity": "Attività",
+        "procedure": "Procedura",
+        "globalProcedure": "Preset globale",
+        "client": "Cliente",
+        "document": "Documento",
+        "ticket": "Ticket CRM"
+      },
+      "badges": {
+        "pdf": "PDF",
+        "global": "Globale",
+        "personal": "Personale"
+      }
     }
   },
   "support": {
@@ -1361,7 +1378,8 @@
       "autoExportOff": "Esportazione automatica disattivata",
       "turnOn": "Attiva",
       "turnOff": "Disattiva",
-      "saving": "Salvataggio…"
+      "saving": "Salvataggio…",
+      "manualExportHint": "Usa “Esporta in calendario” nelle pagine di dettaglio intervento e attività, oppure attiva l’esportazione automatica sopra."
     },
     "appearance": {
       "title": "Aspetto",
@@ -1382,8 +1400,11 @@
       },
       "actions": {
         "exportFullBackup": "Esporta backup completo",
+        "exportFullBackupHint": "JSON con clienti, interventi, allegati e altro.",
         "importBackup": "Importa backup",
-        "clearLocalDb": "Svuota database locale"
+        "importBackupHint": "Sostituisce tutti i dati locali da un file di backup.",
+        "clearLocalDb": "Svuota database locale",
+        "clearLocalDbHint": "Elimina IndexedDB solo su questo dispositivo."
       },
       "confirmImport": "Importare il backup e sostituire TUTTI i dati locali? Non puoi annullare.",
       "confirmClearLocal": "Cancellare TUTTI i dati locali? Non puoi annullare.",
