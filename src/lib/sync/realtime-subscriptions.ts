@@ -11,6 +11,7 @@ const TABLES = [
   "wf_tickets",
   "wf_activities",
   "wf_procedures",
+  "wf_global_procedures",
   "wf_user_settings",
   "wf_documents",
   "wf_templates"
@@ -91,16 +92,20 @@ export function startWorkflowRealtime(
   };
 
   for (const t of TABLES) {
-    channel.on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: t,
-        filter: `user_id=eq.${userId}`
-      },
-      handler
-    );
+    const opts: {
+      event: "*";
+      schema: "public";
+      table: string;
+      filter?: string;
+    } = {
+      event: "*",
+      schema: "public",
+      table: t
+    };
+    if (t !== "wf_global_procedures") {
+      opts.filter = `user_id=eq.${userId}`;
+    }
+    channel.on("postgres_changes", opts, handler);
   }
 
   channel.subscribe((status, err) => {

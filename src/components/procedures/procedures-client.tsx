@@ -4,12 +4,14 @@ import { useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   BookOpen,
+  Globe,
   Image as ImageIcon,
   Pencil,
   Plus,
   Search,
   Tag,
   Trash2,
+  User,
   Wrench
 } from "lucide-react";
 import {
@@ -29,8 +31,11 @@ import {
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog";
+import { GlobalProceduresSearchDialog } from "@/components/procedures/global-procedures-search-dialog";
 import { ProcedureFormDialog } from "@/components/procedures/procedure-form-dialog";
 import { ProcedureViewDialog } from "@/components/procedures/procedure-view-dialog";
+import { procedureLikeFromPersonal } from "@/lib/procedures/procedure-shared";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
 import { cn } from "@/lib/utils";
@@ -67,6 +72,12 @@ export function ProceduresClient() {
   const [viewing, setViewing] = useState<Procedure | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Procedure | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
+
+  const globalCount = useLiveQuery(
+    () => db.globalProcedures.count(),
+    [liveEpoch]
+  );
 
   const data = useLiveQuery(async () => {
     const all = await db.procedures.orderBy("updatedAt").reverse().toArray();
@@ -148,6 +159,22 @@ export function ProceduresClient() {
 
   return (
     <div className="space-y-4">
+      <Button
+        type="button"
+        size="lg"
+        variant="secondary"
+        className="h-12 w-full justify-center gap-2 border-violet-200 bg-violet-50 text-violet-950 hover:bg-violet-100 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-100 dark:hover:bg-violet-950/60 sm:min-h-[3rem]"
+        onClick={() => setGlobalSearchOpen(true)}
+      >
+        <Globe className="h-5 w-5 shrink-0" />
+        <span className="text-base font-semibold">{t("procedures.global.searchButton")}</span>
+      </Button>
+      {(globalCount ?? 0) > 0 ? (
+        <p className="text-center text-xs text-muted-foreground sm:text-left">
+          {t("procedures.global.presetsAvailable", { count: globalCount ?? 0 })}
+        </p>
+      ) : null}
+
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -155,13 +182,21 @@ export function ProceduresClient() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder={t("procedures.searchPlaceholder")}
-            className="pl-9"
+            className="h-11 pl-9"
           />
         </div>
-        <Button size="lg" onClick={openCreate} className="shrink-0">
+        <Button size="lg" onClick={openCreate} className="h-11 shrink-0">
           <Plus className="h-5 w-5" />
           {t("procedures.actions.new")}
         </Button>
+      </div>
+
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Badge className="border-sky-300 bg-sky-50 text-sky-900">
+          <User className="mr-1 h-3 w-3" />
+          {t("procedures.global.myProceduresLabel")}
+        </Badge>
+        <span>{t("procedures.global.myProceduresHint")}</span>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-[auto_1fr_1fr] sm:items-center">
@@ -307,13 +342,21 @@ export function ProceduresClient() {
         }
       />
 
+      <GlobalProceduresSearchDialog
+        open={globalSearchOpen}
+        onOpenChange={setGlobalSearchOpen}
+        onPersonalEdit={openEdit}
+        onCopiedEdit={(p) => openEdit(p)}
+      />
+
       <ProcedureViewDialog
         open={Boolean(viewing)}
         onOpenChange={(o) => {
           if (!o) setViewing(null);
         }}
-        procedure={viewing}
-        onEdit={openEdit}
+        procedure={viewing ? procedureLikeFromPersonal(viewing) : null}
+        scope="personal"
+        onEdit={viewing ? () => openEdit(viewing) : undefined}
       />
 
       <Dialog

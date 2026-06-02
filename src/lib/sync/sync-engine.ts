@@ -15,6 +15,7 @@ import {
   purgeDocumentLocallyById,
   purgeOutboxLocallyById,
   purgeProcedureLocallyById,
+  purgeGlobalProcedureLocallyById,
   purgeUserSettingsLocallyById,
   purgeSparePartLocallyById,
   purgeStockMovementLocallyById,
@@ -54,6 +55,7 @@ import {
   type Document,
   type Intervention,
   type InterventionTemplate,
+  type GlobalProcedure,
   type Procedure,
   type SparePart,
   type StockMovement,
@@ -72,6 +74,7 @@ import {
   applyWorkingHoursFromUserSettingsRow,
   ensureUserSettingsRow
 } from "@/lib/user-settings/working-hours-sync";
+import { isGlobalProcedureAdmin } from "@/lib/procedures/global-procedure-admin";
 
 const PAGE_SIZE = 500;
 const SYNC_DEBOUNCE_MS = 2000;
@@ -631,22 +634,84 @@ function procedureFromRow(r: Record<string, unknown>): Procedure {
   };
 }
 
+function globalProcedureToRow(p: GlobalProcedure) {
+  return {
+    id: p.id,
+    created_by: p.createdBy,
+    title: p.title,
+    category: p.category,
+    brand: p.brand ?? null,
+    model: p.model ?? null,
+    content: p.content ?? null,
+    tags: p.tags?.length ? p.tags : null,
+    image_ids: p.imageIds?.length ? p.imageIds : null,
+    created_at: p.createdAt,
+    updated_at: p.updatedAt
+  };
+}
+
+function globalProcedureFromRow(r: Record<string, unknown>): GlobalProcedure {
+  return {
+    id: String(r.id),
+    createdBy: String(r.created_by),
+    title: String(r.title),
+    category: normalizeProcedureCategory(r.category),
+    brand: (r.brand as string) ?? undefined,
+    model: (r.model as string) ?? undefined,
+    content: (r.content as string) ?? undefined,
+    tags: stringArrayFromJson(r.tags),
+    imageIds: stringArrayFromJson(r.image_ids),
+    createdAt: iso(r.created_at),
+    updatedAt: iso(r.updated_at),
+    syncedAt: new Date().toISOString(),
+    remoteId: String(r.id)
+  };
+}
+
+async function pullGlobalProceduresPaged(
+  supabase: SupabaseClient
+): Promise<Record<string, unknown>[]> {
+  const out: Record<string, unknown>[] = [];
+  let from = 0;
+  for (;;) {
+    const { data, error } = await supabase
+      .from("wf_global_procedures")
+      .select("*")
+      .order("updated_at", { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) throw new Error(`wf_global_procedures pull: ${error.message}`);
+    const rows = data ?? [];
+    out.push(...rows);
+    if (rows.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+  return out;
+}
+
+async function globalProcedureAttachmentIdSet(): Promise<Set<string>> {
+  const ids = new Set<string>();
+  for (const g of await db.globalProcedures.toArray()) {
+    for (const id of g.imageIds ?? []) ids.add(id);
+  }
+  return ids;
+}
+
 function userSettingsToRow(s: UserSettings, userId: string) {
   return {
     id: userId,
     user_id: userId,
     working_hours: s.workingHours,
-    created_at: s.createdAt,
     updated_at: s.updatedAt
   };
 }
 
 function userSettingsFromRow(r: Record<string, unknown>): UserSettings {
+  const updatedAt = iso(r.updated_at);
   return {
     id: String(r.id),
     workingHours: normalizeWorkingHours(r.working_hours),
-    createdAt: iso(r.created_at),
-    updatedAt: iso(r.updated_at),
+    createdAt: r.created_at != null ? iso(r.created_at) : updatedAt,
+    updatedAt,
     syncedAt: new Date().toISOString(),
     remoteId: String(r.id)
   };
@@ -834,6 +899,7 @@ async function markSynced(
     | "templates"
     | "activities"
     | "procedures"
+    | "globalProcedures"
     | "userSettings",
   id: string
 ) {
@@ -871,6 +937,9 @@ async function markSynced(
       break;
     case "procedures":
       await db.procedures.update(id, { syncedAt: now });
+      break;
+    case "globalProcedures":
+      await db.globalProcedures.update(id, { syncedAt: now });
       break;
     case "userSettings":
       await db.userSettings.update(id, { syncedAt: now });
@@ -1099,6 +1168,28 @@ async function pushProcedures(supabase: SupabaseClient, userId: string) {
   return n;
 }
 
+async function pushGlobalProcedures(
+  supabase: SupabaseClient,
+  user: { email?: string | null; user_metadata?: Record<string, unknown> | null }
+) {
+  if (!isGlobalProcedureAdmin(user)) return 0;
+  const rows = await db.globalProcedures.toArray();
+  const dirty = rows.filter((r) => isDirty(r.updatedAt, r.syncedAt));
+  let n = 0;
+  for (const batch of chunk(dirty, 60)) {
+    await upsertBatch(
+      supabase,
+      "wf_global_procedures",
+      batch.map((p) => globalProcedureToRow(p))
+    );
+    for (const p of batch) {
+      await markSynced("globalProcedures", p.id);
+      n += 1;
+    }
+  }
+  return n;
+}
+
 async function pushDocuments(supabase: SupabaseClient, userId: string) {
   const rows = await db.documents.toArray();
   const dirty = rows.filter((d) =>
@@ -1226,8 +1317,10 @@ async function pullAttachments(supabase: SupabaseClient, userId: string) {
     n += 1;
   }
 
+  const globalAttIds = await globalProcedureAttachmentIdSet();
   const attLocals = await db.attachments.toArray();
   for (const local of attLocals) {
+    if (globalAttIds.has(local.id)) continue;
     if (serverIds.has(local.id)) continue;
     if (pend.attachmentIds.has(local.id)) continue;
     if (!local.syncedAt) continue;
@@ -1235,6 +1328,63 @@ async function pullAttachments(supabase: SupabaseClient, userId: string) {
     await purgeAttachmentLocallyById(local.id);
   }
 
+  return n;
+}
+
+async function pullGlobalProcedureAttachments(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<number> {
+  const want = await globalProcedureAttachmentIdSet();
+  if (!want.size) return 0;
+  const missing: string[] = [];
+  for (const id of want) {
+    const local = await db.attachments.get(id);
+    if (local?.blob) continue;
+    missing.push(id);
+  }
+  if (!missing.length) return 0;
+
+  let n = 0;
+  for (const batch of chunk(missing, 80)) {
+    const { data, error } = await supabase
+      .from("wf_attachments")
+      .select("*")
+      .in("id", batch);
+    if (error) {
+      console.warn("[sync] global procedure attachments pull:", error.message);
+      continue;
+    }
+    for (const r of data ?? []) {
+      const row = r as Record<string, unknown>;
+      const id = String(row.id);
+      const remoteU = iso(row.updated_at);
+      const local = await db.attachments.get(id);
+      const localU = local
+        ? effectiveUpdated({ updatedAt: local.updatedAt, createdAt: local.createdAt })
+        : "";
+      if (local?.blob && shouldSkipRemoteMergeTs(remoteU, localU, local.syncedAt)) continue;
+
+      const path = String(row.storage_path);
+      let file: Blob | null = null;
+      const ownerId = String(row.user_id ?? userId);
+      const primary = await supabase.storage.from(STORAGE_BUCKET).download(path);
+      if (!primary.error && primary.data) file = primary.data;
+      if (!file) {
+        const legacy = legacyAttachmentStoragePath(ownerId, id);
+        if (legacy !== path) {
+          const second = await supabase.storage.from(STORAGE_BUCKET).download(legacy);
+          if (!second.error && second.data) file = second.data;
+        }
+      }
+      if (!file) {
+        console.warn("[sync] global procedure attachment download skipped", id);
+        continue;
+      }
+      await db.attachments.put(attachmentFromRow(row, file));
+      n += 1;
+    }
+  }
   return n;
 }
 
@@ -1410,6 +1560,32 @@ async function pullProcedures(supabase: SupabaseClient, userId: string) {
     if (!local.syncedAt) continue;
     console.info("[sync] pull: purging procedure absent on server (remote delete)", local.id);
     await purgeProcedureLocallyById(local.id);
+  }
+  return n;
+}
+
+async function pullGlobalProcedures(supabase: SupabaseClient) {
+  const rows = await pullGlobalProceduresPaged(supabase);
+  const serverIds = new Set<string>();
+  let n = 0;
+  for (const r of rows) {
+    const id = String(r.id);
+    serverIds.add(id);
+    const remoteU = iso(r.updated_at);
+    const local = await db.globalProcedures.get(id);
+    if (local && shouldSkipRemoteMerge(remoteU, local)) continue;
+    await db.globalProcedures.put(globalProcedureFromRow(r));
+    n += 1;
+  }
+  const locals = await db.globalProcedures.toArray();
+  for (const local of locals) {
+    if (serverIds.has(local.id)) continue;
+    if (!local.syncedAt) continue;
+    console.info(
+      "[sync] pull: purging global procedure absent on server (remote delete)",
+      local.id
+    );
+    await purgeGlobalProcedureLocallyById(local.id);
   }
   return n;
 }
@@ -1663,6 +1839,7 @@ export async function runFullSync(
       result.pushed.tickets = await pushTickets(supabase, user.id);
       result.pushed.activities = await pushActivities(supabase, user.id);
       result.pushed.procedures = await pushProcedures(supabase, user.id);
+      result.pushed.globalProcedures = await pushGlobalProcedures(supabase, user);
       result.pushed.documents = await pushDocuments(supabase, user.id);
       result.pushed.supportEmailOutbox = await pushOutbox(supabase, user.id);
 
@@ -1681,6 +1858,11 @@ export async function runFullSync(
       result.pulled.tickets = await pullTickets(supabase, user.id);
       result.pulled.activities = await pullActivities(supabase, user.id);
       result.pulled.procedures = await pullProcedures(supabase, user.id);
+      result.pulled.globalProcedures = await pullGlobalProcedures(supabase);
+      result.pulled.globalProcedureAttachments = await pullGlobalProcedureAttachments(
+        supabase,
+        user.id
+      );
       result.pulled.documents = await pullDocuments(supabase, user.id);
       result.pulled.supportEmailOutbox = await pullOutbox(supabase, user.id);
 
@@ -1792,6 +1974,9 @@ export async function computePendingDirtyCount(): Promise<number> {
   for (const r of await db.procedures.toArray()) {
     if (isDirty(r.updatedAt, r.syncedAt)) n += 1;
   }
+  for (const r of await db.globalProcedures.toArray()) {
+    if (isDirty(r.updatedAt, r.syncedAt)) n += 1;
+  }
   for (const r of await db.userSettings.toArray()) {
     if (isDirty(r.updatedAt, r.syncedAt)) n += 1;
   }
@@ -1840,6 +2025,32 @@ export async function applyRealtimePostgresChange(
 ): Promise<void> {
   const { eventType, new: rec, old: prev, table } = payload;
   const ev = String(eventType).toUpperCase();
+  if (table === "wf_global_procedures") {
+    syncMutationDepth += 1;
+    try {
+      if (ev === "DELETE") {
+        const id = String(
+          (prev as Record<string, unknown> | null)?.id ??
+            (rec as Record<string, unknown> | null)?.id ??
+            ""
+        );
+        if (id) await purgeGlobalProcedureLocallyById(id);
+      } else if (rec) {
+        const row = rec as Record<string, unknown>;
+        const id = String(row.id);
+        const remoteU = iso(row.updated_at);
+        const local = await db.globalProcedures.get(id);
+        if (!local || !shouldSkipRemoteMerge(remoteU, local)) {
+          await db.globalProcedures.put(globalProcedureFromRow(row));
+        }
+      }
+      useSyncUiStore.getState().touchRealtime();
+    } finally {
+      syncMutationDepth -= 1;
+    }
+    return;
+  }
+
   const uid = String((rec ?? prev)?.user_id ?? "");
   if (uid && uid !== userId) return;
 

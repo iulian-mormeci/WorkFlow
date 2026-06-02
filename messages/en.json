@@ -1146,6 +1146,26 @@
     "view": {
       "noContent": "This procedure has no written content yet."
     },
+    "global": {
+      "badge": "Global preset",
+      "personalBadge": "Personal",
+      "myProceduresLabel": "My procedures",
+      "myProceduresHint": "Editable copies saved on your account and synced across devices.",
+      "searchButton": "Search global procedures",
+      "searchTitle": "Search procedures",
+      "searchSubtitle": "Company presets and your personal procedures — search by title, content, brand, model, category or tags.",
+      "searchPlaceholder": "Search title, content, brand, model, category, tags…",
+      "searchEmpty": "No procedures match your search.",
+      "presetsAvailable": "{count, plural, one {# preset procedure available offline} other {# preset procedures available offline}}",
+      "scopeAll": "All",
+      "scopeGlobal": "Global presets",
+      "scopePersonal": "My procedures",
+      "copyToAccount": "Copy to my account",
+      "copying": "Copying…",
+      "copySuccessTitle": "Copied to your account",
+      "copySuccessBody": "You can edit your personal copy now.",
+      "copyFailedTitle": "Could not copy procedure"
+    },
     "actions": {
       "new": "New procedure",
       "open": "Open"

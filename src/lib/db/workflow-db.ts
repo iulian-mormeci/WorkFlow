@@ -255,6 +255,21 @@ export type Procedure = {
   updatedAt: string;
 } & SyncMeta;
 
+/** Shared preset procedures (read-only for most users; admin manages in Supabase). */
+export type GlobalProcedure = {
+  id: Id;
+  createdBy: Id;
+  title: string;
+  category: ProcedureCategory;
+  brand?: string;
+  model?: string;
+  content?: string;
+  tags?: string[];
+  imageIds?: Id[];
+  createdAt: string;
+  updatedAt: string;
+} & SyncMeta;
+
 export type Attachment = {
   id: Id;
   kind: "photo" | "document" | "audio";
@@ -332,6 +347,7 @@ export class WorkFlowDB extends Dexie {
   templates!: Table<InterventionTemplate, Id>;
   activities!: Table<Activity, Id>;
   procedures!: Table<Procedure, Id>;
+  globalProcedures!: Table<GlobalProcedure, Id>;
   userSettings!: Table<UserSettings, Id>;
 
   constructor() {
@@ -643,6 +659,25 @@ export class WorkFlowDB extends Dexie {
       templates: "&id, name, updatedAt, workCategory, syncedAt",
       activities: "&id, status, priority, dueAt, category, updatedAt, syncedAt",
       procedures: "&id, category, brand, model, updatedAt, syncedAt",
+      userSettings: "&id, updatedAt, syncedAt"
+    });
+
+    this.version(20).stores({
+      clients: "&id, name, clientType, updatedAt, syncedAt",
+      interventions:
+        "&id, clientId, startAt, updatedAt, status, createdBy, timerStartedAt, workCategory, dueAt, timerRunState, syncedAt",
+      spareParts: "&id, sku, name, updatedAt, syncedAt",
+      stockMovements: "&id, sparePartId, createdAt, interventionId, syncedAt",
+      tickets:
+        "&id, status, priority, reminderAt, dueAt, updatedAt, clientId, interventionId, syncedAt",
+      attachments: "&id, kind, createdAt, mime, syncedAt",
+      documents: "&id, interventionId, createdAt, title, syncedAt",
+      supportEmailOutbox:
+        "&id, status, to, createdAt, updatedAt, documentId, interventionId, syncedAt",
+      templates: "&id, name, updatedAt, workCategory, syncedAt",
+      activities: "&id, status, priority, dueAt, category, updatedAt, syncedAt",
+      procedures: "&id, category, brand, model, updatedAt, syncedAt",
+      globalProcedures: "&id, category, brand, model, updatedAt, syncedAt",
       userSettings: "&id, updatedAt, syncedAt"
     });
   }

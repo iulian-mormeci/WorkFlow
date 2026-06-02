@@ -1146,6 +1146,26 @@
     "view": {
       "noContent": "Questa procedura non ha ancora contenuto scritto."
     },
+    "global": {
+      "badge": "Preset globale",
+      "personalBadge": "Personale",
+      "myProceduresLabel": "Le mie procedure",
+      "myProceduresHint": "Copie modificabili sul tuo account, sincronizzate su tutti i dispositivi.",
+      "searchButton": "Cerca procedure globali",
+      "searchTitle": "Cerca procedure",
+      "searchSubtitle": "Preset aziendali e le tue procedure personali — cerca per titolo, contenuto, marca, modello, categoria o tag.",
+      "searchPlaceholder": "Cerca titolo, contenuto, marca, modello, categoria, tag…",
+      "searchEmpty": "Nessuna procedura corrisponde alla ricerca.",
+      "presetsAvailable": "{count, plural, one {# procedura preset disponibile offline} other {# procedure preset disponibili offline}}",
+      "scopeAll": "Tutte",
+      "scopeGlobal": "Preset globali",
+      "scopePersonal": "Le mie",
+      "copyToAccount": "Copia nel mio account",
+      "copying": "Copia in corso…",
+      "copySuccessTitle": "Copiata nel tuo account",
+      "copySuccessBody": "Puoi modificare subito la copia personale.",
+      "copyFailedTitle": "Impossibile copiare la procedura"
+    },
     "actions": {
       "new": "Nuova procedura",
       "open": "Apri"

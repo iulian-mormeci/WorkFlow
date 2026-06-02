@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Pencil, Tag, X } from "lucide-react";
-import { db, type Procedure } from "@/lib/db/workflow-db";
+import { Copy, Globe, Pencil, Tag, User, X } from "lucide-react";
+import { db } from "@/lib/db/workflow-db";
+import type { ProcedureLike } from "@/lib/procedures/procedure-shared";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,11 +19,22 @@ import { useTranslations } from "next-intl";
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  procedure: Procedure | null;
-  onEdit?: (procedure: Procedure) => void;
+  procedure: ProcedureLike | null;
+  scope?: "global" | "personal";
+  onEdit?: () => void;
+  onCopy?: () => void;
+  copying?: boolean;
 };
 
-export function ProcedureViewDialog({ open, onOpenChange, procedure, onEdit }: Props) {
+export function ProcedureViewDialog({
+  open,
+  onOpenChange,
+  procedure,
+  scope,
+  onEdit,
+  onCopy,
+  copying
+}: Props) {
   const t = useTranslations();
   const imageIds = procedure?.imageIds ?? [];
 
@@ -34,7 +47,6 @@ export function ProcedureViewDialog({ open, onOpenChange, procedure, onEdit }: P
   const [images, setImages] = useState<{ id: string; url: string }[]>([]);
   const [zoom, setZoom] = useState<string | null>(null);
 
-  // `bulkGet` preserves the order of the requested ids, so `attachments` is already ordered.
   useEffect(() => {
     const ordered: { id: string; url: string }[] = [];
     for (const a of attachments ?? []) {
@@ -58,7 +70,20 @@ export function ProcedureViewDialog({ open, onOpenChange, procedure, onEdit }: P
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{procedure.title}</DialogTitle>
+          <div className="flex flex-wrap items-center gap-2">
+            {scope === "global" ? (
+              <Badge className="border-violet-300 bg-violet-100 text-violet-900 dark:bg-violet-950 dark:text-violet-100">
+                <Globe className="mr-1 h-3 w-3" />
+                {t("procedures.global.badge")}
+              </Badge>
+            ) : scope === "personal" ? (
+              <Badge className="border-sky-300 bg-sky-50 text-sky-900">
+                <User className="mr-1 h-3 w-3" />
+                {t("procedures.global.personalBadge")}
+              </Badge>
+            ) : null}
+            <DialogTitle className="text-left">{procedure.title}</DialogTitle>
+          </div>
           <DialogDescription>{subtitleParts.join(" · ")}</DialogDescription>
         </DialogHeader>
 
@@ -80,7 +105,6 @@ export function ProcedureViewDialog({ open, onOpenChange, procedure, onEdit }: P
           {procedure.content ? (
             <div
               className="procedure-prose text-sm leading-relaxed"
-              // Content is sanitized on write (sanitizeProcedureHtml).
               dangerouslySetInnerHTML={{ __html: procedure.content }}
             />
           ) : (
@@ -103,12 +127,28 @@ export function ProcedureViewDialog({ open, onOpenChange, procedure, onEdit }: P
             </div>
           ) : null}
 
-          <div className="flex items-center justify-end gap-2 border-t pt-3">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <div className="flex flex-wrap items-center justify-end gap-2 border-t pt-3">
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11"
+              onClick={() => onOpenChange(false)}
+            >
               {t("common.close")}
             </Button>
+            {onCopy ? (
+              <Button
+                type="button"
+                className="min-h-11 bg-violet-600 hover:bg-violet-700"
+                disabled={copying}
+                onClick={onCopy}
+              >
+                <Copy className="h-4 w-4" />
+                {copying ? t("procedures.global.copying") : t("procedures.global.copyToAccount")}
+              </Button>
+            ) : null}
             {onEdit ? (
-              <Button type="button" onClick={() => onEdit(procedure)}>
+              <Button type="button" className="min-h-11" onClick={onEdit}>
                 <Pencil className="h-4 w-4" />
                 {t("common.edit")}
               </Button>
