@@ -6,7 +6,8 @@ import type { SidebarNavItem } from "@/components/layout/sidebar-nav";
  */
 export const PROTECTED_NAV_ITEMS = [
   { href: "/dashboard", labelKey: "nav.dashboard", label: "Dashboard", iconName: "home" },
-  { href: "/interventions", labelKey: "nav.interventions", label: "Interventions", iconName: "interventions" },
+  { href: "/interventions", labelKey: "nav.work", label: "Work", iconName: "interventions" },
+  { href: "/notes", labelKey: "nav.notes", label: "Notes", iconName: "notes" },
   { href: "/templates", labelKey: "nav.templates", label: "Templates", iconName: "templates" },
   { href: "/documents", labelKey: "nav.documents", label: "Documents", iconName: "documents" },
   { href: "/crm-tickets", labelKey: "nav.crmTickets", label: "CRM Tickets", iconName: "crmTickets" },

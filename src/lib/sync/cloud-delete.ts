@@ -7,6 +7,7 @@ import {
   purgeActivityLocallyById,
   purgeAttachmentLocallyById,
   purgeDocumentLocallyById,
+  purgeNoteLocallyById,
   purgeProcedureLocallyById,
   purgeTemplateLocallyById
 } from "@/lib/sync/purge-entities-locally";
@@ -468,6 +469,113 @@ export async function performActivityCloudSyncDelete(params: {
     }
   }
   await purgeActivityLocallyById(params.activityId);
+  return { ok: true, mode: "queued" };
+}
+
+// —— Pending deletes: notes ————————————————————————————————————————————————
+
+const PENDING_NOTE_DELETES_KEY = "workflow:pendingNoteDeletes";
+
+function loadPendingNoteDeletes(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(PENDING_NOTE_DELETES_KEY);
+    return raw ? (JSON.parse(raw) as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function savePendingNoteDeletes(ids: string[]) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(PENDING_NOTE_DELETES_KEY, JSON.stringify(ids));
+}
+
+export function enqueuePendingNoteDelete(noteId: string): void {
+  const cur = loadPendingNoteDeletes().filter((x) => x !== noteId);
+  savePendingNoteDeletes([noteId, ...cur]);
+}
+
+export function dequeuePendingNoteDelete(noteId: string): void {
+  savePendingNoteDeletes(loadPendingNoteDeletes().filter((x) => x !== noteId));
+}
+
+export function getPendingNotePullSkipContext(): { noteIds: Set<string> } {
+  return { noteIds: new Set(loadPendingNoteDeletes()) };
+}
+
+export async function deleteNoteRemote(
+  supabase: SupabaseClient,
+  userId: string,
+  noteId: string
+): Promise<void> {
+  const { error } = await supabase
+    .from("wf_notes")
+    .delete()
+    .eq("user_id", userId)
+    .eq("id", noteId);
+  if (error) throw new Error(error.message);
+  syncAuditLog("note_deleted_remote", { noteId });
+}
+
+export async function flushPendingNoteDeletes(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<void> {
+  const ids = loadPendingNoteDeletes();
+  if (!ids.length) return;
+  const remaining: string[] = [];
+  for (const noteId of ids) {
+    try {
+      await deleteNoteRemote(supabase, userId, noteId);
+      dequeuePendingNoteDelete(noteId);
+      await purgeNoteLocallyById(noteId);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      syncAuditLog("pending_note_delete_flush_failed", { noteId, message: msg });
+      remaining.push(noteId);
+    }
+  }
+  savePendingNoteDeletes(remaining);
+}
+
+export async function performNoteCloudSyncDelete(params: {
+  noteId: string;
+  voiceNoteIds: string[];
+  supabase: SupabaseClient | null;
+  userId: string | null;
+}): Promise<EntityCloudDeleteResult> {
+  enqueuePendingNoteDelete(params.noteId);
+  for (const voiceId of params.voiceNoteIds) {
+    if (voiceId) {
+      await performStandaloneAttachmentCloudDelete({
+        attachmentId: voiceId,
+        supabase: params.supabase,
+        userId: params.userId
+      });
+    }
+  }
+  const client = params.supabase;
+  let resolvedUserId = params.userId;
+  if (client && !resolvedUserId) {
+    const { data } = await client.auth.getSession();
+    resolvedUserId = data.session?.user?.id ?? null;
+  }
+  const online = typeof navigator !== "undefined" && navigator.onLine === true;
+  const canRemote = Boolean(online && client && resolvedUserId);
+  if (canRemote) {
+    try {
+      await deleteNoteRemote(client!, resolvedUserId!, params.noteId);
+      await purgeNoteLocallyById(params.noteId);
+      dequeuePendingNoteDelete(params.noteId);
+      return { ok: true, mode: "cloud" };
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      pushSyncFailure({ kind: "delete", title: "Note cloud delete failed", detail: message });
+      return { ok: false, message };
+    }
+  }
+  await purgeNoteLocallyById(params.noteId);
   return { ok: true, mode: "queued" };
 }
 

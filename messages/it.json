@@ -212,6 +212,15 @@
       "shop": "Negozio",
       "other": "Altro"
     },
+    "errors": {
+      "nameTooShort": "Il nome cliente deve avere almeno 2 caratteri.",
+      "clientRequired": "Seleziona un cliente esistente o creane uno nuovo prima di salvare."
+    },
+    "toasts": {
+      "createdTitle": "Cliente creato",
+      "createdBody": "“{name}” è pronto all’uso.",
+      "createFailedTitle": "Impossibile creare il cliente"
+    },
     "sort": {
       "name": "Nome A–Z",
       "lastVisit": "Ultima visita",
@@ -399,7 +408,87 @@
       }
     }
   },
+  "work": {
+    "page": {
+      "title": "Lavorazioni",
+      "subtitle": "Interventi su cliente e attività d’ufficio in un’unica vista."
+    },
+    "badgeClient": "Cliente",
+    "badgeOffice": "Ufficio",
+    "actions": {
+      "newClientIntervention": "Nuovo intervento su cliente",
+      "newOfficeActivity": "Nuova attività ufficio"
+    }
+  },
   "notes": {
+    "page": {
+      "title": "Note",
+      "subtitle": "Note libere con testo ricco, memo vocali e collegamenti opzionali a clienti o lavorazioni."
+    },
+    "searchPlaceholder": "Cerca titolo o contenuto…",
+    "sortLabel": "Ordina",
+    "sort": {
+      "updated": "Ultimo aggiornamento",
+      "created": "Data creazione"
+    },
+    "filters": {
+      "all": "Tutte",
+      "linked": "Collegate a lavorazione",
+      "personal": "Personali"
+    },
+    "badges": {
+      "linked": "Collegata",
+      "personal": "Personale"
+    },
+    "linkClient": "Cliente: {name}",
+    "updatedAt": "Aggiornata {date}",
+    "empty": "Nessuna nota. Creane una per idee, appunti di cantiere o memo vocali.",
+    "actions": {
+      "new": "Nuova nota",
+      "edit": "Modifica",
+      "delete": "Elimina",
+      "cancel": "Annulla",
+      "deleting": "Eliminazione…",
+      "openIntervention": "Apri lavorazione"
+    },
+    "deleteDialog": {
+      "title": "Eliminare la nota?",
+      "body": "Eliminare “{title}”? L’operazione non è reversibile."
+    },
+    "toasts": {
+      "deletedTitle": "Nota eliminata",
+      "deleteFailedTitle": "Eliminazione non riuscita"
+    },
+    "form": {
+      "titleNew": "Nuova nota",
+      "titleEdit": "Modifica nota",
+      "subtitle": "Testo ricco e collegamenti opzionali. I vocali si sincronizzano quando sei online.",
+      "untitledDraft": "Bozza nota",
+      "fields": {
+        "title": "Titolo",
+        "titlePlaceholder": "es. Diagnosi pompa — Bar Centrale",
+        "content": "Contenuto",
+        "contentPlaceholder": "Scrivi la nota…",
+        "linkClient": "Cliente",
+        "linkIntervention": "Lavorazione",
+        "linkActivity": "Attività",
+        "none": "— Nessuno —"
+      },
+      "voiceTitle": "Note vocali",
+      "prepareVoice": "Salva bozza per registrare",
+      "cancel": "Annulla",
+      "save": "Salva",
+      "saving": "Salvataggio…",
+      "toasts": {
+        "titleRequiredTitle": "Titolo obbligatorio",
+        "titleRequiredBody": "Inserisci un titolo per la nota.",
+        "createdTitle": "Nota creata",
+        "updatedTitle": "Nota aggiornata",
+        "savedBody": "Salvata in locale e in coda per la sync.",
+        "saveFailedTitle": "Salvataggio non riuscito",
+        "saveFailedBody": "Impossibile salvare la nota."
+      }
+    },
     "quick": {
       "aria": "Nota rapida",
       "title": "Nota rapida",
@@ -428,8 +517,9 @@
   },
   "clientPicker": {
     "placeholder": "Cerca o scrivi un nome",
-    "hint": "Scegli un cliente salvato oppure scrivi un nuovo nome — verrà creato quando salvi.",
-    "hintMobile": "Digita almeno 2 caratteri per i suggerimenti, oppure inserisci un nuovo cliente.",
+    "hint": "Scegli un cliente dai suggerimenti oppure usa “Crea nuovo cliente” prima di salvare.",
+    "hintMobile": "Digita almeno 2 caratteri per i suggerimenti, poi seleziona o crea il cliente.",
+    "createNew": "Crea nuovo cliente “{name}”",
     "suggestionsAriaLabel": "Suggerimenti clienti",
     "suggestionsTitle": "Suggerimenti ({count})"
   },
@@ -444,6 +534,11 @@
     "suggestions": {
       "title": "Usate spesso",
       "addAria": "Aggiungi {label}"
+    },
+    "timeline": {
+      "title": "Cronologia checklist",
+      "completedAt": "completata alle {time}",
+      "reopenedAt": "riaperta alle {time}"
     },
     "progress": {
       "ariaLabel": "Avanzamento checklist",
@@ -677,6 +772,8 @@
   "nav": {
     "dashboard": "Dashboard",
     "interventions": "Interventi",
+    "work": "Lavorazioni",
+    "notes": "Note",
     "templates": "Modelli",
     "documents": "Documenti",
     "crmTickets": "Ticket CRM",
@@ -1632,6 +1729,7 @@
       "recordAsInterventionHint": "Visita sul campo presso un cliente.",
       "recordAsActivityHint": "Lavoro d’ufficio o da remoto.",
       "onSiteOfficeLabel": "Presso ufficio (non selezionato = remoto)",
+      "officeClientHint": "Le attività ufficio usano automaticamente il cliente interno “Ufficio interno”.",
       "jobType": "Tipo lavoro",
       "jobTypePlaceholder": "es. manutenzione, sopralluogo…",
       "start": "Inizio",

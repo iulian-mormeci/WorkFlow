@@ -6,6 +6,7 @@
  * version bumps here must stay in sync with migration expectations on the server.
  */
 import Dexie, { type Table } from "dexie";
+import type { ChecklistItem } from "@/lib/checklist/checklist-helpers";
 import type { WorkingHoursConfig } from "@/lib/interventions/working-hours";
 
 export type Id = string;
@@ -108,7 +109,7 @@ export type Intervention = {
   photoIds?: Id[];
   documentIds?: Id[];
   voiceNoteIds?: Id[];
-  checklist?: { id: Id; label: string; done: boolean }[];
+  checklist?: ChecklistItem[];
   sparePartsUsed?: { sparePartId: Id; qty: number }[];
   createdAt: string;
   updatedAt: string;
@@ -255,6 +256,20 @@ export type Procedure = {
   updatedAt: string;
 } & SyncMeta;
 
+/** Standalone note (text + optional voice refs + optional entity links). */
+export type Note = {
+  id: Id;
+  title: string;
+  /** Sanitized rich-text HTML. */
+  content?: string;
+  voiceNoteIds?: Id[];
+  linkedClientId?: Id;
+  linkedInterventionId?: Id;
+  linkedActivityId?: Id;
+  createdAt: string;
+  updatedAt: string;
+} & SyncMeta;
+
 /** Shared preset procedures (read-only for most users; admin manages in Supabase). */
 export type GlobalProcedure = {
   id: Id;
@@ -334,7 +349,7 @@ export type InterventionTemplate = {
   defaultDurationMinutes?: number;
   km?: number;
   notes?: string;
-  checklist?: { id: Id; label: string; done: boolean }[];
+  checklist?: ChecklistItem[];
   sparePartsUsed?: { sparePartId: Id; qty: number }[];
   createdAt: string;
   updatedAt: string;
@@ -354,6 +369,7 @@ export class WorkFlowDB extends Dexie {
   activities!: Table<Activity, Id>;
   procedures!: Table<Procedure, Id>;
   globalProcedures!: Table<GlobalProcedure, Id>;
+  notes!: Table<Note, Id>;
   userSettings!: Table<UserSettings, Id>;
 
   constructor() {
@@ -684,6 +700,27 @@ export class WorkFlowDB extends Dexie {
       activities: "&id, status, priority, dueAt, category, updatedAt, syncedAt",
       procedures: "&id, category, brand, model, updatedAt, syncedAt",
       globalProcedures: "&id, category, brand, model, updatedAt, syncedAt",
+      userSettings: "&id, updatedAt, syncedAt"
+    });
+
+    this.version(21).stores({
+      clients: "&id, name, clientType, updatedAt, syncedAt",
+      interventions:
+        "&id, clientId, startAt, updatedAt, status, createdBy, timerStartedAt, workCategory, dueAt, timerRunState, syncedAt",
+      spareParts: "&id, sku, name, updatedAt, syncedAt",
+      stockMovements: "&id, sparePartId, createdAt, interventionId, syncedAt",
+      tickets:
+        "&id, status, priority, reminderAt, dueAt, updatedAt, clientId, interventionId, syncedAt",
+      attachments: "&id, kind, createdAt, mime, syncedAt",
+      documents: "&id, interventionId, createdAt, title, syncedAt",
+      supportEmailOutbox:
+        "&id, status, to, createdAt, updatedAt, documentId, interventionId, syncedAt",
+      templates: "&id, name, updatedAt, workCategory, syncedAt",
+      activities: "&id, status, priority, dueAt, category, updatedAt, syncedAt",
+      procedures: "&id, category, brand, model, updatedAt, syncedAt",
+      globalProcedures: "&id, category, brand, model, updatedAt, syncedAt",
+      notes:
+        "&id, updatedAt, linkedClientId, linkedInterventionId, linkedActivityId, syncedAt",
       userSettings: "&id, updatedAt, syncedAt"
     });
   }

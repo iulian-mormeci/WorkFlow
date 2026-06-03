@@ -30,6 +30,7 @@ import {
   type ChecklistRow
 } from "@/components/checklist/dynamic-checklist-editor";
 import { ChecklistProgress } from "@/components/checklist/checklist-progress";
+import { ChecklistTimeline } from "@/components/checklist/checklist-timeline";
 import { InterventionFormDialog } from "@/components/interventions/intervention-form-dialog";
 import { getFrequentChecklistLabels } from "@/lib/checklist/checklist-suggestions";
 import { OfflineBanner } from "@/components/offline/offline-banner";
@@ -891,6 +892,7 @@ function InterventionDetailChecklist({
       </CardHeader>
       <div className="space-y-4 px-5 pb-5 md:px-6 md:pb-6">
         <ChecklistProgress done={doneCount} total={rows.length} />
+        <ChecklistTimeline items={rows} />
         <DynamicChecklistEditor
           value={rows}
           onChange={(next) => void persist(next)}

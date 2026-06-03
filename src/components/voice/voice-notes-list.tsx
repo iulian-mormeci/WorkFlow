@@ -8,18 +8,28 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { performVoiceAttachmentCloudSyncDelete } from "@/lib/sync/cloud-delete";
+import {
+  performStandaloneAttachmentCloudDelete,
+  performVoiceAttachmentCloudSyncDelete
+} from "@/lib/sync/cloud-delete";
 import { scheduleWorkflowSync } from "@/lib/sync/sync-engine";
 import { useTranslations } from "next-intl";
 
-export function VoiceNotesList({ interventionId }: { interventionId: string }) {
+type Props = {
+  interventionId?: string;
+  noteId?: string;
+  voiceNoteIds?: string[];
+};
+
+export function VoiceNotesList({ interventionId, noteId, voiceNoteIds: voiceIdsProp }: Props) {
   const t = useTranslations();
   const { toast } = useToast();
   const liveEpoch = useWorkflowLiveEpoch();
-  const intervention = useLiveQuery(async () => db.interventions.get(interventionId), [
-    interventionId,
-    liveEpoch
-  ]);
+  const intervention = useLiveQuery(
+    async () => (interventionId ? db.interventions.get(interventionId) : undefined),
+    [interventionId, liveEpoch]
+  );
+  const note = useLiveQuery(async () => (noteId ? db.notes.get(noteId) : undefined), [noteId, liveEpoch]);
   const [urls, setUrls] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
@@ -29,14 +39,20 @@ export function VoiceNotesList({ interventionId }: { interventionId: string }) {
   }, [urls]);
 
   const items = useLiveQuery(async () => {
-    const ids = intervention?.voiceNoteIds ?? [];
+    const ids =
+      voiceIdsProp ?? intervention?.voiceNoteIds ?? note?.voiceNoteIds ?? [];
     if (!ids.length) return [];
     const atts = await db.attachments.bulkGet(ids);
     return atts
       .filter(Boolean)
       .map((a) => a!)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }, [intervention?.voiceNoteIds?.join(",") ?? "", liveEpoch]);
+  }, [
+    voiceIdsProp?.join(",") ?? "",
+    intervention?.voiceNoteIds?.join(",") ?? "",
+    note?.voiceNoteIds?.join(",") ?? "",
+    liveEpoch
+  ]);
 
   useEffect(() => {
     (async () => {
@@ -86,11 +102,32 @@ export function VoiceNotesList({ interventionId }: { interventionId: string }) {
                     const {
                       data: { user }
                     } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
-                    const res = await performVoiceAttachmentCloudSyncDelete({
-                      snap: { attachmentId: a.id, interventionId },
-                      supabase: supabase ?? null,
-                      userId: user?.id ?? null
-                    });
+                    let res: { ok: boolean; message?: string };
+                    if (interventionId) {
+                      res = await performVoiceAttachmentCloudSyncDelete({
+                        snap: { attachmentId: a.id, interventionId },
+                        supabase: supabase ?? null,
+                        userId: user?.id ?? null
+                      });
+                    } else if (noteId) {
+                      res = await performStandaloneAttachmentCloudDelete({
+                        attachmentId: a.id,
+                        supabase: supabase ?? null,
+                        userId: user?.id ?? null
+                      });
+                      if (res.ok) {
+                        const n = await db.notes.get(noteId);
+                        if (n) {
+                          const next = (n.voiceNoteIds ?? []).filter((x) => x !== a.id);
+                          await db.notes.update(noteId, {
+                            voiceNoteIds: next.length ? next : undefined,
+                            updatedAt: new Date().toISOString()
+                          });
+                        }
+                      }
+                    } else {
+                      res = { ok: false, message: "missing parent" };
+                    }
                     if (!res.ok) {
                       toast({
                         title: t("voice.list.toasts.deleteFailedTitle"),

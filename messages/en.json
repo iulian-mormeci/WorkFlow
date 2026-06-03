@@ -212,6 +212,15 @@
       "shop": "Shop",
       "other": "Other"
     },
+    "errors": {
+      "nameTooShort": "Client name must be at least 2 characters.",
+      "clientRequired": "Select an existing client or create a new one before saving."
+    },
+    "toasts": {
+      "createdTitle": "Client created",
+      "createdBody": "“{name}” is ready to use.",
+      "createFailedTitle": "Could not create client"
+    },
     "sort": {
       "name": "Name A–Z",
       "lastVisit": "Last visit",
@@ -399,7 +408,87 @@
       }
     }
   },
+  "work": {
+    "page": {
+      "title": "Work",
+      "subtitle": "Client interventions and office activities in one place."
+    },
+    "badgeClient": "Client",
+    "badgeOffice": "Office",
+    "actions": {
+      "newClientIntervention": "New client intervention",
+      "newOfficeActivity": "New office activity"
+    }
+  },
   "notes": {
+    "page": {
+      "title": "Notes",
+      "subtitle": "Free-form notes with rich text, voice memos, and optional links to clients or work items."
+    },
+    "searchPlaceholder": "Search title or content…",
+    "sortLabel": "Sort",
+    "sort": {
+      "updated": "Last updated",
+      "created": "Date created"
+    },
+    "filters": {
+      "all": "All",
+      "linked": "Linked to work",
+      "personal": "Personal"
+    },
+    "badges": {
+      "linked": "Linked",
+      "personal": "Personal"
+    },
+    "linkClient": "Client: {name}",
+    "updatedAt": "Updated {date}",
+    "empty": "No notes yet. Create one to capture ideas, site details, or voice memos.",
+    "actions": {
+      "new": "New note",
+      "edit": "Edit",
+      "delete": "Delete",
+      "cancel": "Cancel",
+      "deleting": "Deleting…",
+      "openIntervention": "Open work item"
+    },
+    "deleteDialog": {
+      "title": "Delete note?",
+      "body": "Delete “{title}”? This cannot be undone."
+    },
+    "toasts": {
+      "deletedTitle": "Note deleted",
+      "deleteFailedTitle": "Delete failed"
+    },
+    "form": {
+      "titleNew": "New note",
+      "titleEdit": "Edit note",
+      "subtitle": "Rich text and optional links. Voice notes sync when you are online.",
+      "untitledDraft": "Draft note",
+      "fields": {
+        "title": "Title",
+        "titlePlaceholder": "e.g. Pump diagnosis — Bar Centrale",
+        "content": "Content",
+        "contentPlaceholder": "Write your note…",
+        "linkClient": "Client",
+        "linkIntervention": "Work item",
+        "linkActivity": "Activity",
+        "none": "— None —"
+      },
+      "voiceTitle": "Voice notes",
+      "prepareVoice": "Save draft to record voice",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving…",
+      "toasts": {
+        "titleRequiredTitle": "Title required",
+        "titleRequiredBody": "Enter a title for this note.",
+        "createdTitle": "Note created",
+        "updatedTitle": "Note updated",
+        "savedBody": "Saved locally and queued for sync.",
+        "saveFailedTitle": "Save failed",
+        "saveFailedBody": "Could not save the note."
+      }
+    },
     "quick": {
       "aria": "Quick note",
       "title": "Quick note",
@@ -428,8 +517,9 @@
   },
   "clientPicker": {
     "placeholder": "Search or type a name",
-    "hint": "Pick a saved client or type a new name — it will be created when you save.",
-    "hintMobile": "Type at least 2 characters to see suggestions, or enter a new client name.",
+    "hint": "Pick a saved client from suggestions, or use “Create new client” before saving.",
+    "hintMobile": "Type at least 2 characters for suggestions, then pick or create a client.",
+    "createNew": "Create new client “{name}”",
     "suggestionsAriaLabel": "Client suggestions",
     "suggestionsTitle": "Suggestions ({count})"
   },
@@ -444,6 +534,11 @@
     "suggestions": {
       "title": "Frequently used",
       "addAria": "Add {label}"
+    },
+    "timeline": {
+      "title": "Checklist history",
+      "completedAt": "completed at {time}",
+      "reopenedAt": "reopened at {time}"
     },
     "progress": {
       "ariaLabel": "Checklist progress",
@@ -677,6 +772,8 @@
   "nav": {
     "dashboard": "Dashboard",
     "interventions": "Interventions",
+    "work": "Work",
+    "notes": "Notes",
     "templates": "Templates",
     "documents": "Documents",
     "crmTickets": "CRM tickets",
@@ -1632,6 +1729,7 @@
       "recordAsInterventionHint": "Field visit at a client.",
       "recordAsActivityHint": "Office or remote work.",
       "onSiteOfficeLabel": "On-site office (unchecked = remote)",
+      "officeClientHint": "Office activities use an internal “Ufficio interno” client record automatically.",
       "jobType": "Job type",
       "jobTypePlaceholder": "e.g. maintenance, site visit…",
       "start": "Start",

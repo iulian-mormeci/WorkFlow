@@ -11,6 +11,7 @@ const TABLES = [
   "wf_tickets",
   "wf_activities",
   "wf_procedures",
+  "wf_notes",
   "wf_global_procedures",
   "wf_user_settings",
   "wf_documents",

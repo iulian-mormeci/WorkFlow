@@ -24,6 +24,8 @@ import {
   type ProcedureSuggestion
 } from "@/lib/suggestions/intelligent-suggestions";
 import { ClientPickerField } from "@/components/clients/client-picker-field";
+import { createClientByName } from "@/lib/clients/create-client";
+import { getOrCreateOfficeClientId } from "@/lib/clients/office-client";
 import { InterventionLocationFields } from "@/components/interventions/intervention-location-fields";
 import { RouteStopsEditor, buildRoundTripStops } from "@/components/interventions/route-stops-editor";
 import type { RouteStopDraft } from "@/lib/routes/route-stops";
@@ -67,6 +69,8 @@ type Props = {
   interventionId?: string;
   onSaved?: (id: string) => void;
   initial?: Partial<{
+    /** Opens form preset for client field work vs office activity. */
+    formPreset?: "client" | "office";
     clientName: string;
     defaultClientId?: string | null;
     defaultStartAt?: string;
@@ -121,19 +125,12 @@ async function resolveClientIdForIntervention(
     }
   }
 
-  const existing = await db.clients.where("name").equalsIgnoreCase(name).first();
+  const existing = await db.clients
+    .filter((c) => c.name.trim().toLowerCase() === name.toLowerCase())
+    .first();
   if (existing) return existing.id;
 
-  const id = crypto.randomUUID();
-  await db.clients.add({
-    id,
-    name,
-    clientType: "other",
-    createdAt: nowIso,
-    updatedAt: nowIso
-  });
-  scheduleWorkflowSync();
-  return id;
+  throw new Error("workflow.i18n:clientRequired");
 }
 
 async function computeStockByPartId(): Promise<Map<string, number>> {
@@ -220,10 +217,12 @@ export function InterventionFormDialog(props: Props) {
     [startAtLocal, endAtLocal, durationOverride]
   );
 
+  const isOfficePreset = workCategory === "activity" && isOfficeActivity;
+
   const canSave = useMemo(() => {
-    // Start/end are optional: users can create a to-do item with only dueAt + reminders.
-    return clientName.trim().length > 1;
-  }, [clientName]);
+    if (isOfficePreset) return true;
+    return Boolean(selectedClientId) && clientName.trim().length > 1;
+  }, [clientName, selectedClientId, isOfficePreset]);
 
   const roundTripAirKm = useMemo(() => totalKmFromRouteStops(draftStops), [draftStops]);
 
@@ -232,10 +231,15 @@ export function InterventionFormDialog(props: Props) {
     setError(null);
 
     if (mode === "new") {
+      const preset = initial?.formPreset;
       setClientName(initial?.clientName ?? "");
       setType(initial?.type ?? "maintenance");
-      setWorkCategory(initial?.workCategory ?? "intervention");
-      setIsOfficeActivity(initial?.isOfficeActivity ?? false);
+      setWorkCategory(
+        initial?.workCategory ?? (preset === "office" ? "activity" : "intervention")
+      );
+      setIsOfficeActivity(
+        initial?.isOfficeActivity ?? (preset === "office" ? true : false)
+      );
       setStartAtLocal(initial?.defaultStartAt ?? "");
       setEndAtLocal("");
       setKm(initial?.km != null ? String(initial.km) : "");
@@ -312,7 +316,8 @@ export function InterventionFormDialog(props: Props) {
     initial?.checklist,
     initial?.sparePartsUsed,
     initial?.defaultDurationMinutes,
-    initial?.defaultStartAt
+    initial?.defaultStartAt,
+    initial?.formPreset
   ]);
 
   useEffect(() => {
@@ -395,7 +400,12 @@ export function InterventionFormDialog(props: Props) {
     setSaving(true);
     try {
       const nowIso = new Date().toISOString();
-      const clientId = await resolveClientIdForIntervention(selectedClientId, clientName);
+      let clientId: string;
+      if (isOfficePreset && !selectedClientId) {
+        clientId = await getOrCreateOfficeClientId();
+      } else {
+        clientId = await resolveClientIdForIntervention(selectedClientId, clientName);
+      }
 
       const startIso = startAtLocal ? new Date(startAtLocal).toISOString() : undefined;
       const endIso = endAtLocal ? new Date(endAtLocal).toISOString() : undefined;
@@ -626,7 +636,12 @@ export function InterventionFormDialog(props: Props) {
         /* ignore */
       }
     } catch (e: any) {
-      const msg = e?.message === "workflow.i18n:clientNameTooShort" ? t("clients.errors.nameTooShort") : (e?.message ?? t("interventions.form.errors.saveFailed"));
+      const msg =
+        e?.message === "workflow.i18n:clientNameTooShort"
+          ? t("clients.errors.nameTooShort")
+          : e?.message === "workflow.i18n:clientRequired"
+            ? t("clients.errors.clientRequired")
+            : (e?.message ?? t("interventions.form.errors.saveFailed"));
       setError(msg);
       toast({
         title: t("interventions.form.toasts.saveFailedTitle"),
@@ -666,22 +681,46 @@ export function InterventionFormDialog(props: Props) {
 
         <div className="grid min-w-0 gap-4 md:gap-5">
           {/* Client */}
-          <ClientPickerField
-            clients={clients}
-            clientName={clientName}
-            onClientNameChange={setClientName}
-            selectedClientId={selectedClientId}
-            onSelectClient={(id, name) => {
-              if (id) {
-                setSelectedClientId(id);
-                setClientName(name);
-              } else {
-                setSelectedClientId(null);
-              }
-            }}
-            disabled={saving}
-            active={open}
-          />
+          {!isOfficePreset ? (
+            <ClientPickerField
+              clients={clients}
+              clientName={clientName}
+              onClientNameChange={setClientName}
+              selectedClientId={selectedClientId}
+              onSelectClient={(id, name) => {
+                if (id) {
+                  setSelectedClientId(id);
+                  setClientName(name);
+                } else {
+                  setSelectedClientId(null);
+                }
+              }}
+              onCreateNew={async (name) => {
+                try {
+                  const id = await createClientByName(name);
+                  const cl = await db.clients.get(id);
+                  setSelectedClientId(id);
+                  setClientName(cl?.name ?? name);
+                  toast({
+                    title: t("clients.toasts.createdTitle"),
+                    description: t("clients.toasts.createdBody", { name: cl?.name ?? name })
+                  });
+                } catch (e) {
+                  toast({
+                    title: t("clients.toasts.createFailedTitle"),
+                    description: e instanceof Error ? e.message : t("common.unknownError"),
+                    variant: "destructive"
+                  });
+                }
+              }}
+              disabled={saving}
+              active={open}
+            />
+          ) : (
+            <p className="rounded-xl border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+              {t("interventions.form.officeClientHint")}
+            </p>
+          )}
 
           {/* Intervention vs activity */}
           <div className="grid min-w-0 gap-2">

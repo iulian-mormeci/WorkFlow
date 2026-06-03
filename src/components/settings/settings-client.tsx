@@ -444,6 +444,7 @@ export function SettingsClient() {
                     tickets: await db.tickets.toArray(),
                     activities: await db.activities.toArray(),
                     procedures: await db.procedures.toArray(),
+                    notes: await db.notes.toArray(),
                     userSettings: await db.userSettings.toArray(),
                     documents: await db.documents.toArray(),
                     supportEmailOutbox: await db.supportEmailOutbox.toArray(),
@@ -520,6 +521,7 @@ export function SettingsClient() {
                           db.tickets.clear(),
                           db.activities.clear(),
                           db.procedures.clear(),
+                          db.notes.clear(),
                           db.userSettings.clear(),
                           db.documents.clear(),
                           db.supportEmailOutbox.clear(),
@@ -534,6 +536,7 @@ export function SettingsClient() {
                         if (parsed.tickets?.length) await db.tickets.bulkAdd(parsed.tickets);
                         if (parsed.activities?.length) await db.activities.bulkAdd(parsed.activities);
                         if (parsed.procedures?.length) await db.procedures.bulkAdd(parsed.procedures);
+                        if (parsed.notes?.length) await db.notes.bulkAdd(parsed.notes);
                         if (parsed.userSettings?.length) await db.userSettings.bulkAdd(parsed.userSettings);
                         if (parsed.documents?.length) await db.documents.bulkAdd(parsed.documents);
                         if (parsed.supportEmailOutbox?.length) await db.supportEmailOutbox.bulkAdd(parsed.supportEmailOutbox);
@@ -634,6 +637,7 @@ export function SettingsClient() {
                     tickets: await db.tickets.toArray(),
                     activities: await db.activities.toArray(),
                     procedures: await db.procedures.toArray(),
+                    notes: await db.notes.toArray(),
                     userSettings: await db.userSettings.toArray(),
                     documents: await db.documents.toArray(),
                     supportEmailOutbox: await db.supportEmailOutbox.toArray(),

@@ -18,6 +18,10 @@ export async function purgeProcedureLocallyById(id: string): Promise<void> {
   await db.procedures.delete(id);
 }
 
+export async function purgeNoteLocallyById(id: string): Promise<void> {
+  await db.notes.delete(id);
+}
+
 export async function purgeGlobalProcedureLocallyById(id: string): Promise<void> {
   await db.globalProcedures.delete(id);
 }

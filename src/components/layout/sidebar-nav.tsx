@@ -11,6 +11,7 @@ import {
   LineChart,
   ListTodo,
   MessagesSquare,
+  NotebookPen,
   Package,
   Settings,
   Users
@@ -26,6 +27,7 @@ export type SidebarIconName =
   | "documents"
   | "crmTickets"
   | "activities"
+  | "notes"
   | "procedures"
   | "clients"
   | "spareParts"
@@ -41,6 +43,7 @@ export const SIDEBAR_NAV_ICONS = {
   documents: FileScan,
   crmTickets: MessagesSquare,
   activities: ListTodo,
+  notes: NotebookPen,
   procedures: BookOpen,
   clients: Users,
   spareParts: Package,

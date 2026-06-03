@@ -42,6 +42,9 @@ export {
   getPendingActivityPullSkipContext,
   deleteProcedureRemote,
   performProcedureCloudSyncDelete,
+  performNoteCloudSyncDelete,
+  flushPendingNoteDeletes,
+  getPendingNotePullSkipContext,
   performStandaloneAttachmentCloudDelete,
   flushPendingProcedureDeletes,
   flushPendingStandaloneAttachmentDeletes,
@@ -60,6 +63,7 @@ export {
   purgeOutboxLocallyById,
   purgeActivityLocallyById,
   purgeProcedureLocallyById,
+  purgeNoteLocallyById,
   purgeUserSettingsLocallyById
 } from "./purge-entities-locally";
 export { pushSyncFailure, useSyncFailureQueue } from "./sync-failure-queue";

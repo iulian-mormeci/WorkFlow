@@ -59,6 +59,11 @@ export function InterventionsClient() {
   const [scope, setScope] = useState<ListScope>("today");
   const [status, setStatus] = useState<StatusFilter>("all");
   const [open, setOpen] = useState(false);
+  const [formInitial, setFormInitial] = useState<{
+    formPreset?: "client" | "office";
+    workCategory?: "intervention" | "activity";
+    isOfficeActivity?: boolean;
+  }>();
   const searchParams = useSearchParams();
   const [deleteTarget, setDeleteTarget] = useState<{
     id: string;
@@ -130,13 +135,45 @@ export function InterventionsClient() {
   }, [q, scope, status, clients, liveEpoch, clock]);
 
   useEffect(() => {
-    // Mobile FAB uses /interventions?new=1
-    if (searchParams?.get("new") === "1") setOpen(true);
+    if (searchParams?.get("new") === "1") {
+      setFormInitial({ formPreset: "client", workCategory: "intervention" });
+      setOpen(true);
+    }
   }, [searchParams]);
+
+  function openClientIntervention() {
+    setFormInitial({ formPreset: "client", workCategory: "intervention", isOfficeActivity: false });
+    setOpen(true);
+  }
+
+  function openOfficeActivity() {
+    setFormInitial({ formPreset: "office", workCategory: "activity", isOfficeActivity: true });
+    setOpen(true);
+  }
 
   return (
     <div className="relative">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="grid gap-2 sm:grid-cols-2">
+        <Button
+          size="lg"
+          className="min-h-12 touch-manipulation justify-start gap-2 px-4"
+          onClick={openClientIntervention}
+        >
+          <Plus className="h-5 w-5 shrink-0" />
+          {t("work.actions.newClientIntervention")}
+        </Button>
+        <Button
+          size="lg"
+          variant="secondary"
+          className="min-h-12 touch-manipulation justify-start gap-2 px-4"
+          onClick={openOfficeActivity}
+        >
+          <Plus className="h-5 w-5 shrink-0" />
+          {t("work.actions.newOfficeActivity")}
+        </Button>
+      </div>
+
+      <div className="mt-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -225,12 +262,12 @@ export function InterventionsClient() {
                       className={
                         (it.workCategory ?? "intervention") === "activity"
                           ? "border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-900/50 dark:bg-violet-950/40 dark:text-violet-200"
-                          : "border-muted-foreground/25 bg-muted/50 text-foreground"
+                          : "border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/40 dark:text-sky-100"
                       }
                     >
                       {(it.workCategory ?? "intervention") === "activity"
-                        ? t("common.activity")
-                        : t("common.intervention")}
+                        ? t("work.badgeOffice")
+                        : t("work.badgeClient")}
                     </Badge>
                     {overdue ? (
                       <span className="rounded-full bg-destructive/15 px-2 py-0.5 font-medium text-destructive">
@@ -288,18 +325,15 @@ export function InterventionsClient() {
         </div>
       </div>
 
-      <div className="pointer-events-none fixed bottom-6 right-6 z-40 hidden md:block">
-        <Button
-          className="pointer-events-auto shadow-lg"
-          size="lg"
-          onClick={() => setOpen(true)}
-        >
-          <Plus className="h-5 w-5" />
-          {t("interventions.list.newCta")}
-        </Button>
-      </div>
-
-      <InterventionFormDialog open={open} onOpenChange={setOpen} mode="new" />
+      <InterventionFormDialog
+        open={open}
+        onOpenChange={(v) => {
+          setOpen(v);
+          if (!v) setFormInitial(undefined);
+        }}
+        mode="new"
+        initial={formInitial}
+      />
 
       <Dialog
         open={Boolean(deleteTarget)}

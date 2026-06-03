@@ -18,6 +18,8 @@ type Props = {
   onClientNameChange: (name: string) => void;
   selectedClientId: string | null;
   onSelectClient: (id: string | null, name: string) => void;
+  /** Explicit create-new action (does not run on blur/save). */
+  onCreateNew?: (name: string) => void | Promise<void>;
   disabled?: boolean;
   /** Parent surface open state — closes suggestions when false (e.g. dialog closed). */
   active?: boolean;
@@ -45,6 +47,7 @@ export function ClientPickerField(props: Props) {
     onClientNameChange,
     selectedClientId,
     onSelectClient,
+    onCreateNew,
     disabled,
     active = true
   } = props;
@@ -85,7 +88,18 @@ export function ClientPickerField(props: Props) {
       .slice(0, 40);
   }, [clients, query, isMobile, queryMeetsMin]);
 
-  const showDropdown = open && suggestions.length > 0 && (isMobile ? queryMeetsMin : true);
+  const hasExactMatch = useMemo(() => {
+    const q = query.toLowerCase();
+    return (clients ?? []).some((c) => c.name.trim().toLowerCase() === q);
+  }, [clients, query]);
+
+  const showCreateRow =
+    Boolean(onCreateNew) && queryMeetsMin && !hasExactMatch && !selectedClientId;
+
+  const showDropdown =
+    open &&
+    (isMobile ? queryMeetsMin : true) &&
+    (suggestions.length > 0 || showCreateRow);
 
   useEffect(() => {
     if (!active) setOpen(false);
@@ -156,12 +170,14 @@ export function ClientPickerField(props: Props) {
             role="listbox"
             aria-label={t("clientPicker.suggestionsAriaLabel")}
           >
-            <li
-              aria-hidden
-              className="px-3 pb-1.5 pt-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
-            >
-              {t("clientPicker.suggestionsTitle", { count: suggestions.length })}
-            </li>
+            {suggestions.length > 0 ? (
+              <li
+                aria-hidden
+                className="px-3 pb-1.5 pt-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
+              >
+                {t("clientPicker.suggestionsTitle", { count: suggestions.length })}
+              </li>
+            ) : null}
             {suggestions.map((c) => {
               const selected = selectedClientId === c.id;
               return (
@@ -209,6 +225,22 @@ export function ClientPickerField(props: Props) {
                 </li>
               );
             })}
+            {showCreateRow ? (
+              <li className="border-t pt-1">
+                <button
+                  type="button"
+                  className="flex min-h-12 w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-primary transition hover:bg-primary/10 active:scale-[0.99]"
+                  onPointerDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    clearBlurTimer();
+                    void onCreateNew?.(query);
+                    setOpen(false);
+                  }}
+                >
+                  {t("clientPicker.createNew", { name: query })}
+                </button>
+              </li>
+            ) : null}
           </ul>
         ) : null}
       </div>

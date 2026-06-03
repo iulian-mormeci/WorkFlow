@@ -15,6 +15,7 @@ import {
   purgeDocumentLocallyById,
   purgeOutboxLocallyById,
   purgeProcedureLocallyById,
+  purgeNoteLocallyById,
   purgeGlobalProcedureLocallyById,
   purgeUserSettingsLocallyById,
   purgeSparePartLocallyById,
@@ -29,11 +30,13 @@ import {
   flushPendingDocumentDeletes,
   flushPendingInterventionDeletes,
   flushPendingProcedureDeletes,
+  flushPendingNoteDeletes,
   flushPendingStandaloneAttachmentDeletes,
   flushPendingTemplateDeletes,
   getPendingActivityPullSkipContext,
   getPendingClientPullSkipContext,
   getPendingInterventionPullSkipContext,
+  getPendingNotePullSkipContext,
   getPendingProcedurePullSkipContext,
   getPendingSyncPullSkipContext
 } from "@/lib/sync/cloud-delete";
@@ -56,6 +59,7 @@ import {
   type Intervention,
   type InterventionTemplate,
   type GlobalProcedure,
+  type Note,
   type Procedure,
   type SparePart,
   type StockMovement,
@@ -635,6 +639,37 @@ function procedureFromRow(r: Record<string, unknown>): Procedure {
   };
 }
 
+function noteToRow(n: Note, userId: string) {
+  return {
+    id: n.id,
+    user_id: userId,
+    title: n.title,
+    content: n.content ?? null,
+    voice_note_ids: n.voiceNoteIds?.length ? n.voiceNoteIds : null,
+    linked_client_id: n.linkedClientId ?? null,
+    linked_intervention_id: n.linkedInterventionId ?? null,
+    linked_activity_id: n.linkedActivityId ?? null,
+    created_at: n.createdAt,
+    updated_at: n.updatedAt
+  };
+}
+
+function noteFromRow(r: Record<string, unknown>): Note {
+  return {
+    id: String(r.id),
+    title: String(r.title),
+    content: (r.content as string) ?? undefined,
+    voiceNoteIds: stringArrayFromJson(r.voice_note_ids),
+    linkedClientId: (r.linked_client_id as string) ?? undefined,
+    linkedInterventionId: (r.linked_intervention_id as string) ?? undefined,
+    linkedActivityId: (r.linked_activity_id as string) ?? undefined,
+    createdAt: iso(r.created_at),
+    updatedAt: iso(r.updated_at),
+    syncedAt: new Date().toISOString(),
+    remoteId: String(r.id)
+  };
+}
+
 function globalProcedureToRow(p: GlobalProcedure) {
   return {
     id: p.id,
@@ -902,6 +937,7 @@ async function markSynced(
     | "templates"
     | "activities"
     | "procedures"
+    | "notes"
     | "globalProcedures"
     | "userSettings",
   id: string
@@ -940,6 +976,9 @@ async function markSynced(
       break;
     case "procedures":
       await db.procedures.update(id, { syncedAt: now });
+      break;
+    case "notes":
+      await db.notes.update(id, { syncedAt: now });
       break;
     case "globalProcedures":
       await db.globalProcedures.update(id, { syncedAt: now });
@@ -1165,6 +1204,20 @@ async function pushProcedures(supabase: SupabaseClient, userId: string) {
     );
     for (const p of batch) {
       await markSynced("procedures", p.id);
+      n += 1;
+    }
+  }
+  return n;
+}
+
+async function pushNotes(supabase: SupabaseClient, userId: string) {
+  const rows = await db.notes.toArray();
+  const dirty = rows.filter((r) => isDirty(r.updatedAt, r.syncedAt));
+  let n = 0;
+  for (const batch of chunk(dirty, 60)) {
+    await upsertBatch(supabase, "wf_notes", batch.map((note) => noteToRow(note, userId)));
+    for (const note of batch) {
+      await markSynced("notes", note.id);
       n += 1;
     }
   }
@@ -1567,6 +1620,32 @@ async function pullProcedures(supabase: SupabaseClient, userId: string) {
   return n;
 }
 
+async function pullNotes(supabase: SupabaseClient, userId: string) {
+  const rows = await pullPaged(supabase, "wf_notes", userId, "updated_at");
+  const pend = getPendingNotePullSkipContext();
+  const serverIds = new Set<string>();
+  let n = 0;
+  for (const r of rows) {
+    const id = String(r.id);
+    serverIds.add(id);
+    if (pend.noteIds.has(id)) continue;
+    const remoteU = iso(r.updated_at);
+    const local = await db.notes.get(id);
+    if (local && shouldSkipRemoteMerge(remoteU, local)) continue;
+    await db.notes.put(noteFromRow(r));
+    n += 1;
+  }
+  const locals = await db.notes.toArray();
+  for (const local of locals) {
+    if (serverIds.has(local.id)) continue;
+    if (pend.noteIds.has(local.id)) continue;
+    if (!local.syncedAt) continue;
+    console.info("[sync] pull: purging note absent on server (remote delete)", local.id);
+    await purgeNoteLocallyById(local.id);
+  }
+  return n;
+}
+
 async function pullGlobalProcedures(supabase: SupabaseClient) {
   const rows = await pullGlobalProceduresPaged(supabase);
   const serverIds = new Set<string>();
@@ -1776,6 +1855,9 @@ export function registerWorkflowDexieSyncHooks() {
   db.procedures.hook("creating", hook);
   db.procedures.hook("updating", hook);
   db.procedures.hook("deleting", hook);
+  db.notes.hook("creating", hook);
+  db.notes.hook("updating", hook);
+  db.notes.hook("deleting", hook);
   db.userSettings.hook("creating", hook);
   db.userSettings.hook("updating", hook);
   db.userSettings.hook("deleting", hook);
@@ -1842,6 +1924,7 @@ export async function runFullSync(
       result.pushed.tickets = await pushTickets(supabase, user.id);
       result.pushed.activities = await pushActivities(supabase, user.id);
       result.pushed.procedures = await pushProcedures(supabase, user.id);
+      result.pushed.notes = await pushNotes(supabase, user.id);
       result.pushed.globalProcedures = await pushGlobalProcedures(supabase, user);
       result.pushed.documents = await pushDocuments(supabase, user.id);
       result.pushed.supportEmailOutbox = await pushOutbox(supabase, user.id);
@@ -1861,6 +1944,7 @@ export async function runFullSync(
       result.pulled.tickets = await pullTickets(supabase, user.id);
       result.pulled.activities = await pullActivities(supabase, user.id);
       result.pulled.procedures = await pullProcedures(supabase, user.id);
+      result.pulled.notes = await pullNotes(supabase, user.id);
       result.pulled.globalProcedures = await pullGlobalProcedures(supabase);
       result.pulled.globalProcedureAttachments = await pullGlobalProcedureAttachments(
         supabase,
@@ -1877,6 +1961,7 @@ export async function runFullSync(
       await flushPendingActivityDeletes(supabase, user.id);
       await flushPendingStandaloneAttachmentDeletes(supabase, user.id);
       await flushPendingProcedureDeletes(supabase, user.id);
+      await flushPendingNoteDeletes(supabase, user.id);
 
       result.ok = result.errors.length === 0;
 
@@ -1975,6 +2060,9 @@ export async function computePendingDirtyCount(): Promise<number> {
     if (isDirty(r.updatedAt, r.syncedAt)) n += 1;
   }
   for (const r of await db.procedures.toArray()) {
+    if (isDirty(r.updatedAt, r.syncedAt)) n += 1;
+  }
+  for (const r of await db.notes.toArray()) {
     if (isDirty(r.updatedAt, r.syncedAt)) n += 1;
   }
   for (const r of await db.globalProcedures.toArray()) {
@@ -2096,6 +2184,9 @@ export async function applyRealtimePostgresChange(
         case "wf_procedures":
           await purgeProcedureLocallyById(id);
           break;
+        case "wf_notes":
+          await purgeNoteLocallyById(id);
+          break;
         case "wf_user_settings":
           await purgeUserSettingsLocallyById(id);
           clearWorkingHoursMemoryCache();
@@ -2201,6 +2292,14 @@ export async function applyRealtimePostgresChange(
         const local = await db.procedures.get(id);
         if (local && shouldSkipRemoteMerge(remoteU, local)) return;
         await db.procedures.put(procedureFromRow(row));
+        break;
+      }
+      case "wf_notes": {
+        const id = String(row.id);
+        if (getPendingNotePullSkipContext().noteIds.has(id)) return;
+        const local = await db.notes.get(id);
+        if (local && shouldSkipRemoteMerge(remoteU, local)) return;
+        await db.notes.put(noteFromRow(row));
         break;
       }
       case "wf_user_settings": {

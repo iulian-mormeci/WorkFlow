@@ -23,9 +23,10 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toggleChecklistItem, type ChecklistItem } from "@/lib/checklist/checklist-helpers";
 import { useTranslations } from "next-intl";
 
-export type ChecklistRow = { id: string; label: string; done: boolean };
+export type ChecklistRow = ChecklistItem;
 
 function SortableRow({
   item,
@@ -191,9 +192,7 @@ export function DynamicChecklistEditor({
                   item={item}
                   dragAriaLabel={t("checklist.editor.dragToReorder")}
                   itemPlaceholder={t("checklist.editor.itemPlaceholder")}
-                  onToggle={() =>
-                    onChange(value.map((x) => (x.id === item.id ? { ...x, done: !x.done } : x)))
-                  }
+                  onToggle={() => onChange(toggleChecklistItem(value, item.id))}
                   onLabel={(v) =>
                     onChange(value.map((x) => (x.id === item.id ? { ...x, label: v } : x)))
                   }

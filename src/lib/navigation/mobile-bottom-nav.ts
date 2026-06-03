@@ -4,7 +4,7 @@ import type { SidebarNavItem } from "@/components/layout/sidebar-nav";
 export const MOBILE_BOTTOM_NAV_HREFS = [
   "/dashboard",
   "/interventions",
-  "/activities",
+  "/notes",
   "/procedures"
 ] as const;
 

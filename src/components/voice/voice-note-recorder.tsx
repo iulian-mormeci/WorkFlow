@@ -11,7 +11,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useTranslations } from "next-intl";
 
 type Props = {
-  interventionId: string;
+  interventionId?: string;
+  noteId?: string;
+  onVoiceNoteAdded?: (attachmentId: string) => void;
 };
 
 function pickBestMime() {
@@ -27,7 +29,7 @@ function pickBestMime() {
   return "";
 }
 
-export function VoiceNoteRecorder({ interventionId }: Props) {
+export function VoiceNoteRecorder({ interventionId, noteId, onVoiceNoteAdded }: Props) {
   const t = useTranslations();
   const { toast } = useToast();
   const [recording, setRecording] = useState(false);
@@ -141,45 +143,7 @@ export function VoiceNoteRecorder({ interventionId }: Props) {
         createdAt: nowIso
       });
 
-      const intervention = await db.interventions.get(interventionId);
-      const prev = intervention?.voiceNoteIds ?? [];
-      await db.interventions.update(interventionId, {
-        voiceNoteIds: [...prev, id],
-        updatedAt: nowIso
-      });
-
-      setUploadPct(0);
-      try {
-        const supabase = createSupabaseBrowserClient();
-        if (supabase && navigator.onLine) {
-          const {
-            data: { user }
-          } = await supabase.auth.getUser();
-          if (user) {
-            const att = await db.attachments.get(id);
-            if (att) {
-              await persistAttachmentToCloud(supabase, user.id, att, {
-                onProgress: (p) => setUploadPct(p)
-              });
-            }
-          }
-        }
-      } catch (e: unknown) {
-        toast({
-          title: t("voice.recorder.toasts.cloudUploadIncompleteTitle"),
-          description:
-            e instanceof Error ? e.message : t("voice.recorder.toasts.cloudUploadIncompleteBodyFallback"),
-          variant: "destructive"
-        });
-      } finally {
-        setUploadPct(null);
-      }
-
-      scheduleWorkflowSync();
-      toast({
-        title: t("voice.recorder.toasts.savedTitle"),
-        description: t("voice.recorder.toasts.savedBody")
-      });
+      await attachVoiceNote(id, nowIso);
 
       // Clear any preview state created by onstop
       if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -188,6 +152,58 @@ export function VoiceNoteRecorder({ interventionId }: Props) {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function attachVoiceNote(id: string, nowIso: string) {
+    if (interventionId) {
+      const intervention = await db.interventions.get(interventionId);
+      const prev = intervention?.voiceNoteIds ?? [];
+      await db.interventions.update(interventionId, {
+        voiceNoteIds: [...prev, id],
+        updatedAt: nowIso
+      });
+    } else if (noteId) {
+      const note = await db.notes.get(noteId);
+      const prev = note?.voiceNoteIds ?? [];
+      await db.notes.update(noteId, {
+        voiceNoteIds: [...prev, id],
+        updatedAt: nowIso
+      });
+      onVoiceNoteAdded?.(id);
+    }
+
+    setUploadPct(0);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      if (supabase && navigator.onLine) {
+        const {
+          data: { user }
+        } = (await supabase.auth.getUser()) ?? { data: { user: null } };
+        if (user) {
+          const att = await db.attachments.get(id);
+          if (att) {
+            await persistAttachmentToCloud(supabase, user.id, att, {
+              onProgress: (p) => setUploadPct(p)
+            });
+          }
+        }
+      }
+    } catch (e: unknown) {
+      toast({
+        title: t("voice.recorder.toasts.cloudUploadIncompleteTitle"),
+        description:
+          e instanceof Error ? e.message : t("voice.recorder.toasts.cloudUploadIncompleteBodyFallback"),
+        variant: "destructive"
+      });
+    } finally {
+      setUploadPct(null);
+    }
+
+    scheduleWorkflowSync();
+    toast({
+      title: t("voice.recorder.toasts.savedTitle"),
+      description: t("voice.recorder.toasts.savedBody")
+    });
   }
 
   function togglePause() {
@@ -218,45 +234,7 @@ export function VoiceNoteRecorder({ interventionId }: Props) {
         createdAt: nowIso
       });
 
-      const intervention = await db.interventions.get(interventionId);
-      const prev = intervention?.voiceNoteIds ?? [];
-      await db.interventions.update(interventionId, {
-        voiceNoteIds: [...prev, id],
-        updatedAt: nowIso
-      });
-
-      setUploadPct(0);
-      try {
-        const supabase = createSupabaseBrowserClient();
-        if (supabase && navigator.onLine) {
-          const {
-            data: { user }
-          } = await supabase.auth.getUser();
-          if (user) {
-            const att = await db.attachments.get(id);
-            if (att) {
-              await persistAttachmentToCloud(supabase, user.id, att, {
-                onProgress: (p) => setUploadPct(p)
-              });
-            }
-          }
-        }
-      } catch (e: unknown) {
-        toast({
-        title: t("voice.recorder.toasts.cloudUploadIncompleteTitle"),
-          description:
-          e instanceof Error ? e.message : t("voice.recorder.toasts.cloudUploadIncompleteBodyFallback"),
-          variant: "destructive"
-        });
-      } finally {
-        setUploadPct(null);
-      }
-
-      scheduleWorkflowSync();
-    toast({
-      title: t("voice.recorder.toasts.savedTitle"),
-      description: t("voice.recorder.toasts.savedBody")
-    });
+      await attachVoiceNote(id, nowIso);
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       setPreviewUrl(null);
       setPreviewBlob(null);
