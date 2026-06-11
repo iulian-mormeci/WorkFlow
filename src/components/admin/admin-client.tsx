@@ -234,7 +234,10 @@ export function AdminClient() {
             </Button>
           </div>
           {usersError && (
-            <p className="text-sm text-destructive">{t("admin.users.loadFailed")}</p>
+            <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+              <p className="font-medium">{t("admin.users.loadFailed")}</p>
+              <p className="mt-1 font-mono text-xs opacity-80">{usersError}</p>
+            </div>
           )}
           {users.map((u) => (
             <div

@@ -681,6 +681,10 @@ function globalProcedureToRow(p: GlobalProcedure) {
     content: p.content ?? null,
     tags: p.tags?.length ? p.tags : null,
     image_ids: p.imageIds?.length ? p.imageIds : null,
+    status: p.status ?? "approved",
+    rejection_reason: p.rejectionReason ?? null,
+    reviewed_at: p.reviewedAt ?? null,
+    reviewed_by: p.reviewedBy ?? null,
     created_at: p.createdAt,
     updated_at: p.updatedAt
   };
@@ -697,6 +701,10 @@ function globalProcedureFromRow(r: Record<string, unknown>): GlobalProcedure {
     content: (r.content as string) ?? undefined,
     tags: stringArrayFromJson(r.tags),
     imageIds: stringArrayFromJson(r.image_ids),
+    status: ((r.status as string) ?? "approved") as import("@/lib/db/workflow-db").GlobalProcedureStatus,
+    rejectionReason: (r.rejection_reason as string) ?? undefined,
+    reviewedAt: r.reviewed_at ? iso(r.reviewed_at) : undefined,
+    reviewedBy: r.reviewed_by ? String(r.reviewed_by) : undefined,
     createdAt: iso(r.created_at),
     updatedAt: iso(r.updated_at),
     syncedAt: new Date().toISOString(),

@@ -19,5 +19,5 @@ export const PROTECTED_NAV_ITEMS = [
   { href: "/reports", labelKey: "nav.reports", label: "Reports", iconName: "reports" },
   { href: "/statistics", labelKey: "nav.statistics", label: "Statistics", iconName: "statistics" },
   { href: "/settings", labelKey: "nav.settings", label: "Settings", iconName: "settings" },
-  { href: "/admin", labelKey: "nav.admin", label: "Admin", iconName: "admin" }
+  { href: "/admin", labelKey: "nav.admin", label: "Admin", iconName: "admin", adminOnly: true }
 ] as const satisfies readonly SidebarNavItem[];

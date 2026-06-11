@@ -22,6 +22,9 @@ import { Icon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
+import { useAuthStore } from "@/stores/auth";
+import { isGlobalProcedureAdmin } from "@/lib/procedures/global-procedure-admin";
+import { useChatUnreadStore } from "@/stores/chat-unread";
 
 type Props = {
   items: readonly SidebarNavItem[];
@@ -35,9 +38,13 @@ export function MobileMenu({ items }: Props) {
   const t = useTranslations();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const user = useAuthStore((s) => s.user);
+  const isAdmin = isGlobalProcedureAdmin(user);
+  const chatUnread = useChatUnreadStore((s) => s.count);
 
-  const bottomItems = mobileBottomNavItems(items);
-  const menuItems = mobileMenuExtraItems(items);
+  const visibleItems = items.filter((item) => !item.adminOnly || isAdmin);
+  const bottomItems = mobileBottomNavItems(visibleItems);
+  const menuItems = mobileMenuExtraItems(visibleItems);
 
   useEffect(() => {
     setOpen(false);
@@ -160,6 +167,7 @@ export function MobileMenu({ items }: Props) {
                   const active =
                     pathname === item.href || pathname.startsWith(item.href + "/");
                   const IconCmp = SIDEBAR_NAV_ICONS[item.iconName] ?? SIDEBAR_NAV_ICONS.home;
+                  const showBadge = item.href === "/chat" && chatUnread > 0;
                   return (
                     <Link
                       key={item.href}
@@ -173,7 +181,14 @@ export function MobileMenu({ items }: Props) {
                       )}
                       onClick={() => setOpen(false)}
                     >
-                      <Icon icon={IconCmp} size="md" tone={active ? "default" : "muted"} />
+                      <span className="relative shrink-0">
+                        <Icon icon={IconCmp} size="md" tone={active ? "default" : "muted"} />
+                        {showBadge && (
+                          <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold leading-none text-destructive-foreground">
+                            {chatUnread > 99 ? "99+" : chatUnread}
+                          </span>
+                        )}
+                      </span>
                       <span>{item.labelKey ? t(item.labelKey) : item.label}</span>
                     </Link>
                   );

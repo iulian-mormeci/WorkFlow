@@ -15,9 +15,10 @@ STABLE
 SECURITY DEFINER
 SET search_path = public
 AS $$
-  SELECT coalesce(
-    (auth.jwt() -> 'user_metadata' ->> 'role') IN ('admin', 'owner'),
-    false
+  SELECT EXISTS (
+    SELECT 1 FROM auth.users
+    WHERE id = auth.uid()
+      AND (raw_user_meta_data ->> 'role') IN ('admin', 'owner')
   );
 $$;
 

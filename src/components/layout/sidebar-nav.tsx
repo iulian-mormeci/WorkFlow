@@ -21,6 +21,9 @@ import {
 import { cn } from "@/lib/utils";
 import { Icon } from "@/components/ui/icon";
 import { useTranslations } from "next-intl";
+import { useAuthStore } from "@/stores/auth";
+import { isGlobalProcedureAdmin } from "@/lib/procedures/global-procedure-admin";
+import { useChatUnreadStore } from "@/stores/chat-unread";
 
 export type SidebarIconName =
   | "home"
@@ -65,17 +68,25 @@ export type SidebarNavItem = {
   /** Fallback label (used while migrating). */
   label: string;
   iconName: SidebarIconName;
+  /** When true, the item is only rendered for admin/owner users. */
+  adminOnly?: boolean;
 };
 
 export function SidebarNav({ items }: { items: readonly SidebarNavItem[] }) {
   const pathname = usePathname();
   const t = useTranslations();
+  const user = useAuthStore((s) => s.user);
+  const isAdmin = isGlobalProcedureAdmin(user);
+  const chatUnread = useChatUnreadStore((s) => s.count);
+
+  const visible = items.filter((item) => !item.adminOnly || isAdmin);
 
   return (
     <nav className="mt-4 grid gap-0.5 lg:mt-5">
-      {items.map((item) => {
+      {visible.map((item) => {
         const active = pathname === item.href || pathname.startsWith(item.href + "/");
         const IconCmp = SIDEBAR_NAV_ICONS[item.iconName] ?? Home;
+        const showBadge = item.href === "/chat" && chatUnread > 0;
         return (
           <Link
             key={item.href}
@@ -88,7 +99,14 @@ export function SidebarNav({ items }: { items: readonly SidebarNavItem[] }) {
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
             )}
           >
-            <Icon icon={IconCmp} size="md" tone={active ? "default" : "muted"} />
+            <span className="relative shrink-0">
+              <Icon icon={IconCmp} size="md" tone={active ? "default" : "muted"} />
+              {showBadge && (
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold leading-none text-destructive-foreground">
+                  {chatUnread > 99 ? "99+" : chatUnread}
+                </span>
+              )}
+            </span>
             <span>{item.labelKey ? t(item.labelKey) : item.label}</span>
           </Link>
         );

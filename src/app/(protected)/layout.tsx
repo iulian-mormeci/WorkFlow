@@ -15,6 +15,7 @@ import { TicketRemindersProvider } from "@/components/tickets/ticket-reminders-p
 import { MobileMenu } from "@/components/layout/mobile-menu";
 import { PROTECTED_NAV_ITEMS } from "@/lib/navigation/protected-nav";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
+import { ChatNotificationsProvider } from "@/components/chat/chat-notifications-provider";
 import { getLocale, getTranslations, setRequestLocale } from "next-intl/server";
 
 // Protected area must never be statically cached.
@@ -89,6 +90,8 @@ export default async function ProtectedLayout({
           <ActivityRemindersProvider />
           {/* Client: CRM ticket reminders (pre-due + due browser notifications). */}
           <TicketRemindersProvider />
+          {/* Client: global chat Realtime listener — keeps unread badge in sync. */}
+          <ChatNotificationsProvider />
           {children}
         </main>
       </div>

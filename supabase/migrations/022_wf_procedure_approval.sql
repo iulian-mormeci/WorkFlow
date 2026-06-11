@@ -6,6 +6,8 @@
 -- migration runs correctly regardless of whether 018 applied it already.
 
 -- ─── re-declare base admin check (idempotent) ──────────────────────────────
+-- Reads role from auth.users (DB) rather than JWT claims so it is always
+-- up-to-date even if the client token was issued before the role was set.
 
 CREATE OR REPLACE FUNCTION public.workflow_is_global_procedure_admin()
 RETURNS boolean
@@ -14,9 +16,10 @@ STABLE
 SECURITY DEFINER
 SET search_path = public
 AS $$
-  SELECT coalesce(
-    (auth.jwt() -> 'user_metadata' ->> 'role') IN ('admin', 'owner'),
-    false
+  SELECT EXISTS (
+    SELECT 1 FROM auth.users
+    WHERE id = auth.uid()
+      AND (raw_user_meta_data ->> 'role') IN ('admin', 'owner')
   );
 $$;
 
@@ -44,9 +47,10 @@ STABLE
 SECURITY DEFINER
 SET search_path = public
 AS $$
-  SELECT coalesce(
-    (auth.jwt() -> 'user_metadata' ->> 'role') IN ('admin', 'owner', 'trusted_contributor'),
-    false
+  SELECT EXISTS (
+    SELECT 1 FROM auth.users
+    WHERE id = auth.uid()
+      AND (raw_user_meta_data ->> 'role') IN ('admin', 'owner', 'trusted_contributor')
   );
 $$;
 
