@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Copy, Globe, Pencil, Tag, User, X } from "lucide-react";
+import { Copy, Globe, Loader2, Pencil, Tag, User, X } from "lucide-react";
+import { sanitizeProcedureHtml } from "@/lib/procedures/sanitize-html";
 import { db } from "@/lib/db/workflow-db";
 import type { ProcedureLike } from "@/lib/procedures/procedure-shared";
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +47,15 @@ export function ProcedureViewDialog({
 
   const [images, setImages] = useState<{ id: string; url: string }[]>([]);
   const [zoom, setZoom] = useState<string | null>(null);
+  const zoomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!zoom) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setZoom(null); };
+    window.addEventListener("keydown", handler);
+    zoomRef.current?.focus();
+    return () => window.removeEventListener("keydown", handler);
+  }, [zoom]);
 
   useEffect(() => {
     const ordered: { id: string; url: string }[] = [];
@@ -105,7 +115,7 @@ export function ProcedureViewDialog({
           {procedure.content ? (
             <div
               className="procedure-prose text-sm leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: procedure.content }}
+              dangerouslySetInnerHTML={{ __html: sanitizeProcedureHtml(procedure.content) }}
             />
           ) : (
             <p className="text-sm text-muted-foreground">{t("procedures.view.noContent")}</p>
@@ -113,15 +123,16 @@ export function ProcedureViewDialog({
 
           {images.length ? (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {images.map((img) => (
+              {images.map((img, i) => (
                 <button
                   key={img.id}
                   type="button"
                   onClick={() => setZoom(img.url)}
+                  aria-label={t("procedures.view.imageAlt", { n: i + 1 })}
                   className="aspect-square overflow-hidden rounded-lg border bg-muted transition-transform active:scale-[0.98]"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={img.url} alt="" className="h-full w-full object-cover" loading="lazy" />
+                  <img src={img.url} alt="" aria-hidden className="h-full w-full object-cover" loading="lazy" />
                 </button>
               ))}
             </div>
@@ -139,11 +150,11 @@ export function ProcedureViewDialog({
             {onCopy ? (
               <Button
                 type="button"
-                className="min-h-11 bg-violet-600 hover:bg-violet-700"
+                className="min-h-11 gap-2 bg-violet-600 hover:bg-violet-700"
                 disabled={copying}
                 onClick={onCopy}
               >
-                <Copy className="h-4 w-4" />
+                {copying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Copy className="h-4 w-4" />}
                 {copying ? t("procedures.global.copying") : t("procedures.global.copyToAccount")}
               </Button>
             ) : null}
@@ -159,9 +170,12 @@ export function ProcedureViewDialog({
 
       {zoom ? (
         <div
-          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 p-4"
+          ref={zoomRef}
+          tabIndex={-1}
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 p-4 outline-none"
           role="dialog"
           aria-modal="true"
+          aria-label={t("procedures.view.zoomLabel")}
           onClick={() => setZoom(null)}
         >
           <button

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Link } from "@/i18n/navigation";
-import { Mic, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Loader2, Mic, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { db, type Note } from "@/lib/db/workflow-db";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { performNoteCloudSyncDelete } from "@/lib/sync/cloud-delete";
@@ -261,11 +261,12 @@ export function NotesClient() {
             </Button>
             <Button
               type="button"
-              variant="outline"
-              className="border-destructive/50 text-destructive hover:bg-destructive/10"
+              variant="destructive"
               disabled={deleting}
+              className="gap-2"
               onClick={() => void confirmDelete()}
             >
+              {deleting && <Loader2 className="h-4 w-4 animate-spin" />}
               {deleting ? t("actions.deleting") : t("actions.delete")}
             </Button>
           </div>

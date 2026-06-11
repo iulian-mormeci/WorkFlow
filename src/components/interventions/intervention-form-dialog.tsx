@@ -433,38 +433,6 @@ export function InterventionFormDialog(props: Props) {
       const nextReminderEmail = remindersEnabled ? reminderEmailTo.trim() || undefined : undefined;
       const nextPreset = remindersEnabled ? reminderPreset : undefined;
 
-      console.info("[InterventionFormDialog] saving reminder fields", {
-        mode,
-        dueAtLocal,
-        dueIso,
-        remindersEnabled,
-        reminderPreset,
-        reminderCustomAtLocal,
-        reminderCustomIso,
-        reminderEmailTo,
-        nextReminderEmail,
-        nextPreset
-      });
-      console.info(
-        "[InterventionFormDialog] saving reminder fields (stringified)",
-        JSON.stringify(
-          {
-            mode,
-            dueAtLocal,
-            dueIso,
-            remindersEnabled,
-            reminderPreset,
-            reminderCustomAtLocal,
-            reminderCustomIso,
-            reminderEmailTo,
-            nextReminderEmail,
-            nextPreset
-          },
-          null,
-          2
-        )
-      );
-
       if (remindersEnabled && !dueIso) {
         toast({
           title: t("interventions.form.toasts.reminderNeedsDueTitle"),
@@ -514,14 +482,6 @@ export function InterventionFormDialog(props: Props) {
           locationKmAuto: savedLocationKmAuto,
           updatedAt: nowIso
         };
-        console.info("[InterventionFormDialog] payload(edit)", {
-          id: payload.id,
-          dueAt: payload.dueAt,
-          remindersEnabled: payload.remindersEnabled,
-          reminderPreset: payload.reminderPreset,
-          reminderCustomAt: payload.reminderCustomAt,
-          reminderEmailTo: payload.reminderEmailTo
-        });
         await db.interventions.put(payload);
         savedId = payload.id;
         scheduleWorkflowSync();
@@ -556,14 +516,6 @@ export function InterventionFormDialog(props: Props) {
           createdAt: nowIso,
           updatedAt: nowIso
         };
-        console.info("[InterventionFormDialog] payload(new)", {
-          id: payload.id,
-          dueAt: payload.dueAt,
-          remindersEnabled: payload.remindersEnabled,
-          reminderPreset: payload.reminderPreset,
-          reminderCustomAt: payload.reminderCustomAt,
-          reminderEmailTo: payload.reminderEmailTo
-        });
         await db.interventions.add(payload);
         savedId = payload.id;
         scheduleWorkflowSync();
@@ -611,29 +563,6 @@ export function InterventionFormDialog(props: Props) {
       if (mode === "new") {
         router.push(`/interventions/${savedId}`);
         router.refresh();
-      }
-      try {
-        const row = await db.interventions.get(savedId);
-        console.info("[InterventionFormDialog] saved row", {
-          id: savedId,
-          dueAt: row?.dueAt,
-          remindersEnabled: row?.remindersEnabled,
-          reminderPreset: row?.reminderPreset,
-          reminderCustomAt: row?.reminderCustomAt,
-          reminderEmailTo: row?.reminderEmailTo
-        });
-        console.info(
-          "[InterventionFormDialog] saved row (types)",
-          {
-            dueAtType: typeof row?.dueAt,
-            remindersEnabledType: typeof row?.remindersEnabled,
-            reminderPresetType: typeof row?.reminderPreset,
-            reminderCustomAtType: typeof row?.reminderCustomAt,
-            reminderEmailToType: typeof row?.reminderEmailTo
-          }
-        );
-      } catch {
-        /* ignore */
       }
     } catch (e: any) {
       const msg =

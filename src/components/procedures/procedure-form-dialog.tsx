@@ -217,7 +217,7 @@ export function ProcedureFormDialog({
       }
 
       // Submit a copy to the global pool if the user opted in.
-      if (submitGlobal && user && !isEdit && supabase) {
+      if (submitGlobal && user && supabase) {
         const result = await submitProcedureForGlobal(values, user, supabase);
         if (result.ok) {
           toast({
@@ -336,33 +336,31 @@ export function ProcedureFormDialog({
             <p className="text-xs text-muted-foreground">{t("procedures.fields.tagsHint")}</p>
           </div>
 
-          {/* Submit as global procedure — only available when creating (not editing) */}
-          {!isEdit && (
-            <div className="rounded-xl border bg-muted/40 p-3.5">
-              <div className="flex items-start gap-3">
-                <Checkbox
-                  id="submit-global"
-                  checked={submitGlobal}
-                  onCheckedChange={(v) => setSubmitGlobal(v === true)}
-                  className="mt-0.5 shrink-0"
-                />
-                <div className="min-w-0 space-y-1">
-                  <label
-                    htmlFor="submit-global"
-                    className="flex cursor-pointer items-center gap-1.5 text-sm font-medium"
-                  >
-                    <Globe className="h-4 w-4 shrink-0 text-primary" />
-                    {t("procedures.submitGlobal.checkboxLabel")}
-                  </label>
-                  <p className="text-xs text-muted-foreground">
-                    {isAdmin
-                      ? t("procedures.submitGlobal.adminCheckboxHint")
-                      : t("procedures.submitGlobal.checkboxHint")}
-                  </p>
-                </div>
+          {/* Submit as global procedure — available both when creating and editing */}
+          <div className="rounded-xl border bg-muted/40 p-3.5">
+            <div className="flex items-start gap-3">
+              <Checkbox
+                id="submit-global"
+                checked={submitGlobal}
+                onCheckedChange={(v) => setSubmitGlobal(v === true)}
+                className="mt-0.5 shrink-0"
+              />
+              <div className="min-w-0 space-y-1">
+                <label
+                  htmlFor="submit-global"
+                  className="flex cursor-pointer items-center gap-1.5 text-sm font-medium"
+                >
+                  <Globe className="h-4 w-4 shrink-0 text-primary" />
+                  {t("procedures.submitGlobal.checkboxLabel")}
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  {isAdmin
+                    ? t("procedures.submitGlobal.adminCheckboxHint")
+                    : t("procedures.submitGlobal.checkboxHint")}
+                </p>
               </div>
             </div>
-          )}
+          </div>
 
           <div className="mt-1 flex items-center justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => requestClose(false)} disabled={saving}>

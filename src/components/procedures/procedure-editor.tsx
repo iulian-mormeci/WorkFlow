@@ -121,7 +121,8 @@ export function ProcedureEditor({
           aria-label={t("procedures.editor.addImages")}
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => fileRef.current?.click()}
-          className="inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
+          disabled={busy}
+          className="inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm text-muted-foreground transition-colors hover:bg-background hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
         >
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
           <span className="hidden sm:inline">{t("procedures.editor.addImages")}</span>

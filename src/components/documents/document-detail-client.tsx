@@ -3,9 +3,16 @@
 import { Link } from "@/i18n/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ChevronLeft, FileText, Images, Pencil, Send, Trash2 } from "lucide-react";
+import { ChevronLeft, FileText, Images, Loader2, Pencil, Send, Trash2 } from "lucide-react";
 import { db } from "@/lib/db/workflow-db";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
@@ -30,6 +37,8 @@ export function DocumentDetailClient({ id }: { id: string }) {
   const [rename, setRename] = useState(false);
   const [title, setTitle] = useState("");
   const [sendOpen, setSendOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (doc) setTitle(doc.title);
@@ -146,56 +155,14 @@ export function DocumentDetailClient({ id }: { id: string }) {
           <Button
             variant="outline"
             disabled={!canOpenSend}
-            onClick={() => {
-              console.info("[SendDocument] open send dialog", { documentId: doc.id });
-              setSendOpen(true);
-            }}
+            onClick={() => setSendOpen(true)}
           >
             <Send className="h-4 w-4" />
             {t("documents.detail.actions.send")}
           </Button>
           <Button
             variant="outline"
-            onClick={async () => {
-              if (!confirm(t("documents.detail.confirmDelete"))) {
-                return;
-              }
-              try {
-                const supabase = createSupabaseBrowserClient();
-                const {
-                  data: { user }
-                } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
-                const res = await performDocumentCloudSyncDelete({
-                  snap: {
-                    documentId: doc.id,
-                    attachmentId: doc.attachmentId,
-                    interventionId: doc.interventionId ?? null
-                  },
-                  supabase: supabase ?? null,
-                  userId: user?.id ?? null
-                });
-                if (!res.ok) {
-                  toast({
-                    title: t("documents.detail.toasts.deleteFailedTitle"),
-                    description: res.message,
-                    variant: "destructive"
-                  });
-                  return;
-                }
-                toast({
-                  title: t("documents.detail.toasts.deletedTitle"),
-                  description: t("documents.detail.toasts.deletedBody")
-                });
-                scheduleWorkflowSync();
-                window.location.href = "/documents";
-              } catch (e: any) {
-                toast({
-                  title: t("documents.detail.toasts.deleteFailedTitle"),
-                  description: e?.message ?? t("documents.detail.toasts.deleteFailedBodyFallback"),
-                  variant: "destructive"
-                });
-              }
-            }}
+            onClick={() => setDeleteOpen(true)}
           >
             <Trash2 className="h-4 w-4" />
             {t("common.delete")}
@@ -295,6 +262,69 @@ export function DocumentDetailClient({ id }: { id: string }) {
         onOpenChange={setSendOpen}
         documentId={doc.id}
       />
+
+      <Dialog open={deleteOpen} onOpenChange={(v) => !deleting && setDeleteOpen(v)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("documents.detail.deleteDialog.title")}</DialogTitle>
+            <DialogDescription>
+              {t("documents.detail.deleteDialog.body", { title: doc.title })}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 flex justify-end gap-2">
+            <Button type="button" variant="outline" disabled={deleting} onClick={() => setDeleteOpen(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={deleting}
+              className="gap-2"
+              onClick={async () => {
+                setDeleting(true);
+                try {
+                  const supabase = createSupabaseBrowserClient();
+                  const { data: { user } } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
+                  const res = await performDocumentCloudSyncDelete({
+                    snap: {
+                      documentId: doc.id,
+                      attachmentId: doc.attachmentId,
+                      interventionId: doc.interventionId ?? null
+                    },
+                    supabase: supabase ?? null,
+                    userId: user?.id ?? null
+                  });
+                  if (!res.ok) {
+                    toast({
+                      title: t("documents.detail.toasts.deleteFailedTitle"),
+                      description: res.message,
+                      variant: "destructive"
+                    });
+                    return;
+                  }
+                  toast({
+                    title: t("documents.detail.toasts.deletedTitle"),
+                    description: t("documents.detail.toasts.deletedBody")
+                  });
+                  scheduleWorkflowSync();
+                  window.location.href = "/documents";
+                } catch (e: any) {
+                  toast({
+                    title: t("documents.detail.toasts.deleteFailedTitle"),
+                    description: e?.message ?? t("documents.detail.toasts.deleteFailedBodyFallback"),
+                    variant: "destructive"
+                  });
+                } finally {
+                  setDeleting(false);
+                }
+              }}
+            >
+              {deleting && <Loader2 className="h-4 w-4 animate-spin" />}
+              {deleting ? t("common.deleting") : t("common.delete")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

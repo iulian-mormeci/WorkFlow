@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   Clock,
   History,
+  Loader2,
   Pencil,
   Plus,
   Search,
@@ -435,10 +436,12 @@ export function ActivitiesClient() {
               {t("common.cancel")}
             </Button>
             <Button
-              className="bg-red-600 text-white hover:bg-red-700"
+              variant="destructive"
               onClick={confirmDelete}
               disabled={deleting}
+              className="gap-2"
             >
+              {deleting && <Loader2 className="h-4 w-4 animate-spin" />}
               {deleting ? t("common.deleting") : t("common.delete")}
             </Button>
           </div>

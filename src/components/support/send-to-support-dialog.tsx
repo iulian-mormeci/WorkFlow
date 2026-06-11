@@ -62,8 +62,6 @@ export function SendToSupportDialog({
 
   async function sendDirect() {
     const email = to.trim();
-    console.info("[SendDocument] starting send to", email, { documentId, attachmentId, subject });
-
     const a = await db.attachments.get(attachmentId);
     if (!a) throw new Error(t("support.send.errors.attachmentNotFound"));
 
@@ -74,9 +72,7 @@ export function SendToSupportDialog({
     if (message.trim()) fd.append("message", message.trim());
     fd.append("file", new File([a.blob], a.name ?? "document.pdf", { type: "application/pdf" }));
 
-    console.info("[SendDocument] POST /api/support-email (fetch start)");
     const res = await fetch("/api/support-email", { method: "POST", body: fd });
-    console.info("[SendDocument] POST /api/support-email (fetch done)", { ok: res.ok, status: res.status });
     if (!res.ok) throw new Error(await res.text());
   }
 
@@ -87,7 +83,6 @@ export function SendToSupportDialog({
       // Persist last-used recipient for next time (user can override per send).
       setSupportEmailTo(to.trim());
       if (!online) {
-        console.info("[SendDocument] offline; queueing email", { to: to.trim(), documentId });
         const outboxId = crypto.randomUUID();
         await queueSupportEmail({
           id: outboxId,
@@ -111,7 +106,6 @@ export function SendToSupportDialog({
       try {
         await sendDirect();
       } catch (e) {
-        console.error("[SendDocument] failed", e);
         toast({
           title: t("support.send.toasts.sendFailedTitle"),
           description: e instanceof Error ? e.message : String(e),
@@ -120,21 +114,15 @@ export function SendToSupportDialog({
         return;
       }
 
-      // Also flush any queued items (best-effort).
       try {
-        console.info("[SendDocument] flushing outbox…");
         await flushSupportEmailOutbox();
-        console.info("[SendDocument] flush complete");
-      } catch (e) {
-        console.error("[SendDocument] flush failed", e);
-      }
+      } catch { /* best-effort */ }
       toast({
         title: t("support.send.toasts.sentTitle"),
         description: t("support.send.toasts.sentBody")
       });
       onOpenChange(false);
     } catch (e: any) {
-      console.error("[SendDocument] failed", e);
       toast({
         title: t("support.send.toasts.sendFailedTitle"),
         description: e?.message ?? t("support.send.toasts.sendFailedBodyFallback"),

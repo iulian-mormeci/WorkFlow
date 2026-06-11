@@ -7,6 +7,7 @@ import {
   Copy,
   Globe,
   Image as ImageIcon,
+  Loader2,
   Search,
   Tag,
   User,
@@ -345,13 +346,17 @@ export function GlobalProceduresSearchDialog({
                         <Button
                           type="button"
                           size="sm"
-                          className="min-h-10 bg-violet-600 hover:bg-violet-700"
-                          disabled={copyingId === p.id}
+                          className="min-h-10 gap-1.5 bg-violet-600 hover:bg-violet-700"
+                          disabled={Boolean(copyingId)}
                           onClick={() => {
                             if (hit.scope === "global") void handleCopy(hit.row);
                           }}
                         >
-                          <Copy className="h-4 w-4" />
+                          {copyingId === p.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Copy className="h-4 w-4" />
+                          )}
                           {copyingId === p.id
                             ? t("procedures.global.copying")
                             : t("procedures.global.copyToAccount")}

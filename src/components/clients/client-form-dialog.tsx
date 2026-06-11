@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
 import {
   CLIENT_TYPES,
   type Client,
@@ -51,6 +52,7 @@ export function ClientFormDialog(props: Props) {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [f, setF] = useState(emptyForm);
 
   useEffect(() => {
@@ -160,9 +162,6 @@ export function ClientFormDialog(props: Props) {
 
   async function remove() {
     if (mode !== "edit" || !clientId) return;
-    if (!confirm(t("clients.form.confirmDelete"))) {
-      return;
-    }
     setDeleting(true);
     try {
       const ivCount = await db.interventions.where("clientId").equals(clientId).count();
@@ -216,6 +215,7 @@ export function ClientFormDialog(props: Props) {
   }
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
@@ -342,8 +342,9 @@ export function ClientFormDialog(props: Props) {
               variant="outline"
               className="min-h-12 w-full border-destructive/40 text-destructive hover:bg-destructive/10 sm:w-auto"
               disabled={deleting || saving}
-              onClick={() => void remove()}
+              onClick={() => setConfirmDeleteOpen(true)}
             >
+              {deleting && <Loader2 className="h-4 w-4 animate-spin" />}
               {deleting ? t("common.deleting") : t("common.delete")}
             </Button>
           ) : (
@@ -365,5 +366,30 @@ export function ClientFormDialog(props: Props) {
         </div>
       </DialogContent>
     </Dialog>
+
+    <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t("clients.form.deleteDialog.title")}</DialogTitle>
+          <DialogDescription>{t("clients.form.deleteDialog.body", { name: f.name })}</DialogDescription>
+        </DialogHeader>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button type="button" variant="outline" disabled={deleting} onClick={() => setConfirmDeleteOpen(false)}>
+            {t("common.cancel")}
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            disabled={deleting}
+            className="gap-2"
+            onClick={() => { setConfirmDeleteOpen(false); void remove(); }}
+          >
+            {deleting && <Loader2 className="h-4 w-4 animate-spin" />}
+            {deleting ? t("common.deleting") : t("common.delete")}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

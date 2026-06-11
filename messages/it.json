@@ -243,6 +243,10 @@
         "deletedQueuedBody": "Verrà rimosso dal cloud alla prossima sync.",
         "deletedTitle": "Cliente eliminato",
         "deletedBody": "Rimosso su questo dispositivo e nel cloud."
+      },
+      "deleteDialog": {
+        "title": "Eliminare cliente?",
+        "body": "Stai per eliminare \"{name}\" da questo dispositivo e dal cloud. Non puoi annullare."
       }
     },
     "actions": {
@@ -958,6 +962,10 @@
         "deleteFailedBodyFallback": "Impossibile eliminare",
         "renamedTitle": "Rinominato",
         "renamedBody": "Titolo documento aggiornato."
+      },
+      "deleteDialog": {
+        "title": "Eliminare documento?",
+        "body": "Stai per eliminare \"{title}\" dal dispositivo e dal cloud. Non puoi annullare."
       }
     },
     "actions": {
@@ -1076,6 +1084,10 @@
       "deleteFailedTitle": "Eliminazione non riuscita",
       "deletedTitle": "Eliminato",
       "deletedBody": "Modello rimosso."
+    },
+    "deleteDialog": {
+      "title": "Eliminare modello?",
+      "body": "Stai per eliminare il modello \"{name}\" dal dispositivo e dal cloud. Non puoi annullare."
     }
   },
   "tickets": {
@@ -1312,7 +1324,9 @@
       "noImages": "Ancora nessuna immagine. Aggiungi foto, schemi o screenshot."
     },
     "view": {
-      "noContent": "Questa procedura non ha ancora contenuto scritto."
+      "noContent": "Questa procedura non ha ancora contenuto scritto.",
+      "imageAlt": "Immagine {n}",
+      "zoomLabel": "Visualizzazione immagine ingrandita"
     },
     "global": {
       "badge": "Preset globale",
@@ -1466,6 +1480,12 @@
         "signedOutAllBody": "Reindirizzamento per chiudere la sessione…",
         "signedOutAllFailedTitle": "Disconnessione non riuscita",
         "signedOutAllFailedBody": "Riprova quando sei online."
+      },
+      "signOutAllDialog": {
+        "title": "Disconnetti tutti i dispositivi?",
+        "body": "Questa azione invalida la sessione su tutti i dispositivi. Dovrai accedere di nuovo ovunque.",
+        "confirm": "Disconnetti tutti",
+        "cancel": "Annulla"
       }
     },
     "sync": {
@@ -1584,6 +1604,18 @@
         "importFailedBody": "Impossibile importare il backup",
         "localClearedTitle": "Dati locali cancellati",
         "localClearedBody": "Ricarico…"
+      },
+      "importDialog": {
+        "title": "Importare il backup?",
+        "body": "Tutti i dati locali verranno sostituiti con quelli del file. Non puoi annullare.",
+        "confirm": "Importa",
+        "cancel": "Annulla"
+      },
+      "clearDialog": {
+        "title": "Svuotare il database locale?",
+        "body": "Elimina tutti i dati su questo dispositivo. Il cloud non viene toccato. Non puoi annullare.",
+        "confirm": "Svuota",
+        "cancel": "Annulla"
       }
     },
     "rights": {
@@ -1608,6 +1640,15 @@
         "deletedBody": "Sessione terminata. Torno alla Home…",
         "deleteFailedTitle": "Cancellazione fallita",
         "deleteFailedBody": "Impossibile completare la cancellazione"
+      },
+      "deleteAllDialog": {
+        "title": "Eliminare tutti i dati?",
+        "body": "Questa operazione rimuoverà tutti i dati dal dispositivo e dal cloud (se online). Non puoi annullare.",
+        "continue": "Continua",
+        "finalTitle": "Conferma eliminazione definitiva",
+        "finalBody": "ULTIMA CONFERMA: tutti i dati WorkFlow per questo account (locale e cloud) verranno eliminati in modo permanente. Esporta un backup prima se ti serve una copia.",
+        "finalConfirm": "Elimina tutto",
+        "cancel": "Annulla"
       }
     }
   },
@@ -2072,5 +2113,17 @@
       "rejectedProcedures": "Procedure rifiutate",
       "loadFailed": "Impossibile caricare le statistiche."
     }
+  },
+  "signOut": {
+    "button": "Esci",
+    "title": "Disconnettersi?",
+    "subtitle": "La sessione terminerà. Scegli cosa fare con i dati offline su questo dispositivo.",
+    "keep": "Mantieni dati ed esci",
+    "wipe": "Elimina dati ed esci",
+    "wipeConfirmTitle": "Eliminare tutti i dati locali?",
+    "wipeConfirmSubtitle": "Procedure, interventi e file salvati su questo dispositivo verranno eliminati definitivamente. L'operazione non è reversibile.",
+    "wipeConfirmCta": "Sì, elimina ed esci",
+    "wiping": "Eliminazione in corso…",
+    "cancel": "Annulla"
   }
 }

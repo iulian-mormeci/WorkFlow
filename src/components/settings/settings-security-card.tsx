@@ -5,10 +5,17 @@ import { Link } from "@/i18n/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
 import { IconBubble } from "@/components/ui/icon";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslations } from "next-intl";
-import { Shield } from "lucide-react";
+import { Loader2, Shield } from "lucide-react";
 
 function formatTs(iso: string | undefined, locale: string) {
   if (!iso) return null;
@@ -27,6 +34,7 @@ export function SettingsSecurityCard() {
   const [lastSignIn, setLastSignIn] = useState<string | null>(null);
   const [sessionExpires, setSessionExpires] = useState<string | null>(null);
   const [busyAll, setBusyAll] = useState(false);
+  const [confirmSignOutAll, setConfirmSignOutAll] = useState(false);
 
   const load = useCallback(async () => {
     if (!supabase) return;
@@ -73,6 +81,7 @@ export function SettingsSecurityCard() {
   const lastLabel = formatTs(lastSignIn ?? undefined, locale) ?? t("lastLoginUnknown");
 
   return (
+    <>
     <Card className="rounded-2xl lg:col-span-2">
       <CardHeader className="space-y-2">
         <div className="flex items-start justify-between gap-3">
@@ -114,24 +123,9 @@ export function SettingsSecurityCard() {
               size="sm"
               className="w-fit min-h-11 border-destructive/50 text-destructive hover:bg-destructive/10"
               disabled={busyAll}
-              onClick={async () => {
-                if (!confirm(t("confirmSignOutAll"))) return;
-                setBusyAll(true);
-                try {
-                  const { error } = await supabase.auth.signOut({ scope: "global" });
-                  if (error) throw error;
-                  toast({ title: t("toasts.signedOutAllTitle"), description: t("toasts.signedOutAllBody") });
-                  window.location.href = "/auth/logout";
-                } catch (e: unknown) {
-                  toast({
-                    title: t("toasts.signedOutAllFailedTitle"),
-                    description: e instanceof Error ? e.message : t("toasts.signedOutAllFailedBody"),
-                    variant: "destructive"
-                  });
-                  setBusyAll(false);
-                }
-              }}
+              onClick={() => setConfirmSignOutAll(true)}
             >
+              {busyAll && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {t("signOutAllDevices")}
             </Button>
             <p className="text-xs text-muted-foreground sm:max-w-xl">{t("signOutAllHint")}</p>
@@ -146,5 +140,46 @@ export function SettingsSecurityCard() {
         </div>
       </CardHeader>
     </Card>
+
+    <Dialog open={confirmSignOutAll} onOpenChange={setConfirmSignOutAll}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t("signOutAllDialog.title")}</DialogTitle>
+          <DialogDescription>{t("signOutAllDialog.body")}</DialogDescription>
+        </DialogHeader>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button type="button" variant="outline" disabled={busyAll} onClick={() => setConfirmSignOutAll(false)}>
+            {t("signOutAllDialog.cancel")}
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            disabled={busyAll}
+            className="gap-2"
+            onClick={async () => {
+              setConfirmSignOutAll(false);
+              setBusyAll(true);
+              try {
+                const { error } = await supabase.auth.signOut({ scope: "global" });
+                if (error) throw error;
+                toast({ title: t("toasts.signedOutAllTitle"), description: t("toasts.signedOutAllBody") });
+                window.location.href = "/auth/logout";
+              } catch (e: unknown) {
+                toast({
+                  title: t("toasts.signedOutAllFailedTitle"),
+                  description: e instanceof Error ? e.message : t("toasts.signedOutAllFailedBody"),
+                  variant: "destructive"
+                });
+                setBusyAll(false);
+              }
+            }}
+          >
+            {busyAll && <Loader2 className="h-4 w-4 animate-spin" />}
+            {t("signOutAllDialog.confirm")}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

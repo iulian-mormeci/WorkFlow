@@ -243,6 +243,10 @@
         "deletedQueuedBody": "Will be removed from the cloud on the next sync.",
         "deletedTitle": "Client deleted",
         "deletedBody": "Removed on this device and in the cloud."
+      },
+      "deleteDialog": {
+        "title": "Delete client?",
+        "body": "You are about to delete \"{name}\" from this device and from the cloud. This cannot be undone."
       }
     },
     "actions": {
@@ -958,6 +962,10 @@
         "deleteFailedBodyFallback": "Could not delete",
         "renamedTitle": "Renamed",
         "renamedBody": "Document title updated."
+      },
+      "deleteDialog": {
+        "title": "Delete document?",
+        "body": "You are about to delete \"{title}\" from this device and from the cloud. This cannot be undone."
       }
     },
     "actions": {
@@ -1076,6 +1084,10 @@
       "deleteFailedTitle": "Delete failed",
       "deletedTitle": "Deleted",
       "deletedBody": "Template removed."
+    },
+    "deleteDialog": {
+      "title": "Delete template?",
+      "body": "You are about to delete template \"{name}\" from this device and from the cloud. This cannot be undone."
     }
   },
   "tickets": {
@@ -1312,7 +1324,9 @@
       "noImages": "No images yet. Add photos, diagrams or screenshots."
     },
     "view": {
-      "noContent": "This procedure has no written content yet."
+      "noContent": "This procedure has no written content yet.",
+      "imageAlt": "Image {n}",
+      "zoomLabel": "Enlarged image view"
     },
     "global": {
       "badge": "Global preset",
@@ -1466,6 +1480,12 @@
         "signedOutAllBody": "Redirecting to clear the session…",
         "signedOutAllFailedTitle": "Sign-out failed",
         "signedOutAllFailedBody": "Try again when online."
+      },
+      "signOutAllDialog": {
+        "title": "Sign out of all devices?",
+        "body": "This will invalidate your session on all devices. You will need to sign in again everywhere.",
+        "confirm": "Sign out all",
+        "cancel": "Cancel"
       }
     },
     "sync": {
@@ -1584,6 +1604,18 @@
         "importFailedBody": "Could not import backup",
         "localClearedTitle": "Local data cleared",
         "localClearedBody": "Reloading…"
+      },
+      "importDialog": {
+        "title": "Import backup?",
+        "body": "All local data will be replaced with the contents of this file. This cannot be undone.",
+        "confirm": "Import",
+        "cancel": "Cancel"
+      },
+      "clearDialog": {
+        "title": "Clear local database?",
+        "body": "Deletes all data on this device. The cloud is not affected. This cannot be undone.",
+        "confirm": "Clear",
+        "cancel": "Cancel"
       }
     },
     "rights": {
@@ -1608,6 +1640,15 @@
         "deletedBody": "Session ended. Returning to Home…",
         "deleteFailedTitle": "Deletion failed",
         "deleteFailedBody": "Could not complete deletion"
+      },
+      "deleteAllDialog": {
+        "title": "Delete all data?",
+        "body": "This will remove all data from this device and from the cloud (if online). This cannot be undone.",
+        "continue": "Continue",
+        "finalTitle": "Final confirmation",
+        "finalBody": "LAST WARNING: all WorkFlow data for this account (local and cloud) will be permanently deleted. Export a backup first if you need a copy.",
+        "finalConfirm": "Delete everything",
+        "cancel": "Cancel"
       }
     }
   },
@@ -2072,5 +2113,17 @@
       "rejectedProcedures": "Rejected procedures",
       "loadFailed": "Failed to load statistics."
     }
+  },
+  "signOut": {
+    "button": "Sign out",
+    "title": "Sign out?",
+    "subtitle": "Your session will end. Choose what happens to offline data on this device.",
+    "keep": "Keep data & sign out",
+    "wipe": "Delete data & sign out",
+    "wipeConfirmTitle": "Delete all local data?",
+    "wipeConfirmSubtitle": "Procedures, interventions and files saved on this device will be permanently deleted. This cannot be undone.",
+    "wipeConfirmCta": "Yes, delete & sign out",
+    "wiping": "Deleting…",
+    "cancel": "Cancel"
   }
 }

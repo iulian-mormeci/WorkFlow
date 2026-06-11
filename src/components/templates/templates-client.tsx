@@ -5,6 +5,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import {
   Copy,
   LayoutTemplate,
+  Loader2,
   Pencil,
   Plus,
   Rocket,
@@ -13,6 +14,13 @@ import {
 import { db, type InterventionTemplate } from "@/lib/db/workflow-db";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
 import { InterventionFormDialog } from "@/components/interventions/intervention-form-dialog";
 import {
   TemplateEditorDialog,
@@ -58,6 +66,9 @@ export function TemplatesClient() {
   const [useOpen, setUseOpen] = useState(false);
   const [selected, setSelected] = useState<InterventionTemplate | null>(null);
 
+  const [deleteTarget, setDeleteTarget] = useState<InterventionTemplate | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   function openCreate() {
     setEditorTarget({});
     setEditorOpen(true);
@@ -71,6 +82,39 @@ export function TemplatesClient() {
   function openDuplicate(id: string) {
     setEditorTarget({ editId: null, duplicateFromId: id });
     setEditorOpen(true);
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget || deleting) return;
+    setDeleting(true);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { user } } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
+      const res = await performTemplateCloudSyncDelete({
+        templateId: deleteTarget.id,
+        supabase: supabase ?? null,
+        userId: user?.id ?? null
+      });
+      if (!res.ok) {
+        toast({
+          title: t("templates.toasts.deleteFailedTitle"),
+          description: res.message,
+          variant: "destructive"
+        });
+        return;
+      }
+      toast({ title: t("templates.toasts.deletedTitle"), description: t("templates.toasts.deletedBody") });
+      scheduleWorkflowSync();
+      setDeleteTarget(null);
+    } catch (e: unknown) {
+      toast({
+        title: t("templates.toasts.deleteFailedTitle"),
+        description: e instanceof Error ? e.message : String(e),
+        variant: "destructive"
+      });
+    } finally {
+      setDeleting(false);
+    }
   }
 
   return (
@@ -145,38 +189,7 @@ export function TemplatesClient() {
                 type="button"
                 variant="outline"
                 className="min-h-11 border-destructive/40 text-destructive hover:bg-destructive/10"
-                onClick={async () => {
-                  if (!confirm(t("templates.confirmDelete"))) {
-                    return;
-                  }
-                  try {
-                    const supabase = createSupabaseBrowserClient();
-                    const {
-                      data: { user }
-                    } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
-                    const res = await performTemplateCloudSyncDelete({
-                      templateId: tpl.id,
-                      supabase: supabase ?? null,
-                      userId: user?.id ?? null
-                    });
-                    if (!res.ok) {
-                      toast({
-                        title: t("templates.toasts.deleteFailedTitle"),
-                        description: res.message,
-                        variant: "destructive"
-                      });
-                      return;
-                    }
-                    toast({ title: t("templates.toasts.deletedTitle"), description: t("templates.toasts.deletedBody") });
-                    scheduleWorkflowSync();
-                  } catch (e: unknown) {
-                    toast({
-                      title: t("templates.toasts.deleteFailedTitle"),
-                      description: e instanceof Error ? e.message : String(e),
-                      variant: "destructive"
-                    });
-                  }
-                }}
+                onClick={() => setDeleteTarget(tpl)}
               >
                 <Trash2 className="h-4 w-4" />
                 {t("common.delete")}
@@ -229,6 +242,35 @@ export function TemplatesClient() {
             : undefined
         }
       />
+
+      <Dialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(v) => !deleting && !v && setDeleteTarget(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("templates.deleteDialog.title")}</DialogTitle>
+            <DialogDescription>
+              {deleteTarget ? t("templates.deleteDialog.body", { name: deleteTarget.name }) : null}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 flex justify-end gap-2">
+            <Button type="button" variant="outline" disabled={deleting} onClick={() => setDeleteTarget(null)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={deleting}
+              className="gap-2"
+              onClick={() => void confirmDelete()}
+            >
+              {deleting && <Loader2 className="h-4 w-4 animate-spin" />}
+              {deleting ? t("common.deleting") : t("common.delete")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -11,6 +11,7 @@ import {
   FileScan,
   ListChecks,
   Layers,
+  Loader2,
   Mail,
   MapPin,
   MessageSquarePlus,
@@ -788,10 +789,10 @@ export function InterventionEditClient({ id }: { id: string }) {
               {t("common.cancel")}
             </Button>
             <Button
-              variant="outline"
-              className="border-destructive/50 text-destructive hover:bg-destructive/10"
+              variant="destructive"
               disabled={deleting}
               type="button"
+              className="gap-2"
               onClick={async () => {
                 setDeleting(true);
                 try {
@@ -834,6 +835,7 @@ export function InterventionEditClient({ id }: { id: string }) {
                 }
               }}
             >
+              {deleting && <Loader2 className="h-4 w-4 animate-spin" />}
               {deleting ? t("common.deleting") : t("common.delete")}
             </Button>
           </div>
