@@ -14,6 +14,7 @@ import {
   scheduleWorkflowSync,
   setSyncSupabaseClient
 } from "@/lib/sync/sync-engine";
+import { useAuthStore } from "@/stores/auth";
 
 /**
  * Client-only bootstrap for cloud sync: wires the Supabase singleton into `sync-engine`,
@@ -36,15 +37,24 @@ export function WorkflowSyncRunner() {
     window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);
 
+    const { setSession } = useAuthStore.getState();
+
     void (async () => {
-      const {
-        data: { session }
-      } = await supabase.auth.getSession();
-      if (session?.user) {
+      // getUser() makes a real API call — always returns fresh metadata.
+      // getSession() alone would give stale JWT claims if the token hasn't rotated yet.
+      const [{ data: { session } }, { data: { user: freshUser } }] = await Promise.all([
+        supabase.auth.getSession(),
+        supabase.auth.getUser()
+      ]);
+      const mergedSession = session && freshUser
+        ? { ...session, user: freshUser }
+        : session;
+      setSession(mergedSession);
+      if (mergedSession?.user) {
         const r = await runFullSync(supabase);
         maybeToastSyncFailure(r);
         stopRealtimeRef.current?.();
-        stopRealtimeRef.current = startWorkflowRealtime(supabase, session.user.id);
+        stopRealtimeRef.current = startWorkflowRealtime(supabase, mergedSession.user.id);
         await refreshPendingDirtyCount();
       }
     })();
@@ -52,6 +62,7 @@ export function WorkflowSyncRunner() {
     const {
       data: { subscription }
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
       stopRealtimeRef.current?.();
       stopRealtimeRef.current = null;
       if (session?.user) {
