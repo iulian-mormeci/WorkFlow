@@ -115,22 +115,74 @@
     },
     "terms": {
       "title": "Terms of Service",
-      "s1": { "title": "1) Nature of the service", "body": "WorkFlow is a personal tool designed for use by a single technician. The site is publicly accessible, but actual use is intended for the owner. It is not a commercial SaaS service with an SLA, guaranteed support or enterprise features." },
-      "s2": { "title": "2) Account and authentication", "body": "Access is provided via authentication (Supabase). You are responsible for keeping credentials and devices secure. In case of unauthorised use, contact the controller." },
-      "s3": { "title": "3) Permitted use", "items": { "allowed": "Use the app to manage data and workflows related to technical interventions.", "security": "Do not attempt to compromise security, bypass protections or access unauthorised data.", "illegal": "Do not use the service for unlawful activities or to upload content infringing third‑party rights." } },
-      "s4": { "title": "4) Uploaded content and data", "body": "Data you enter (clients, interventions, documents, photos, voice notes, etc.) remains your responsibility. We recommend uploading only what is necessary and avoiding excessive data, especially special categories of data (Art. 9 GDPR) unless strictly necessary." },
-      "s5": { "title": "5) Availability and changes", "body": "The service may be changed, suspended or discontinued at any time. Temporary outages may occur (maintenance, network or provider issues). As a personal tool, operational continuity is not guaranteed." },
-      "s6": { "title": "6) Limitation of liability", "body": "To the extent permitted by law, the controller is not liable for indirect or consequential damages, data loss, loss of profits or business interruptions arising from use or inability to use WorkFlow. Use the export/backup features regularly." },
-      "s7": { "title": "7) Intellectual property and licence", "body": "The software and interface are protected by applicable laws. Use is granted for the controller’s personal/operational purposes. Unauthorised reproduction or distribution is not permitted." },
-      "s8": { "title": "8) Privacy", "body": "Personal data processing is governed by the Privacy Policy." },
-      "s9": { "title": "9) Contact", "body": "For communications related to these Terms: {email}." }
+      "s1": {
+        "title": "1) Nature of the service",
+        "body": "WorkFlow is a personal tool designed for use by a single technician. The site is publicly accessible, but actual use is intended for the owner. It is not a commercial SaaS service with an SLA, guaranteed support or enterprise features."
+      },
+      "s2": {
+        "title": "2) Account and authentication",
+        "body": "Access is provided via authentication (Supabase). You are responsible for keeping credentials and devices secure. In case of unauthorised use, contact the controller."
+      },
+      "s3": {
+        "title": "3) Permitted use",
+        "items": {
+          "allowed": "Use the app to manage data and workflows related to technical interventions.",
+          "security": "Do not attempt to compromise security, bypass protections or access unauthorised data.",
+          "illegal": "Do not use the service for unlawful activities or to upload content infringing third‑party rights."
+        }
+      },
+      "s4": {
+        "title": "4) Uploaded content and data",
+        "body": "Data you enter (clients, interventions, documents, photos, voice notes, etc.) remains your responsibility. We recommend uploading only what is necessary and avoiding excessive data, especially special categories of data (Art. 9 GDPR) unless strictly necessary."
+      },
+      "s5": {
+        "title": "5) Availability and changes",
+        "body": "The service may be changed, suspended or discontinued at any time. Temporary outages may occur (maintenance, network or provider issues). As a personal tool, operational continuity is not guaranteed."
+      },
+      "s6": {
+        "title": "6) Limitation of liability",
+        "body": "To the extent permitted by law, the controller is not liable for indirect or consequential damages, data loss, loss of profits or business interruptions arising from use or inability to use WorkFlow. Use the export/backup features regularly."
+      },
+      "s7": {
+        "title": "7) Intellectual property and licence",
+        "body": "The software and interface are protected by applicable laws. Use is granted for the controller’s personal/operational purposes. Unauthorised reproduction or distribution is not permitted."
+      },
+      "s8": {
+        "title": "8) Privacy",
+        "body": "Personal data processing is governed by the Privacy Policy."
+      },
+      "s9": {
+        "title": "9) Contact",
+        "body": "For communications related to these Terms: {email}."
+      }
     },
     "accessibility": {
       "title": "Accessibility statement",
-      "s1": { "title": "Conformance status", "body": "WorkFlow is a personal progressive web application (PWA). The goal is to provide an accessible experience aligned with WCAG 2.1 AA principles, within the realistic limits of a personal project." },
-      "s2": { "title": "Measures taken", "items": { "focus": "UI components with visible focus and keyboard navigation (Radix/shadcn patterns).", "contrast": "Good contrast in light/dark themes and text that is not overly small.", "labels": "Explicit labels for key controls and regions/navigation with aria-labels where appropriate.", "semantic": "Legal content rendered with semantic HTML (headings, sections, lists)." } },
-      "s3": { "title": "Known limitations", "items": { "dnd": "Some complex screens (e.g. drag & drop editors) may require additional ARIA refinements.", "pdf": "Exported PDFs are generated from an HTML view and may not be fully accessible to screen readers.", "maps": "Map-based features may be less usable without visual support." } },
-      "s4": { "title": "Feedback and contact", "body": "If you find an accessibility issue, describe the page and expected behaviour. It will be evaluated and fixed when feasible as the app evolves." }
+      "s1": {
+        "title": "Conformance status",
+        "body": "WorkFlow is a personal progressive web application (PWA). The goal is to provide an accessible experience aligned with WCAG 2.1 AA principles, within the realistic limits of a personal project."
+      },
+      "s2": {
+        "title": "Measures taken",
+        "items": {
+          "focus": "UI components with visible focus and keyboard navigation (Radix/shadcn patterns).",
+          "contrast": "Good contrast in light/dark themes and text that is not overly small.",
+          "labels": "Explicit labels for key controls and regions/navigation with aria-labels where appropriate.",
+          "semantic": "Legal content rendered with semantic HTML (headings, sections, lists)."
+        }
+      },
+      "s3": {
+        "title": "Known limitations",
+        "items": {
+          "dnd": "Some complex screens (e.g. drag & drop editors) may require additional ARIA refinements.",
+          "pdf": "Exported PDFs are generated from an HTML view and may not be fully accessible to screen readers.",
+          "maps": "Map-based features may be less usable without visual support."
+        }
+      },
+      "s4": {
+        "title": "Feedback and contact",
+        "body": "If you find an accessibility issue, describe the page and expected behaviour. It will be evaluated and fixed when feasible as the app evolves."
+      }
     }
   },
   "clients": {
@@ -767,8 +819,7 @@
         "role": "Operations coordinator"
       }
     }
-  }
-  ,
+  },
   "nav": {
     "dashboard": "Dashboard",
     "interventions": "Interventions",
@@ -783,7 +834,9 @@
     "spareParts": "Spare parts",
     "reports": "Reports",
     "statistics": "Statistics",
-    "settings": "Settings"
+    "settings": "Settings",
+    "chat": "Chat",
+    "admin": "Admin"
   },
   "protectedShell": {
     "signedIn": "Signed in",
@@ -1302,6 +1355,19 @@
       "saveFailedTitle": "Could not save procedure",
       "deleteFailedTitle": "Could not delete procedure",
       "imageFailedTitle": "Could not add image"
+    },
+    "submitGlobal": {
+      "checkboxLabel": "Submit as global procedure",
+      "checkboxHint": "A copy will be sent for review. Once approved, it will be visible to all users.",
+      "adminCheckboxHint": "As admin, the procedure will be published directly as approved.",
+      "pendingBadge": "Pending",
+      "rejectedBadge": "Rejected",
+      "approvedBadge": "Approved",
+      "submitSuccessTitle": "Submitted for approval",
+      "submitSuccessBody": "The global procedure is awaiting review.",
+      "adminPublishSuccessTitle": "Published globally",
+      "adminPublishSuccessBody": "The procedure is now visible to all users.",
+      "submitFailedTitle": "Could not submit the procedure"
     }
   },
   "suggestions": {
@@ -1797,13 +1863,13 @@
         "saveTemplate": "Save template"
       },
       "toasts": {
-        "crmExportedTitle": "Exported for CRM",
-        "crmExportedBody": "JSON + CSV downloaded.",
-        "crmExportFailedTitle": "CRM export failed",
-        "crmExportFailedBody": "Could not export",
-        "markedCompleteTitle": "Marked complete",
-        "markedCompleteBodyWithTimer": "Visit closed and duration saved from the timer.",
-        "markedCompleteBody": "Visit closed."
+        "pdfReadyTitle": "PDF ready",
+        "pdfReadyBody": "Downloaded to your device.",
+        "pdfFailedTitle": "PDF export failed",
+        "pdfFailedBody": "Could not generate PDF",
+        "templateSavedTitle": "Template saved",
+        "templateSavedBody": "Available in Templates.",
+        "templateSaveFailedTitle": "Failed to save template"
       },
       "summary": {
         "work": "Work",
@@ -1877,15 +1943,6 @@
         "photosSubtitle": "Tap a photo to enlarge.",
         "photosEmpty": "No photos attached.",
         "photosAlt": "Photo"
-      },
-      "toasts": {
-        "pdfReadyTitle": "PDF ready",
-        "pdfReadyBody": "Downloaded to your device.",
-        "pdfFailedTitle": "PDF export failed",
-        "pdfFailedBody": "Could not generate PDF",
-        "templateSavedTitle": "Template saved",
-        "templateSavedBody": "Available in Templates.",
-        "templateSaveFailedTitle": "Failed to save template"
       }
     },
     "deleteDialog": {
@@ -1936,6 +1993,84 @@
       "noAccount": "No account?",
       "createOne": "Create one"
     }
+  },
+  "chat": {
+    "page": {
+      "title": "Chat",
+      "subtitle": "Direct messages and procedure discussions."
+    },
+    "noConversations": "No conversations yet. Use the button below to message the admin.",
+    "newMessage": "New message",
+    "messagePlaceholder": "Write a message… (Enter to send)",
+    "send": "Send",
+    "sending": "Sending…",
+    "sendFailed": "Failed to send message",
+    "youLabel": "You",
+    "adminLabel": "Admin",
+    "procedureContext": "Attached procedure",
+    "attachProcedure": "Attach procedure",
+    "markAsRead": "Mark as read",
+    "unreadBadge": "{count} unread",
+    "conversationWith": "Conversation with {name}",
+    "allConversations": "All conversations",
+    "startChatWithAdmin": "Message admin",
+    "noMessages": "No messages yet. Write below to start.",
+    "loadFailed": "Failed to load messages",
+    "offlineHint": "You are offline. Messages will be sent when connection is restored."
+  },
+  "admin": {
+    "page": {
+      "title": "Admin",
+      "subtitle": "Manage users, pending procedures and statistics."
+    },
+    "notAdmin": "You do not have permission to access this section.",
+    "tabs": {
+      "users": "Users",
+      "procedures": "Pending procedures",
+      "stats": "Statistics"
+    },
+    "users": {
+      "title": "Registered users",
+      "emailColumn": "Email",
+      "registeredColumn": "Registered",
+      "lastSignInColumn": "Last sign-in",
+      "roleColumn": "Role",
+      "noUsers": "No users found.",
+      "loadFailed": "Failed to load user list.",
+      "promoteToTrusted": "Promote to Contributor",
+      "removeRole": "Remove role",
+      "roleUpdated": "Role updated successfully",
+      "roleUpdateFailed": "Failed to update role",
+      "roles": {
+        "admin": "Admin",
+        "owner": "Owner",
+        "trusted_contributor": "Trusted contributor",
+        "user": "User"
+      }
+    },
+    "procedures": {
+      "title": "Procedures awaiting approval",
+      "noPending": "No pending procedures. All good!",
+      "loadFailed": "Failed to load procedures.",
+      "submittedBy": "Submitted by",
+      "submittedAt": "Submitted on",
+      "approve": "Approve",
+      "reject": "Reject",
+      "rejectionReasonLabel": "Rejection reason (optional)",
+      "rejectionReasonPlaceholder": "Briefly explain why the procedure is not approved…",
+      "approveSuccess": "Procedure approved and published globally.",
+      "approveFailed": "Failed to approve procedure.",
+      "rejectSuccess": "Procedure rejected.",
+      "rejectFailed": "Failed to reject procedure.",
+      "confirmReject": "Confirm rejection"
+    },
+    "stats": {
+      "title": "App statistics",
+      "totalUsers": "Total users",
+      "totalGlobalProcedures": "Approved global procedures",
+      "pendingProcedures": "Pending procedures",
+      "rejectedProcedures": "Rejected procedures",
+      "loadFailed": "Failed to load statistics."
+    }
   }
 }
-

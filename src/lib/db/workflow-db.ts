@@ -270,7 +270,10 @@ export type Note = {
   updatedAt: string;
 } & SyncMeta;
 
-/** Shared preset procedures (read-only for most users; admin manages in Supabase). */
+/** Approval lifecycle for community-submitted global procedures. */
+export type GlobalProcedureStatus = "pending" | "approved" | "rejected";
+
+/** Shared preset procedures visible to all authenticated users when approved. */
 export type GlobalProcedure = {
   id: Id;
   createdBy: Id;
@@ -281,6 +284,11 @@ export type GlobalProcedure = {
   content?: string;
   tags?: string[];
   imageIds?: Id[];
+  /** Approval workflow state (default "approved" for pre-existing admin rows). */
+  status?: GlobalProcedureStatus;
+  rejectionReason?: string;
+  reviewedAt?: string;
+  reviewedBy?: Id;
   createdAt: string;
   updatedAt: string;
 } & SyncMeta;
@@ -719,6 +727,28 @@ export class WorkFlowDB extends Dexie {
       activities: "&id, status, priority, dueAt, category, updatedAt, syncedAt",
       procedures: "&id, category, brand, model, updatedAt, syncedAt",
       globalProcedures: "&id, category, brand, model, updatedAt, syncedAt",
+      notes:
+        "&id, updatedAt, linkedClientId, linkedInterventionId, linkedActivityId, syncedAt",
+      userSettings: "&id, updatedAt, syncedAt"
+    });
+
+    // Add status index to globalProcedures for approval workflow filtering.
+    this.version(22).stores({
+      clients: "&id, name, clientType, updatedAt, syncedAt",
+      interventions:
+        "&id, clientId, startAt, updatedAt, status, createdBy, timerStartedAt, workCategory, dueAt, timerRunState, syncedAt",
+      spareParts: "&id, sku, name, updatedAt, syncedAt",
+      stockMovements: "&id, sparePartId, createdAt, interventionId, syncedAt",
+      tickets:
+        "&id, status, priority, reminderAt, dueAt, updatedAt, clientId, interventionId, syncedAt",
+      attachments: "&id, kind, createdAt, mime, syncedAt",
+      documents: "&id, interventionId, createdAt, title, syncedAt",
+      supportEmailOutbox:
+        "&id, status, to, createdAt, updatedAt, documentId, interventionId, syncedAt",
+      templates: "&id, name, updatedAt, workCategory, syncedAt",
+      activities: "&id, status, priority, dueAt, category, updatedAt, syncedAt",
+      procedures: "&id, category, brand, model, updatedAt, syncedAt",
+      globalProcedures: "&id, category, brand, model, status, createdBy, updatedAt, syncedAt",
       notes:
         "&id, updatedAt, linkedClientId, linkedInterventionId, linkedActivityId, syncedAt",
       userSettings: "&id, updatedAt, syncedAt"

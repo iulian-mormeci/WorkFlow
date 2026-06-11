@@ -2,7 +2,7 @@ import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cn } from "@/lib/utils";
 
-type Variant = "default" | "secondary" | "outline" | "ghost";
+type Variant = "default" | "secondary" | "outline" | "ghost" | "destructive";
 type Size = "default" | "sm" | "lg" | "icon";
 
 const base =
@@ -15,7 +15,8 @@ const variants: Record<Variant, string> = {
   default: "bg-primary text-primary-foreground hover:opacity-95",
   secondary: "bg-muted text-foreground hover:opacity-95",
   outline: "border bg-background hover:bg-muted",
-  ghost: "hover:bg-muted"
+  ghost: "hover:bg-muted",
+  destructive: "bg-destructive text-destructive-foreground hover:opacity-95"
 };
 
 const sizes: Record<Size, string> = {

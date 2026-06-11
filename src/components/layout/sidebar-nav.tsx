@@ -10,10 +10,12 @@ import {
   Layers,
   LineChart,
   ListTodo,
+  MessageCircle,
   MessagesSquare,
   NotebookPen,
   Package,
   Settings,
+  ShieldCheck,
   Users
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -33,7 +35,9 @@ export type SidebarIconName =
   | "spareParts"
   | "reports"
   | "statistics"
-  | "settings";
+  | "settings"
+  | "chat"
+  | "admin";
 
 /** Lucide icons for each `SidebarIconName` (sidebar + mobile menu). */
 export const SIDEBAR_NAV_ICONS = {
@@ -49,7 +53,9 @@ export const SIDEBAR_NAV_ICONS = {
   spareParts: Package,
   reports: BarChart3,
   statistics: LineChart,
-  settings: Settings
+  settings: Settings,
+  chat: MessageCircle,
+  admin: ShieldCheck
 } satisfies Record<SidebarIconName, typeof Home>;
 
 export type SidebarNavItem = {

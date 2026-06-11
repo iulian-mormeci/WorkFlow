@@ -115,22 +115,74 @@
     },
     "terms": {
       "title": "Termini di servizio",
-      "s1": { "title": "1) Natura del servizio", "body": "WorkFlow è uno strumento personale progettato per l’uso da parte di un singolo tecnico. Il sito è pubblicamente accessibile, ma l’uso effettivo è destinato al proprietario. Non si tratta di un servizio SaaS commerciale con SLA, assistenza garantita o funzionalità enterprise." },
-      "s2": { "title": "2) Account e autenticazione", "body": "L’accesso avviene tramite autenticazione (Supabase). Sei responsabile della riservatezza delle credenziali e dell’accesso ai tuoi dispositivi. In caso di uso non autorizzato, contatta il titolare." },
-      "s3": { "title": "3) Uso consentito", "items": { "allowed": "Usare l’app per gestire dati e flussi di lavoro legati ad interventi tecnici.", "security": "Non tentare di compromettere la sicurezza, aggirare protezioni o accedere a dati non autorizzati.", "illegal": "Non usare il servizio per attività illecite o per caricare contenuti in violazione di diritti altrui." } },
-      "s4": { "title": "4) Contenuti e dati caricati", "body": "I dati inseriti (clienti, interventi, documenti, foto, note vocali, ecc.) restano sotto la tua responsabilità. Ti raccomandiamo di caricare solo ciò che è necessario e di evitare dati eccedenti, in particolare categorie particolari di dati (art. 9 GDPR) salvo stretta necessità." },
-      "s5": { "title": "5) Disponibilità e modifiche", "body": "Il servizio può essere modificato, sospeso o interrotto in qualsiasi momento. Potrebbero verificarsi indisponibilità temporanee (es. manutenzione, problemi di rete o del provider). Trattandosi di un tool personale, non è garantita una continuità operativa." },
-      "s6": { "title": "6) Limitazione di responsabilità", "body": "Nei limiti consentiti dalla legge, il titolare non sarà responsabile per danni indiretti o consequenziali, perdita di dati, perdita di profitti o interruzioni di attività derivanti dall’uso o dall’impossibilità di usare WorkFlow. Ti invitiamo a usare regolarmente le funzioni di export/backup." },
-      "s7": { "title": "7) Proprietà intellettuale e licenza", "body": "Il software e l’interfaccia sono protetti dalle norme applicabili. L’uso è concesso per finalità personali/operative del titolare. Non è consentita la riproduzione o distribuzione non autorizzata dei contenuti del sito/app." },
-      "s8": { "title": "8) Privacy", "body": "Il trattamento dei dati personali è disciplinato dalla Privacy Policy." },
-      "s9": { "title": "9) Contatti", "body": "Per comunicazioni relative a questi Termini: {email}." }
+      "s1": {
+        "title": "1) Natura del servizio",
+        "body": "WorkFlow è uno strumento personale progettato per l’uso da parte di un singolo tecnico. Il sito è pubblicamente accessibile, ma l’uso effettivo è destinato al proprietario. Non si tratta di un servizio SaaS commerciale con SLA, assistenza garantita o funzionalità enterprise."
+      },
+      "s2": {
+        "title": "2) Account e autenticazione",
+        "body": "L’accesso avviene tramite autenticazione (Supabase). Sei responsabile della riservatezza delle credenziali e dell’accesso ai tuoi dispositivi. In caso di uso non autorizzato, contatta il titolare."
+      },
+      "s3": {
+        "title": "3) Uso consentito",
+        "items": {
+          "allowed": "Usare l’app per gestire dati e flussi di lavoro legati ad interventi tecnici.",
+          "security": "Non tentare di compromettere la sicurezza, aggirare protezioni o accedere a dati non autorizzati.",
+          "illegal": "Non usare il servizio per attività illecite o per caricare contenuti in violazione di diritti altrui."
+        }
+      },
+      "s4": {
+        "title": "4) Contenuti e dati caricati",
+        "body": "I dati inseriti (clienti, interventi, documenti, foto, note vocali, ecc.) restano sotto la tua responsabilità. Ti raccomandiamo di caricare solo ciò che è necessario e di evitare dati eccedenti, in particolare categorie particolari di dati (art. 9 GDPR) salvo stretta necessità."
+      },
+      "s5": {
+        "title": "5) Disponibilità e modifiche",
+        "body": "Il servizio può essere modificato, sospeso o interrotto in qualsiasi momento. Potrebbero verificarsi indisponibilità temporanee (es. manutenzione, problemi di rete o del provider). Trattandosi di un tool personale, non è garantita una continuità operativa."
+      },
+      "s6": {
+        "title": "6) Limitazione di responsabilità",
+        "body": "Nei limiti consentiti dalla legge, il titolare non sarà responsabile per danni indiretti o consequenziali, perdita di dati, perdita di profitti o interruzioni di attività derivanti dall’uso o dall’impossibilità di usare WorkFlow. Ti invitiamo a usare regolarmente le funzioni di export/backup."
+      },
+      "s7": {
+        "title": "7) Proprietà intellettuale e licenza",
+        "body": "Il software e l’interfaccia sono protetti dalle norme applicabili. L’uso è concesso per finalità personali/operative del titolare. Non è consentita la riproduzione o distribuzione non autorizzata dei contenuti del sito/app."
+      },
+      "s8": {
+        "title": "8) Privacy",
+        "body": "Il trattamento dei dati personali è disciplinato dalla Privacy Policy."
+      },
+      "s9": {
+        "title": "9) Contatti",
+        "body": "Per comunicazioni relative a questi Termini: {email}."
+      }
     },
     "accessibility": {
       "title": "Dichiarazione di accessibilità",
-      "s1": { "title": "Stato di conformità", "body": "WorkFlow è un’applicazione web progressiva (PWA) ad uso personale. L’obiettivo è garantire un’esperienza accessibile e coerente con i principi WCAG 2.1 livello AA, nei limiti realistici di un progetto personale." },
-      "s2": { "title": "Misure adottate", "items": { "focus": "Componenti UI con focus visibile e navigazione da tastiera (pattern Radix/shadcn).", "contrast": "Contrasto elevato in tema chiaro/scuro e testo non troppo piccolo.", "labels": "Etichette esplicite per i controlli principali e regioni/navigazioni con aria-label dove opportuno.", "semantic": "Contenuti legali in HTML semantico (titoli, sezioni, liste)." } },
-      "s3": { "title": "Limiti noti", "items": { "dnd": "Alcune schermate complesse (es. editor con drag&drop) possono richiedere ulteriori affinamenti ARIA.", "pdf": "I PDF esportati sono generati da una vista HTML e potrebbero non essere totalmente accessibili ai lettori.", "maps": "Funzioni basate su mappe possono risultare meno fruibili senza supporto visivo." } },
-      "s4": { "title": "Feedback e contatti", "body": "Se trovi un problema di accessibilità, descrivi la pagina e il comportamento atteso: verrà valutato e corretto compatibilmente con l’evoluzione dell’app." }
+      "s1": {
+        "title": "Stato di conformità",
+        "body": "WorkFlow è un’applicazione web progressiva (PWA) ad uso personale. L’obiettivo è garantire un’esperienza accessibile e coerente con i principi WCAG 2.1 livello AA, nei limiti realistici di un progetto personale."
+      },
+      "s2": {
+        "title": "Misure adottate",
+        "items": {
+          "focus": "Componenti UI con focus visibile e navigazione da tastiera (pattern Radix/shadcn).",
+          "contrast": "Contrasto elevato in tema chiaro/scuro e testo non troppo piccolo.",
+          "labels": "Etichette esplicite per i controlli principali e regioni/navigazioni con aria-label dove opportuno.",
+          "semantic": "Contenuti legali in HTML semantico (titoli, sezioni, liste)."
+        }
+      },
+      "s3": {
+        "title": "Limiti noti",
+        "items": {
+          "dnd": "Alcune schermate complesse (es. editor con drag&drop) possono richiedere ulteriori affinamenti ARIA.",
+          "pdf": "I PDF esportati sono generati da una vista HTML e potrebbero non essere totalmente accessibili ai lettori.",
+          "maps": "Funzioni basate su mappe possono risultare meno fruibili senza supporto visivo."
+        }
+      },
+      "s4": {
+        "title": "Feedback e contatti",
+        "body": "Se trovi un problema di accessibilità, descrivi la pagina e il comportamento atteso: verrà valutato e corretto compatibilmente con l’evoluzione dell’app."
+      }
     }
   },
   "clients": {
@@ -767,8 +819,7 @@
         "role": "Coordinatore team sul territorio"
       }
     }
-  }
-  ,
+  },
   "nav": {
     "dashboard": "Dashboard",
     "interventions": "Interventi",
@@ -783,7 +834,9 @@
     "spareParts": "Ricambi",
     "reports": "Report",
     "statistics": "Statistiche",
-    "settings": "Impostazioni"
+    "settings": "Impostazioni",
+    "chat": "Chat",
+    "admin": "Admin"
   },
   "protectedShell": {
     "signedIn": "Accesso effettuato",
@@ -1302,6 +1355,19 @@
       "saveFailedTitle": "Impossibile salvare la procedura",
       "deleteFailedTitle": "Impossibile eliminare la procedura",
       "imageFailedTitle": "Impossibile aggiungere l'immagine"
+    },
+    "submitGlobal": {
+      "checkboxLabel": "Proponi come procedura globale",
+      "checkboxHint": "Una copia verrà inviata in revisione. Una volta approvata sarà visibile a tutti gli utenti.",
+      "adminCheckboxHint": "Come admin, la procedura sarà pubblicata direttamente come approvata.",
+      "pendingBadge": "In attesa",
+      "rejectedBadge": "Rifiutata",
+      "approvedBadge": "Approvata",
+      "submitSuccessTitle": "Inviata per approvazione",
+      "submitSuccessBody": "La procedura globale è in attesa di revisione.",
+      "adminPublishSuccessTitle": "Pubblicata globalmente",
+      "adminPublishSuccessBody": "La procedura è ora visibile a tutti gli utenti.",
+      "submitFailedTitle": "Impossibile inviare la procedura"
     }
   },
   "suggestions": {
@@ -1797,13 +1863,13 @@
         "saveTemplate": "Salva modello"
       },
       "toasts": {
-        "crmExportedTitle": "Esportato per CRM",
-        "crmExportedBody": "JSON + CSV scaricati.",
-        "crmExportFailedTitle": "Esportazione CRM non riuscita",
-        "crmExportFailedBody": "Impossibile esportare",
-        "markedCompleteTitle": "Segnato come completato",
-        "markedCompleteBodyWithTimer": "Visita chiusa e durata salvata dal timer.",
-        "markedCompleteBody": "Visita chiusa."
+        "pdfReadyTitle": "PDF pronto",
+        "pdfReadyBody": "Scaricato sul dispositivo.",
+        "pdfFailedTitle": "Export PDF non riuscito",
+        "pdfFailedBody": "Impossibile generare il PDF",
+        "templateSavedTitle": "Modello salvato",
+        "templateSavedBody": "Disponibile in Modelli.",
+        "templateSaveFailedTitle": "Salvataggio modello non riuscito"
       },
       "summary": {
         "work": "Lavoro",
@@ -1877,15 +1943,6 @@
         "photosSubtitle": "Tocca una foto per ingrandire.",
         "photosEmpty": "Nessuna foto allegata.",
         "photosAlt": "Foto"
-      },
-      "toasts": {
-        "pdfReadyTitle": "PDF pronto",
-        "pdfReadyBody": "Scaricato sul dispositivo.",
-        "pdfFailedTitle": "Export PDF non riuscito",
-        "pdfFailedBody": "Impossibile generare il PDF",
-        "templateSavedTitle": "Modello salvato",
-        "templateSavedBody": "Disponibile in Modelli.",
-        "templateSaveFailedTitle": "Salvataggio modello non riuscito"
       }
     },
     "deleteDialog": {
@@ -1936,6 +1993,84 @@
       "noAccount": "Non hai un account?",
       "createOne": "Crea un account"
     }
+  },
+  "chat": {
+    "page": {
+      "title": "Chat",
+      "subtitle": "Messaggi diretti e discussioni sulle procedure."
+    },
+    "noConversations": "Nessuna conversazione. Premi il pulsante qui sotto per scrivere all'admin.",
+    "newMessage": "Nuovo messaggio",
+    "messagePlaceholder": "Scrivi un messaggio… (Invio per inviare)",
+    "send": "Invia",
+    "sending": "Invio…",
+    "sendFailed": "Impossibile inviare il messaggio",
+    "youLabel": "Tu",
+    "adminLabel": "Admin",
+    "procedureContext": "Procedura allegata",
+    "attachProcedure": "Allega procedura",
+    "markAsRead": "Segna come letto",
+    "unreadBadge": "{count} non letti",
+    "conversationWith": "Conversazione con {name}",
+    "allConversations": "Tutte le conversazioni",
+    "startChatWithAdmin": "Scrivi all'admin",
+    "noMessages": "Ancora nessun messaggio. Scrivi qui sotto per iniziare.",
+    "loadFailed": "Impossibile caricare i messaggi",
+    "offlineHint": "Sei offline. I messaggi verranno inviati al ripristino della connessione."
+  },
+  "admin": {
+    "page": {
+      "title": "Admin",
+      "subtitle": "Gestione utenti, procedure in attesa e statistiche."
+    },
+    "notAdmin": "Non hai i permessi per accedere a questa sezione.",
+    "tabs": {
+      "users": "Utenti",
+      "procedures": "Procedure in attesa",
+      "stats": "Statistiche"
+    },
+    "users": {
+      "title": "Utenti registrati",
+      "emailColumn": "Email",
+      "registeredColumn": "Registrato",
+      "lastSignInColumn": "Ultimo accesso",
+      "roleColumn": "Ruolo",
+      "noUsers": "Nessun utente trovato.",
+      "loadFailed": "Impossibile caricare la lista utenti.",
+      "promoteToTrusted": "Promuovi a Collaboratore",
+      "removeRole": "Rimuovi ruolo",
+      "roleUpdated": "Ruolo aggiornato con successo",
+      "roleUpdateFailed": "Impossibile aggiornare il ruolo",
+      "roles": {
+        "admin": "Admin",
+        "owner": "Owner",
+        "trusted_contributor": "Collaboratore fidato",
+        "user": "Utente"
+      }
+    },
+    "procedures": {
+      "title": "Procedure in attesa di approvazione",
+      "noPending": "Nessuna procedura in attesa. Tutto a posto!",
+      "loadFailed": "Impossibile caricare le procedure.",
+      "submittedBy": "Inviata da",
+      "submittedAt": "Inviata il",
+      "approve": "Approva",
+      "reject": "Rifiuta",
+      "rejectionReasonLabel": "Motivo del rifiuto (opzionale)",
+      "rejectionReasonPlaceholder": "Spiega brevemente perché la procedura non è approvata…",
+      "approveSuccess": "Procedura approvata e pubblicata globalmente.",
+      "approveFailed": "Impossibile approvare la procedura.",
+      "rejectSuccess": "Procedura rifiutata.",
+      "rejectFailed": "Impossibile rifiutare la procedura.",
+      "confirmReject": "Conferma rifiuto"
+    },
+    "stats": {
+      "title": "Statistiche dell'app",
+      "totalUsers": "Utenti totali",
+      "totalGlobalProcedures": "Procedure globali approvate",
+      "pendingProcedures": "Procedure in attesa",
+      "rejectedProcedures": "Procedure rifiutate",
+      "loadFailed": "Impossibile caricare le statistiche."
+    }
   }
 }
-

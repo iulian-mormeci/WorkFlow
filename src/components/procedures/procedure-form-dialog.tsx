@@ -15,11 +15,15 @@ import {
   type ProcedureFormValues
 } from "@/lib/procedures/procedure-mutations";
 import { createProcedureImageAttachment } from "@/lib/procedures/image-attachment";
+import { submitProcedureForGlobal } from "@/lib/procedures/submit-global-procedure";
+import { isGlobalProcedureAdmin } from "@/lib/procedures/global-procedure-admin";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { performStandaloneAttachmentCloudDelete } from "@/lib/sync/cloud-delete";
+import { useAuthStore } from "@/stores/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -31,6 +35,7 @@ import {
   ProcedureEditor,
   type ProcedureEditorImage
 } from "@/components/procedures/procedure-editor";
+import { Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslations } from "next-intl";
 
@@ -53,6 +58,8 @@ export function ProcedureFormDialog({
 }: Props) {
   const t = useTranslations();
   const { toast } = useToast();
+  const user = useAuthStore((s) => s.user);
+  const isAdmin = isGlobalProcedureAdmin(user);
   const isEdit = Boolean(procedure);
 
   const [title, setTitle] = useState("");
@@ -62,6 +69,7 @@ export function ProcedureFormDialog({
   const [content, setContent] = useState("");
   const [tagsInput, setTagsInput] = useState("");
   const [imageIds, setImageIds] = useState<string[]>([]);
+  const [submitGlobal, setSubmitGlobal] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [seedKey, setSeedKey] = useState("new");
@@ -84,6 +92,7 @@ export function ProcedureFormDialog({
     setContent(procedure?.content ?? "");
     setTagsInput((procedure?.tags ?? []).join(", "));
     setImageIds(procedure?.imageIds ?? []);
+    setSubmitGlobal(false);
     setUploading(false);
     setSaving(false);
     setSeedKey(procedure?.id ?? `new-${Date.now()}`);
@@ -197,22 +206,44 @@ export function ProcedureFormDialog({
       }
       savedRef.current = true;
 
-      // Now that the procedure is saved, drop images the user removed during edit.
+      // Drop images the user removed during edit.
       const removed = [...removedExistingRef.current];
       removedExistingRef.current = new Set();
-      if (removed.length) {
-        const supabase = createSupabaseBrowserClient();
+      const supabase = createSupabaseBrowserClient();
+      if (removed.length && supabase) {
         for (const id of removed) {
           await performStandaloneAttachmentCloudDelete({ attachmentId: id, supabase, userId: null });
         }
       }
 
-      toast({
-        title: isEdit
-          ? t("procedures.toasts.updatedTitle")
-          : t("procedures.toasts.createdTitle"),
-        description: t("procedures.toasts.savedLocally")
-      });
+      // Submit a copy to the global pool if the user opted in.
+      if (submitGlobal && user && !isEdit && supabase) {
+        const result = await submitProcedureForGlobal(values, user, supabase);
+        if (result.ok) {
+          toast({
+            title: isAdmin
+              ? t("procedures.submitGlobal.adminPublishSuccessTitle")
+              : t("procedures.submitGlobal.submitSuccessTitle"),
+            description: isAdmin
+              ? t("procedures.submitGlobal.adminPublishSuccessBody")
+              : t("procedures.submitGlobal.submitSuccessBody")
+          });
+        } else {
+          toast({
+            title: t("procedures.submitGlobal.submitFailedTitle"),
+            description: result.error,
+            variant: "destructive"
+          });
+        }
+      } else {
+        toast({
+          title: isEdit
+            ? t("procedures.toasts.updatedTitle")
+            : t("procedures.toasts.createdTitle"),
+          description: t("procedures.toasts.savedLocally")
+        });
+      }
+
       onSaved?.();
       onOpenChange(false);
     } catch (e) {
@@ -304,6 +335,34 @@ export function ProcedureFormDialog({
             />
             <p className="text-xs text-muted-foreground">{t("procedures.fields.tagsHint")}</p>
           </div>
+
+          {/* Submit as global procedure — only available when creating (not editing) */}
+          {!isEdit && (
+            <div className="rounded-xl border bg-muted/40 p-3.5">
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  id="submit-global"
+                  checked={submitGlobal}
+                  onCheckedChange={(v) => setSubmitGlobal(v === true)}
+                  className="mt-0.5 shrink-0"
+                />
+                <div className="min-w-0 space-y-1">
+                  <label
+                    htmlFor="submit-global"
+                    className="flex cursor-pointer items-center gap-1.5 text-sm font-medium"
+                  >
+                    <Globe className="h-4 w-4 shrink-0 text-primary" />
+                    {t("procedures.submitGlobal.checkboxLabel")}
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    {isAdmin
+                      ? t("procedures.submitGlobal.adminCheckboxHint")
+                      : t("procedures.submitGlobal.checkboxHint")}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="mt-1 flex items-center justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => requestClose(false)} disabled={saving}>
