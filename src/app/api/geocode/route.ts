@@ -44,7 +44,12 @@ async function googleAutocomplete(q: string): Promise<GeocodeHit[]> {
   const res = await fetch(url.toString(), { cache: "no-store" });
   if (!res.ok) throw new Error(`autocomplete ${res.status}`);
 
-  const json = (await res.json()) as { predictions?: AutocompletePrediction[] };
+  const json = (await res.json()) as { status?: string; predictions?: AutocompletePrediction[] };
+  // Google returns HTTP 200 even for auth/quota errors — treat anything other than OK/ZERO_RESULTS as a failure.
+  if (json.status && json.status !== "OK" && json.status !== "ZERO_RESULTS") {
+    throw new Error(`autocomplete status: ${json.status}`);
+  }
+
   const predictions = json.predictions ?? [];
 
   return predictions
@@ -57,7 +62,7 @@ async function googleAutocomplete(q: string): Promise<GeocodeHit[]> {
     }));
 }
 
-/** Google Place Details → resolves placeId to {address, lat, lng}. */
+/** Google Place Details → resolves placeId to {address, lat, lng}. Throws on API errors so caller can fall back. */
 async function googlePlaceDetails(placeId: string): Promise<GeocodeHit | null> {
   const url = new URL("https://maps.googleapis.com/maps/api/place/details/json");
   url.searchParams.set("place_id", placeId);
@@ -66,9 +71,12 @@ async function googlePlaceDetails(placeId: string): Promise<GeocodeHit | null> {
   url.searchParams.set("language", "it");
 
   const res = await fetch(url.toString(), { cache: "no-store" });
-  if (!res.ok) return null;
+  if (!res.ok) throw new Error(`place details ${res.status}`);
 
   const json = (await res.json()) as PlaceDetailsResult;
+  if (json.status && json.status !== "OK" && json.status !== "ZERO_RESULTS") {
+    throw new Error(`place details status: ${json.status}`);
+  }
   if (json.status !== "OK" || !json.result) return null;
 
   const lat = json.result.geometry?.location?.lat;
@@ -79,7 +87,7 @@ async function googlePlaceDetails(placeId: string): Promise<GeocodeHit | null> {
   return { address, lat: lat!, lng: lng!, placeId };
 }
 
-/** Google Geocoding Reverse (lat/lng → address). */
+/** Google Geocoding Reverse (lat/lng → address). Throws on API errors so caller can fall back. */
 async function googleReverseGeocode(lat: number, lng: number): Promise<GeocodeHit | null> {
   const url = new URL("https://maps.googleapis.com/maps/api/geocode/json");
   url.searchParams.set("latlng", `${lat},${lng}`);
@@ -87,9 +95,12 @@ async function googleReverseGeocode(lat: number, lng: number): Promise<GeocodeHi
   url.searchParams.set("language", "it");
 
   const res = await fetch(url.toString(), { cache: "no-store" });
-  if (!res.ok) return null;
+  if (!res.ok) throw new Error(`reverse geocode ${res.status}`);
 
   const json = (await res.json()) as GeocodingResult;
+  if (json.status && json.status !== "OK" && json.status !== "ZERO_RESULTS") {
+    throw new Error(`reverse geocode status: ${json.status}`);
+  }
   if (json.status !== "OK" || !json.results?.length) return null;
 
   const r = json.results[0];
@@ -163,9 +174,14 @@ export async function GET(req: Request) {
   try {
     // ── Resolve a specific place ID to coordinates ──────────────────────────
     if (placeId) {
-      if (!GOOGLE_KEY) return NextResponse.json([], { status: 200 });
-      const hit = await googlePlaceDetails(placeId);
-      return NextResponse.json(hit ? [hit] : []);
+      if (GOOGLE_KEY) {
+        try {
+          const hit = await googlePlaceDetails(placeId);
+          if (hit) return NextResponse.json([hit]);
+        } catch { /* fall through to Nominatim */ }
+      }
+      // placeId cannot be resolved by Nominatim — return empty
+      return NextResponse.json([]);
     }
 
     // ── Reverse geocoding (coordinates → address) ───────────────────────────
@@ -175,9 +191,13 @@ export async function GET(req: Request) {
       if (!Number.isFinite(la) || !Number.isFinite(lo)) {
         return NextResponse.json({ error: "invalid coordinates" }, { status: 400 });
       }
-      const hit = GOOGLE_KEY
-        ? await googleReverseGeocode(la, lo)
-        : await nominatimReverse(la, lo);
+      if (GOOGLE_KEY) {
+        try {
+          const hit = await googleReverseGeocode(la, lo);
+          if (hit) return NextResponse.json([hit]);
+        } catch { /* fall through to Nominatim */ }
+      }
+      const hit = await nominatimReverse(la, lo);
       return NextResponse.json(hit ? [hit] : []);
     }
 
@@ -186,10 +206,14 @@ export async function GET(req: Request) {
       return NextResponse.json([]);
     }
 
-    const hits = GOOGLE_KEY
-      ? await googleAutocomplete(q)
-      : await nominatimSearch(q);
+    if (GOOGLE_KEY) {
+      try {
+        const hits = await googleAutocomplete(q);
+        if (hits.length > 0) return NextResponse.json(hits);
+      } catch { /* fall through to Nominatim */ }
+    }
 
+    const hits = await nominatimSearch(q);
     return NextResponse.json(hits);
   } catch (e) {
     return NextResponse.json(
