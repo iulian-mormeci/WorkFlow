@@ -51,38 +51,50 @@ export function buildRoundTripStops(args: {
   office?: { address?: string; lat?: number; lng?: number };
   labels: { start: string; office: string; end: string };
 }): RouteStopDraft[] {
-  const base = Date.now();
-  const startId = crypto.randomUUID();
-  const officeId = crypto.randomUUID();
-  const endId = crypto.randomUUID();
-  const start = args.start ?? {};
-  const office = args.office ?? {};
-  return [
+  const startData = args.start ?? {};
+  const officeData = args.office ?? {};
+
+  const raw: RouteStopDraft[] = [
     {
-      id: startId,
+      id: crypto.randomUUID(),
       sortIndex: 10,
       label: args.labels.start,
-      address: start.address,
-      lat: start.lat,
-      lng: start.lng
+      address: startData.address,
+      lat: startData.lat,
+      lng: startData.lng
     },
     {
-      id: officeId,
+      id: crypto.randomUUID(),
       sortIndex: 20,
       label: args.labels.office,
-      address: office.address,
-      lat: office.lat,
-      lng: office.lng
+      address: officeData.address,
+      lat: officeData.lat,
+      lng: officeData.lng
     },
     {
-      id: endId,
+      id: crypto.randomUUID(),
       sortIndex: 30,
       label: args.labels.end,
-      address: start.address,
-      lat: start.lat,
-      lng: start.lng
+      address: startData.address,
+      lat: startData.lat,
+      lng: startData.lng
     }
-  ].map((s, idx) => ({ ...s, sortIndex: (idx + 1) * 10 + (base % 3) * 0 })); // keep stable indices
+  ];
+
+  // Compute per-leg km from the start.
+  return raw.map((s, idx) => {
+    if (idx === 0) return s;
+    const prev = raw[idx - 1];
+    if (
+      typeof prev.lat === "number" &&
+      typeof prev.lng === "number" &&
+      typeof s.lat === "number" &&
+      typeof s.lng === "number"
+    ) {
+      return { ...s, kmFromPrev: haversineKm({ lat: prev.lat, lng: prev.lng }, { lat: s.lat, lng: s.lng }) };
+    }
+    return s;
+  });
 }
 
 function SortableStopRow({
@@ -270,6 +282,23 @@ export function RouteStopsEditor({
     setStops(draftStops ?? []);
   }, [draftStops, mode]);
 
+  /** Recalculate kmFromPrev for every stop in sorted order. */
+  function withKmFromPrev(sorted: RouteStopDraft[]): RouteStopDraft[] {
+    return sorted.map((s, idx) => {
+      if (idx === 0) return { ...s, kmFromPrev: undefined };
+      const prev = sorted[idx - 1];
+      if (
+        typeof prev.lat === "number" &&
+        typeof prev.lng === "number" &&
+        typeof s.lat === "number" &&
+        typeof s.lng === "number"
+      ) {
+        return { ...s, kmFromPrev: haversineKm({ lat: prev.lat, lng: prev.lng }, { lat: s.lat, lng: s.lng }) };
+      }
+      return { ...s, kmFromPrev: undefined };
+    });
+  }
+
   function setStopsBoth(next: RouteStopDraft[]) {
     setStops(next);
     if (mode === "draft") onDraftStopsChange?.(next);
@@ -336,10 +365,12 @@ export function RouteStopsEditor({
   }
 
   async function updateStop(id: string, patch: Partial<RouteStopDraft>) {
-    const next = stops.map((s) => (s.id === id ? { ...s, ...patch } : s));
+    const updated = stops.map((s) => (s.id === id ? { ...s, ...patch } : s));
+    const next = withKmFromPrev([...updated].sort((a, b) => a.sortIndex - b.sortIndex));
     setStopsBoth(next);
-    const row = next.find((s) => s.id === id);
-    if (row && mode === "supabase" && interventionId) await upsertRouteStop(interventionId, row);
+    if (mode === "supabase" && interventionId) {
+      await Promise.all(next.map((s) => upsertRouteStop(interventionId, s)));
+    }
   }
 
   async function removeStop(id: string) {
@@ -354,12 +385,12 @@ export function RouteStopsEditor({
     const newIndex = stops.findIndex((x) => x.id === String(over.id));
     if (oldIndex < 0 || newIndex < 0) return;
 
-    const moved = arrayMove(stops, oldIndex, newIndex).map((s, idx) => ({
+    const reindexed = arrayMove(stops, oldIndex, newIndex).map((s, idx) => ({
       ...s,
       sortIndex: (idx + 1) * 10
     }));
+    const moved = withKmFromPrev(reindexed);
     setStopsBoth(moved);
-    // persist sort indexes
     if (mode === "supabase" && interventionId) {
       await Promise.all(moved.map((s) => upsertRouteStop(interventionId, s)));
     }

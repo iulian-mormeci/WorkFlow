@@ -23,11 +23,19 @@ export async function cloneAttachmentBlob(sourceId: string): Promise<string | nu
 
 /**
  * Clone a global preset into the current user's personal procedures table.
+ * Throws with code "PROCEDURE_ALREADY_CLONED" if this preset was already copied.
  * Images are copied as new attachment rows so sync and deletes stay isolated.
  */
 export async function cloneGlobalProcedureToPersonal(
   global: GlobalProcedure
 ): Promise<string> {
+  const existing = await db.procedures.where("sourceGlobalId").equals(global.id).first();
+  if (existing) {
+    const err = new Error("PROCEDURE_ALREADY_CLONED");
+    err.name = "ProcedureAlreadyClonedError";
+    throw err;
+  }
+
   const imageIds: string[] = [];
   for (const srcId of global.imageIds ?? []) {
     const newId = await cloneAttachmentBlob(srcId);
@@ -41,7 +49,8 @@ export async function cloneGlobalProcedureToPersonal(
     model: global.model,
     content: sanitizeProcedureHtml(global.content ?? ""),
     tags: global.tags ?? [],
-    imageIds
+    imageIds,
+    sourceGlobalId: global.id
   };
 
   return createProcedure(values);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Crosshair, MapPin, Route } from "lucide-react";
+import { Crosshair, Loader2, MapPin, Route } from "lucide-react";
 import type { InterventionGeoStop } from "@/lib/db/workflow-db";
 import { haversineKm } from "@/lib/geo/haversine-km";
 import { InterventionRouteMapPreview } from "@/components/interventions/intervention-route-map-preview";
@@ -10,7 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useTranslations } from "next-intl";
 
-type GeocodeHit = { address: string; lat: number; lng: number };
+type GeocodeHit = {
+  address: string;
+  lat: number;
+  lng: number;
+  placeId?: string;
+};
 
 type Props = {
   start?: InterventionGeoStop;
@@ -20,6 +25,8 @@ type Props = {
   onChangeEnd: (v: InterventionGeoStop | undefined) => void;
   onAutoKm: (km: number | undefined) => void;
 };
+
+const MIN_CHARS = 3;
 
 function LocationBlock({
   label,
@@ -38,16 +45,19 @@ function LocationBlock({
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<GeocodeHit[]>([]);
   const [loading, setLoading] = useState(false);
+  const [resolving, setResolving] = useState(false);
+  const [searchedOnce, setSearchedOnce] = useState(false);
 
   const search = useCallback(async (query: string) => {
-    const t = query.trim();
-    if (t.length < 2) {
+    if (query.length < MIN_CHARS) {
       setHits([]);
+      setSearchedOnce(false);
       return;
     }
     setLoading(true);
+    setSearchedOnce(false);
     try {
-      const res = await fetch(`/api/geocode?q=${encodeURIComponent(t)}`);
+      const res = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`);
       const data = (await res.json()) as GeocodeHit[] | { error?: string };
       if (Array.isArray(data)) setHits(data);
       else setHits([]);
@@ -55,6 +65,7 @@ function LocationBlock({
       setHits([]);
     } finally {
       setLoading(false);
+      setSearchedOnce(true);
     }
   }, []);
 
@@ -64,6 +75,35 @@ function LocationBlock({
     }, 400);
     return () => window.clearTimeout(id);
   }, [q, search]);
+
+  async function handlePickHit(h: GeocodeHit) {
+    // Suggestion from Places Autocomplete: has placeId but no coordinates yet.
+    if (h.placeId && (!h.lat || !h.lng)) {
+      setResolving(true);
+      try {
+        const res = await fetch(`/api/geocode?placeId=${encodeURIComponent(h.placeId)}`);
+        const data = (await res.json()) as GeocodeHit[];
+        const resolved = Array.isArray(data) ? data[0] : null;
+        if (resolved) {
+          onPick(resolved);
+        } else {
+          // Fallback: use the address string without coordinates (graceful degradation)
+          onPick(h);
+        }
+      } catch {
+        onPick(h);
+      } finally {
+        setResolving(false);
+      }
+    } else {
+      onPick(h);
+    }
+    setQ("");
+    setHits([]);
+    setSearchedOnce(false);
+  }
+
+  const showNoResults = searchedOnce && hits.length === 0 && !loading && q.length >= MIN_CHARS;
 
   return (
     <div className="grid gap-3 rounded-2xl border bg-muted/30 p-4">
@@ -93,32 +133,40 @@ function LocationBlock({
           ) : null}
         </div>
       </div>
-      <Input
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder={t("route.location.searchPlaceholder")}
-        className="min-h-12 text-base touch-manipulation"
-        aria-busy={loading}
-      />
+
+      <div className="relative">
+        <Input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder={t("route.location.searchPlaceholder")}
+          className="min-h-12 text-base touch-manipulation"
+          aria-busy={loading || resolving}
+        />
+        {(loading || resolving) && (
+          <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+        )}
+      </div>
+
       {hits.length > 0 ? (
         <ul className="max-h-56 overflow-auto rounded-xl border bg-background text-base">
           {hits.map((h, i) => (
-            <li key={`${h.lat}-${h.lng}-${i}`}>
+            <li key={`${h.placeId ?? h.lat}-${h.lng}-${i}`}>
               <button
                 type="button"
                 className="min-h-14 w-full touch-manipulation px-4 py-3.5 text-left leading-snug hover:bg-muted active:bg-muted/80"
-                onClick={() => {
-                  onPick(h);
-                  setQ("");
-                  setHits([]);
-                }}
+                onClick={() => void handlePickHit(h)}
               >
                 {h.address}
               </button>
             </li>
           ))}
         </ul>
+      ) : showNoResults ? (
+        <p className="rounded-xl border bg-background px-4 py-3 text-sm text-muted-foreground">
+          {t("route.location.noResults")}
+        </p>
       ) : null}
+
       {value ? (
         <div className="flex items-start gap-2 rounded-xl border bg-background px-3 py-2 text-sm">
           <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />

@@ -25,6 +25,7 @@ import { useTranslations } from "next-intl";
 import { useAuthStore } from "@/stores/auth";
 import { isGlobalProcedureAdmin } from "@/lib/procedures/global-procedure-admin";
 import { useChatUnreadStore } from "@/stores/chat-unread";
+import { NotificationsBell } from "@/components/notifications/notifications-bell";
 
 type Props = {
   items: readonly SidebarNavItem[];
@@ -91,17 +92,20 @@ export function MobileMenu({ items }: Props) {
             <span>{t("protectedShell.signedIn")}</span>
           </div>
         </div>
-        <Link
-          href="/interventions?new=1"
-          aria-label={t("interventions.list.newCta")}
-          className={cn(
-            "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm",
-            "touch-manipulation active:scale-[0.98]",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-          )}
-        >
-          <Plus className="h-5 w-5" />
-        </Link>
+        <div className="flex shrink-0 items-center gap-1">
+          <NotificationsBell />
+          <Link
+            href="/interventions?new=1"
+            aria-label={t("interventions.list.newCta")}
+            className={cn(
+              "flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm",
+              "touch-manipulation active:scale-[0.98]",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            )}
+          >
+            <Plus className="h-5 w-5" />
+          </Link>
+        </div>
       </header>
 
       {/* Overflow menu sheet */}

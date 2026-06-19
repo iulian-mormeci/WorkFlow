@@ -11,6 +11,7 @@ export type RouteStopRow = {
   address: string | null;
   lat: number | null;
   lng: number | null;
+  km_from_prev: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -22,6 +23,8 @@ export type RouteStopDraft = {
   address?: string;
   lat?: number;
   lng?: number;
+  /** Straight-line distance from the previous stop (km). Undefined for the first stop. */
+  kmFromPrev?: number;
 };
 
 export function stopToDraft(r: RouteStopRow): RouteStopDraft {
@@ -31,7 +34,8 @@ export function stopToDraft(r: RouteStopRow): RouteStopDraft {
     label: r.label ?? undefined,
     address: r.address ?? undefined,
     lat: r.lat ?? undefined,
-    lng: r.lng ?? undefined
+    lng: r.lng ?? undefined,
+    kmFromPrev: r.km_from_prev ?? undefined
   };
 }
 
@@ -66,6 +70,7 @@ export async function upsertRouteStop(interventionId: string, s: RouteStopDraft)
       address: s.address ?? null,
       lat: s.lat ?? null,
       lng: s.lng ?? null,
+      km_from_prev: s.kmFromPrev ?? null,
       updated_at: now
     },
     { onConflict: "id" }

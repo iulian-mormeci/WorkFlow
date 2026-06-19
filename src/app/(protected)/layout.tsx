@@ -16,6 +16,8 @@ import { MobileMenu } from "@/components/layout/mobile-menu";
 import { PROTECTED_NAV_ITEMS } from "@/lib/navigation/protected-nav";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { ChatNotificationsProvider } from "@/components/chat/chat-notifications-provider";
+import { NotificationsProvider } from "@/components/notifications/notifications-provider";
+import { NotificationsBell } from "@/components/notifications/notifications-bell";
 import { getLocale, getTranslations, setRequestLocale } from "next-intl/server";
 
 // Protected area must never be statically cached.
@@ -55,7 +57,10 @@ export default async function ProtectedLayout({
                 </span>
               </div>
             </div>
-            <SidebarSignOut />
+            <div className="flex items-center gap-1">
+              <NotificationsBell />
+              <SidebarSignOut />
+            </div>
           </div>
           <div className="mt-3 flex items-center justify-between">
             <div className="text-xs font-medium text-muted-foreground">{t("protectedShell.languageLabel")}</div>
@@ -92,6 +97,8 @@ export default async function ProtectedLayout({
           <TicketRemindersProvider />
           {/* Client: global chat Realtime listener — keeps unread badge in sync. */}
           <ChatNotificationsProvider />
+          {/* Client: in-app notifications (global procedures etc.) via Realtime. */}
+          <NotificationsProvider />
           {children}
         </main>
       </div>

@@ -617,6 +617,7 @@ function procedureToRow(p: Procedure, userId: string) {
     content: p.content ?? null,
     tags: p.tags?.length ? p.tags : null,
     image_ids: p.imageIds?.length ? p.imageIds : null,
+    source_global_id: p.sourceGlobalId ?? null,
     created_at: p.createdAt,
     updated_at: p.updatedAt
   };
@@ -632,6 +633,7 @@ function procedureFromRow(r: Record<string, unknown>): Procedure {
     content: (r.content as string) ?? undefined,
     tags: stringArrayFromJson(r.tags),
     imageIds: stringArrayFromJson(r.image_ids),
+    sourceGlobalId: (r.source_global_id as string) ?? undefined,
     createdAt: iso(r.created_at),
     updatedAt: iso(r.updated_at),
     syncedAt: new Date().toISOString(),
@@ -685,6 +687,7 @@ function globalProcedureToRow(p: GlobalProcedure) {
     rejection_reason: p.rejectionReason ?? null,
     reviewed_at: p.reviewedAt ?? null,
     reviewed_by: p.reviewedBy ?? null,
+    source_procedure_id: p.sourceProcedureId ?? null,
     created_at: p.createdAt,
     updated_at: p.updatedAt
   };
@@ -705,6 +708,7 @@ function globalProcedureFromRow(r: Record<string, unknown>): GlobalProcedure {
     rejectionReason: (r.rejection_reason as string) ?? undefined,
     reviewedAt: r.reviewed_at ? iso(r.reviewed_at) : undefined,
     reviewedBy: r.reviewed_by ? String(r.reviewed_by) : undefined,
+    sourceProcedureId: (r.source_procedure_id as string) ?? undefined,
     createdAt: iso(r.created_at),
     updatedAt: iso(r.updated_at),
     syncedAt: new Date().toISOString(),

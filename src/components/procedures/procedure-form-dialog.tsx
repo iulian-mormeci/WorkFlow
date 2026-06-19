@@ -199,10 +199,12 @@ export function ProcedureFormDialog({
       imageIds
     };
     try {
+      let savedId: string | undefined;
       if (procedure) {
         await updateProcedure(procedure, values);
+        savedId = procedure.id;
       } else {
-        await createProcedure(values);
+        savedId = await createProcedure(values);
       }
       savedRef.current = true;
 
@@ -218,7 +220,7 @@ export function ProcedureFormDialog({
 
       // Submit a copy to the global pool if the user opted in.
       if (submitGlobal && user && supabase) {
-        const result = await submitProcedureForGlobal(values, user, supabase);
+        const result = await submitProcedureForGlobal(values, user, supabase, savedId);
         if (result.ok) {
           toast({
             title: isAdmin
@@ -227,6 +229,16 @@ export function ProcedureFormDialog({
             description: isAdmin
               ? t("procedures.submitGlobal.adminPublishSuccessBody")
               : t("procedures.submitGlobal.submitSuccessBody")
+          });
+        } else if (result.code === "ALREADY_APPROVED") {
+          toast({
+            title: t("procedures.submitGlobal.alreadyApprovedTitle"),
+            description: t("procedures.submitGlobal.alreadyApprovedBody")
+          });
+        } else if (result.code === "ALREADY_SUBMITTED") {
+          toast({
+            title: t("procedures.submitGlobal.alreadySubmittedTitle"),
+            description: t("procedures.submitGlobal.alreadySubmittedBody")
           });
         } else {
           toast({

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
@@ -61,6 +61,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useInterventionDraftStore } from "@/stores/intervention-draft";
 
 type Props = {
   open: boolean;
@@ -207,6 +208,8 @@ export function InterventionFormDialog(props: Props) {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
+  const initKeyRef = useRef("");
+  const { draft: savedDraft, saveDraft, clearDraft } = useInterventionDraftStore();
 
   const durationMinutes = useMemo(
     () => {
@@ -227,10 +230,54 @@ export function InterventionFormDialog(props: Props) {
   const roundTripAirKm = useMemo(() => totalKmFromRouteStops(draftStops), [draftStops]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      // Clear the key so the next open always re-initializes.
+      initKeyRef.current = "";
+      setError(null);
+      return;
+    }
+
+    // Build a stable key for this dialog session (open + mode + record id).
+    // Dexie live-query re-fires (clients, existing updating) will hit the guard below.
+    const key = `${mode}:${interventionId ?? "new"}`;
+
+    if (initKeyRef.current === key) return; // Already initialized — ignore re-fire.
+
+    // For edit mode wait until the record has loaded from Dexie.
+    if (mode === "edit" && !existing) return;
+
+    initKeyRef.current = key;
     setError(null);
 
     if (mode === "new") {
+      // Restore persisted draft first (user closed form without saving).
+      const draft = useInterventionDraftStore.getState().draft;
+      if (draft) {
+        setClientName(draft.clientName);
+        setSelectedClientId(draft.selectedClientId);
+        setType(draft.type);
+        setWorkCategory(draft.workCategory);
+        setIsOfficeActivity(draft.isOfficeActivity);
+        setStartAtLocal(draft.startAtLocal);
+        setEndAtLocal(draft.endAtLocal);
+        setKm(draft.km);
+        setNotes(draft.notes);
+        setDurationOverride(draft.durationOverride);
+        setChecklist(draft.checklist);
+        setPartsUsed(draft.partsUsed);
+        setDueAtLocal(draft.dueAtLocal);
+        setRemindersEnabled(draft.remindersEnabled);
+        setReminderPreset(draft.reminderPreset as any);
+        setReminderCustomAtLocal(draft.reminderCustomAtLocal);
+        setReminderEmailTo(draft.reminderEmailTo);
+        setDraftStops(draft.draftStops);
+        setStartLocation(draft.startLocation);
+        setEndLocation(draft.endLocation);
+        setLocationKmAuto(draft.locationKmAuto);
+        return;
+      }
+
+      // No draft — use initial props.
       const preset = initial?.formPreset;
       setClientName(initial?.clientName ?? "");
       setType(initial?.type ?? "maintenance");
@@ -271,8 +318,6 @@ export function InterventionFormDialog(props: Props) {
       const start = existing.startAt ? new Date(existing.startAt) : null;
       const end = existing.endAt ? new Date(existing.endAt) : null;
 
-      const client = clients?.find((c) => c.id === existing.clientId);
-      setClientName(client?.name ?? "");
       setSelectedClientId(existing.clientId ?? null);
       setType(existing.type ?? "maintenance");
       setWorkCategory(existing.workCategory ?? "intervention");
@@ -301,24 +346,15 @@ export function InterventionFormDialog(props: Props) {
       setStartLocation(existing.startLocation);
       setEndLocation(existing.endLocation);
       setLocationKmAuto(existing.locationKmAuto);
+
+      // Resolve client name async so we don't depend on the clients live-query in this effect.
+      void (async () => {
+        const cl = await db.clients.get(existing.clientId ?? "");
+        setClientName(cl?.name ?? "");
+      })();
     }
-  }, [
-    open,
-    mode,
-    existing,
-    clients,
-    initial?.clientName,
-    initial?.type,
-    initial?.workCategory,
-    initial?.isOfficeActivity,
-    initial?.km,
-    initial?.notes,
-    initial?.checklist,
-    initial?.sparePartsUsed,
-    initial?.defaultDurationMinutes,
-    initial?.defaultStartAt,
-    initial?.formPreset
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- initKeyRef gates re-init; initial.* and clients are stable per session
+  }, [open, mode, existing, interventionId]);
 
   useEffect(() => {
     if (!open || mode !== "new") return;
@@ -339,6 +375,46 @@ export function InterventionFormDialog(props: Props) {
   useEffect(() => {
     if (workCategory === "intervention") setIsOfficeActivity(false);
   }, [workCategory]);
+
+  function handleClose() {
+    // Persist a draft when the "new" form is closed without saving, so the user doesn't lose work.
+    if (mode === "new") {
+      const hasContent =
+        clientName.trim() ||
+        notes.trim() ||
+        checklist.length > 0 ||
+        draftStops.length > 0 ||
+        partsUsed.length > 0;
+      if (hasContent) {
+        saveDraft({
+          clientName,
+          selectedClientId,
+          type,
+          workCategory,
+          isOfficeActivity,
+          startAtLocal,
+          endAtLocal,
+          km,
+          notes,
+          durationOverride,
+          checklist,
+          partsUsed,
+          dueAtLocal,
+          remindersEnabled,
+          reminderPreset,
+          reminderCustomAtLocal,
+          reminderEmailTo,
+          draftStops,
+          startLocation,
+          endLocation,
+          locationKmAuto,
+        });
+      } else {
+        clearDraft();
+      }
+    }
+    onOpenChange(false);
+  }
 
   function setNow(which: "start" | "end") {
     const now = new Date();
@@ -547,6 +623,7 @@ export function InterventionFormDialog(props: Props) {
         }
       }
 
+      clearDraft();
       onOpenChange(false);
       onSaved?.(savedId);
       toast({
@@ -585,7 +662,7 @@ export function InterventionFormDialog(props: Props) {
   const stockByPartId = useLiveQuery(async () => await computeStockByPartId(), []);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); else onOpenChange(true); }}>
       <DialogContent
         className={cn(
           "flex max-h-[88dvh] w-[calc(100%-1.5rem)] max-w-xl flex-col overflow-hidden p-0",
@@ -609,6 +686,50 @@ export function InterventionFormDialog(props: Props) {
         ) : null}
 
         <div className="grid min-w-0 gap-4 md:gap-5">
+          {/* Tipo: Cliente / Ufficio — selector at the very top */}
+          <div className="grid min-w-0 gap-2">
+            <Label>{t("interventions.form.recordAs")}</Label>
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-2 md:gap-3">
+              <button
+                type="button"
+                onClick={() => { setWorkCategory("intervention"); setIsOfficeActivity(false); }}
+                className={`min-h-12 touch-manipulation rounded-xl border-2 p-3 text-left transition md:rounded-2xl md:p-4 ${
+                  workCategory === "intervention"
+                    ? "border-primary bg-primary/5"
+                    : "border-muted bg-muted/30 hover:bg-muted/50"
+                }`}
+              >
+                <div className="text-sm font-semibold">{t("common.intervention")}</div>
+                <div className="mt-1 text-xs text-muted-foreground">{t("interventions.form.recordAsInterventionHint")}</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setWorkCategory("activity"); setIsOfficeActivity(true); }}
+                className={`min-h-12 touch-manipulation rounded-xl border-2 p-3 text-left transition md:rounded-2xl md:p-4 ${
+                  workCategory === "activity"
+                    ? "border-primary bg-primary/5"
+                    : "border-muted bg-muted/30 hover:bg-muted/50"
+                }`}
+              >
+                <div className="text-sm font-semibold">{t("common.activity")}</div>
+                <div className="mt-1 text-xs text-muted-foreground">{t("interventions.form.recordAsActivityHint")}</div>
+              </button>
+            </div>
+          </div>
+
+          {workCategory === "activity" ? (
+            <div className="flex min-h-12 items-center gap-3 rounded-xl border bg-muted/40 px-4 py-3">
+              <Checkbox
+                id="iv-office"
+                checked={isOfficeActivity}
+                onCheckedChange={(v) => setIsOfficeActivity(v === true)}
+              />
+              <Label htmlFor="iv-office" className="cursor-pointer text-sm font-normal leading-snug">
+                {t("interventions.form.onSiteOfficeLabel")}
+              </Label>
+            </div>
+          ) : null}
+
           {/* Client */}
           {!isOfficePreset ? (
             <ClientPickerField
@@ -650,50 +771,6 @@ export function InterventionFormDialog(props: Props) {
               {t("interventions.form.officeClientHint")}
             </p>
           )}
-
-          {/* Intervention vs activity */}
-          <div className="grid min-w-0 gap-2">
-            <Label>{t("interventions.form.recordAs")}</Label>
-            <div className="grid grid-cols-1 gap-2 md:grid-cols-2 md:gap-3">
-              <button
-                type="button"
-                onClick={() => setWorkCategory("intervention")}
-                className={`min-h-12 touch-manipulation rounded-xl border-2 p-3 text-left transition md:rounded-2xl md:p-4 ${
-                  workCategory === "intervention"
-                    ? "border-primary bg-primary/5"
-                    : "border-muted bg-muted/30 hover:bg-muted/50"
-                }`}
-              >
-                <div className="text-sm font-semibold">{t("common.intervention")}</div>
-                <div className="mt-1 text-xs text-muted-foreground">{t("interventions.form.recordAsInterventionHint")}</div>
-              </button>
-              <button
-                type="button"
-                onClick={() => setWorkCategory("activity")}
-                className={`min-h-12 touch-manipulation rounded-xl border-2 p-3 text-left transition md:rounded-2xl md:p-4 ${
-                  workCategory === "activity"
-                    ? "border-primary bg-primary/5"
-                    : "border-muted bg-muted/30 hover:bg-muted/50"
-                }`}
-              >
-                <div className="text-sm font-semibold">{t("common.activity")}</div>
-                <div className="mt-1 text-xs text-muted-foreground">{t("interventions.form.recordAsActivityHint")}</div>
-              </button>
-            </div>
-          </div>
-
-          {workCategory === "activity" ? (
-            <div className="flex min-h-12 items-center gap-3 rounded-xl border bg-muted/40 px-4 py-3">
-              <Checkbox
-                id="iv-office"
-                checked={isOfficeActivity}
-                onCheckedChange={(v) => setIsOfficeActivity(v === true)}
-              />
-              <Label htmlFor="iv-office" className="cursor-pointer text-sm font-normal leading-snug">
-                {t("interventions.form.onSiteOfficeLabel")}
-              </Label>
-            </div>
-          ) : null}
 
           {/* Job type (free text) */}
           <div className="grid min-w-0 gap-2">
@@ -1118,7 +1195,7 @@ export function InterventionFormDialog(props: Props) {
               variant="outline"
               type="button"
               className="min-h-12 w-full touch-manipulation sm:min-w-[5.5rem] sm:w-auto"
-              onClick={() => onOpenChange(false)}
+              onClick={handleClose}
             >
               {t("common.cancel")}
             </Button>

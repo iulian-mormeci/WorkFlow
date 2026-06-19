@@ -6,6 +6,7 @@ import {
   BookOpen,
   ClipboardList,
   FileScan,
+  FolderOpen,
   Home,
   Layers,
   LineChart,
@@ -40,6 +41,7 @@ export type SidebarIconName =
   | "statistics"
   | "settings"
   | "chat"
+  | "files"
   | "admin";
 
 /** Lucide icons for each `SidebarIconName` (sidebar + mobile menu). */
@@ -58,6 +60,7 @@ export const SIDEBAR_NAV_ICONS = {
   statistics: LineChart,
   settings: Settings,
   chat: MessageCircle,
+  files: FolderOpen,
   admin: ShieldCheck
 } satisfies Record<SidebarIconName, typeof Home>;
 

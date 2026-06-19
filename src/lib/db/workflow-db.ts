@@ -252,6 +252,8 @@ export type Procedure = {
   tags?: string[];
   /** Attachment ids (kind "photo") shown in the procedure gallery. */
   imageIds?: Id[];
+  /** ID of the global preset this procedure was cloned from (set once on clone). */
+  sourceGlobalId?: Id;
   createdAt: string;
   updatedAt: string;
 } & SyncMeta;
@@ -289,6 +291,8 @@ export type GlobalProcedure = {
   rejectionReason?: string;
   reviewedAt?: string;
   reviewedBy?: Id;
+  /** ID of the personal procedure that was submitted to create this global entry. */
+  sourceProcedureId?: Id;
   createdAt: string;
   updatedAt: string;
 } & SyncMeta;
@@ -748,6 +752,28 @@ export class WorkFlowDB extends Dexie {
       templates: "&id, name, updatedAt, workCategory, syncedAt",
       activities: "&id, status, priority, dueAt, category, updatedAt, syncedAt",
       procedures: "&id, category, brand, model, updatedAt, syncedAt",
+      globalProcedures: "&id, category, brand, model, status, createdBy, updatedAt, syncedAt",
+      notes:
+        "&id, updatedAt, linkedClientId, linkedInterventionId, linkedActivityId, syncedAt",
+      userSettings: "&id, updatedAt, syncedAt"
+    });
+
+    // Add sourceGlobalId index to procedures for duplicate-clone detection.
+    this.version(23).stores({
+      clients: "&id, name, clientType, updatedAt, syncedAt",
+      interventions:
+        "&id, clientId, startAt, updatedAt, status, createdBy, timerStartedAt, workCategory, dueAt, timerRunState, syncedAt",
+      spareParts: "&id, sku, name, updatedAt, syncedAt",
+      stockMovements: "&id, sparePartId, createdAt, interventionId, syncedAt",
+      tickets:
+        "&id, status, priority, reminderAt, dueAt, updatedAt, clientId, interventionId, syncedAt",
+      attachments: "&id, kind, createdAt, mime, syncedAt",
+      documents: "&id, interventionId, createdAt, title, syncedAt",
+      supportEmailOutbox:
+        "&id, status, to, createdAt, updatedAt, documentId, interventionId, syncedAt",
+      templates: "&id, name, updatedAt, workCategory, syncedAt",
+      activities: "&id, status, priority, dueAt, category, updatedAt, syncedAt",
+      procedures: "&id, category, brand, model, sourceGlobalId, updatedAt, syncedAt",
       globalProcedures: "&id, category, brand, model, status, createdBy, updatedAt, syncedAt",
       notes:
         "&id, updatedAt, linkedClientId, linkedInterventionId, linkedActivityId, syncedAt",

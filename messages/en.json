@@ -405,6 +405,13 @@
       "savedBody": "PDF stored locally and queued for sync.",
       "scanFailedTitle": "Scan failed",
       "scanFailedBodyFallback": "Could not create PDF"
+    },
+    "crop": {
+      "hint": "Drag the corner handles to align with the document edges.",
+      "dragHint": "Touch and drag any white circle to reposition a corner.",
+      "autoDetect": "Auto-detect edges",
+      "skip": "Skip crop",
+      "apply": "Apply correction"
     }
   },
   "shortcuts": {
@@ -630,8 +637,9 @@
       "title": "Route & distance",
       "startLabel": "Start location",
       "endLabel": "End location",
-      "searchPlaceholder": "Search address…",
+      "searchPlaceholder": "Search address… (min. 3 chars)",
       "noStopSelected": "No stop selected.",
+      "noResults": "No results. Try rephrasing (e.g. \"Via Roma, Milan\" instead of abbreviations).",
       "autoDistanceHint": "Auto distance (straight-line or driving if configured)",
       "mapTitle": "Route map",
       "actions": {
@@ -840,6 +848,7 @@
     "statistics": "Statistics",
     "settings": "Settings",
     "chat": "Chat",
+    "files": "Files",
     "admin": "Admin"
   },
   "protectedShell": {
@@ -1346,7 +1355,9 @@
       "copying": "Copying…",
       "copySuccessTitle": "Copied to your account",
       "copySuccessBody": "You can edit your personal copy now.",
-      "copyFailedTitle": "Could not copy procedure"
+      "copyFailedTitle": "Could not copy procedure",
+      "alreadyCopiedTitle": "Procedure already in your account",
+      "alreadyCopiedBody": "You already have a copy of this procedure in your account."
     },
     "actions": {
       "new": "New procedure",
@@ -1381,7 +1392,23 @@
       "submitSuccessBody": "The global procedure is awaiting review.",
       "adminPublishSuccessTitle": "Published globally",
       "adminPublishSuccessBody": "The procedure is now visible to all users.",
-      "submitFailedTitle": "Could not submit the procedure"
+      "submitFailedTitle": "Could not submit the procedure",
+      "alreadySubmittedTitle": "Procedure already submitted",
+      "alreadySubmittedBody": "You already have a pending approval request for this procedure.",
+      "alreadyApprovedTitle": "Procedure already global",
+      "alreadyApprovedBody": "This procedure has already been published globally."
+    }
+  },
+  "notifications": {
+    "bellLabel": "Notifications",
+    "panelTitle": "Notifications",
+    "empty": "No notifications.",
+    "createdBy": "By: {email}",
+    "relative": {
+      "justNow": "just now",
+      "minutesAgo": "{n} min ago",
+      "hoursAgo": "{n} h ago",
+      "daysAgo": "{n} d ago"
     }
   },
   "suggestions": {
@@ -2125,5 +2152,72 @@
     "wipeConfirmCta": "Yes, delete & sign out",
     "wiping": "Deleting…",
     "cancel": "Cancel"
+  },
+  "files": {
+    "root": "My Files",
+    "empty": "No files yet — drag and drop or click to upload.",
+    "scan": {
+      "clean": "Clean",
+      "infected": "Infected",
+      "pending": "Scanning…"
+    },
+    "upload": {
+      "dropHere": "Drop files here or click to upload",
+      "hint": "Max 50 MB · Executables are blocked",
+      "errors": {
+        "blocked_extension": "File type not allowed.",
+        "file_too_large": "File exceeds the 50 MB limit.",
+        "generic": "Upload failed. Please try again."
+      }
+    },
+    "folder": {
+      "newButton": "New folder",
+      "newTitle": "New folder",
+      "namePlaceholder": "Folder name",
+      "createButton": "Create",
+      "createError": "Failed to create folder."
+    },
+    "share": {
+      "title": "Share file",
+      "emailLabel": "Invite by email",
+      "emailPlaceholder": "colleague@example.com",
+      "permView": "View",
+      "permEdit": "Edit",
+      "addButton": "Share",
+      "currentShares": "Shared with",
+      "noShares": "Not shared with anyone yet.",
+      "errors": {
+        "userNotFound": "No account found with that email.",
+        "cannotShareWithSelf": "You cannot share a file with yourself.",
+        "generic": "Sharing failed. Please try again."
+      },
+      "toasts": {
+        "sharedTitle": "File shared",
+        "unsharedTitle": "Access removed"
+      }
+    },
+    "delete": {
+      "title": "Delete file",
+      "confirm": "Delete \"{name}\"? This cannot be undone.",
+      "button": "Delete",
+      "success": "File deleted."
+    },
+    "audit": {
+      "title": "Activity log",
+      "empty": "No activity recorded yet."
+    },
+    "actions": {
+      "download": "Download",
+      "share": "Share…",
+      "rename": "Rename",
+      "delete": "Delete",
+      "auditLog": "Activity log",
+      "more": "More options",
+      "viewOnly": "Shared with you (view only)"
+    },
+    "common": {
+      "cancel": "Cancel",
+      "save": "Save"
+    }
   }
 }

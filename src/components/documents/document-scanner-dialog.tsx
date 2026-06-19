@@ -6,6 +6,7 @@ import { db } from "@/lib/db/workflow-db";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { persistAttachmentToCloud } from "@/lib/sync/attachment-cloud";
 import { scheduleWorkflowSync } from "@/lib/sync/sync-engine";
+import { PerspectiveCropPanel } from "@/components/documents/perspective-crop-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -79,6 +80,8 @@ export function DocumentScannerDialog({
   const [saving, setSaving] = useState(false);
   const [uploadPct, setUploadPct] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
+  /** File pending perspective-crop before being added to the session. */
+  const [cropTarget, setCropTarget] = useState<File | null>(null);
 
   const canSave = useMemo(
     () => title.trim().length > 2 && pages.length > 0,
@@ -125,6 +128,49 @@ export function DocumentScannerDialog({
     } finally {
       setAdding(false);
     }
+  }
+
+  /**
+   * Called when the user picks file(s).
+   * Opens the perspective-crop step for the FIRST file; any additional files
+   * are added directly (user can open the picker again for each).
+   */
+  function handleFilePick(files: File[]) {
+    if (!files.length) return;
+    // Show crop step for the first file; add remaining immediately after
+    setCropTarget(files[0]!);
+    // Extra files (library multi-select) queued — added after crop confirmation
+  }
+
+  async function onCropApply(warpedDataUrl: string) {
+    const file = cropTarget!;
+    setCropTarget(null);
+    setAdding(true);
+    try {
+      const originalUrl = warpedDataUrl; // already warped — use as "original"
+      const it: PageItem = {
+        id: crypto.randomUUID(),
+        file,
+        rotation: 0,
+        originalUrl
+      };
+      if (enhance) {
+        try {
+          it.enhancedUrl = await enhanceToJpegDataUrl(warpedDataUrl);
+        } catch {
+          // ignore
+        }
+      }
+      setPages((s) => [...s, it]);
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  async function onCropSkip() {
+    const file = cropTarget!;
+    setCropTarget(null);
+    await addFiles([file]);
   }
 
   function removePage(id: string) {
@@ -318,6 +364,16 @@ export function DocumentScannerDialog({
         </DialogHeader>
 
         <div className="mt-4 grid gap-4">
+          {/* ── Perspective crop step ── shown instead of the normal UI ── */}
+          {cropTarget ? (
+            <PerspectiveCropPanel
+              file={cropTarget}
+              onApply={(url) => void onCropApply(url)}
+              onSkip={() => void onCropSkip()}
+              onCancel={() => setCropTarget(null)}
+            />
+          ) : (
+          <>
           <div className="grid gap-2">
             <Label>{t("scanner.fields.title")}</Label>
             <Input value={title} onChange={(e) => setTitle(e.target.value)} />
@@ -336,9 +392,7 @@ export function DocumentScannerDialog({
                   accept="image/*"
                   capture="environment"
                   onChange={(e) => {
-                    const files = Array.from(e.target.files ?? []);
-                    void addFiles(files);
-                    // allow selecting the same file again
+                    handleFilePick(Array.from(e.target.files ?? []));
                     e.currentTarget.value = "";
                   }}
                 />
@@ -353,8 +407,7 @@ export function DocumentScannerDialog({
                   accept="image/*"
                   multiple
                   onChange={(e) => {
-                    const files = Array.from(e.target.files ?? []);
-                    void addFiles(files);
+                    handleFilePick(Array.from(e.target.files ?? []));
                     e.currentTarget.value = "";
                   }}
                 />
@@ -474,6 +527,8 @@ export function DocumentScannerDialog({
                   : t("scanner.actions.savePdf")}
             </Button>
           </div>
+          </>
+          )}
         </div>
       </DialogContent>
     </Dialog>

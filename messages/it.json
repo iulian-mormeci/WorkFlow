@@ -405,6 +405,13 @@
       "savedBody": "PDF salvato in locale e messo in coda per la sync.",
       "scanFailedTitle": "Scansione non riuscita",
       "scanFailedBodyFallback": "Impossibile creare il PDF"
+    },
+    "crop": {
+      "hint": "Trascina le maniglie angolari per allinearle ai bordi del documento.",
+      "dragHint": "Tocca e trascina i cerchi bianchi per riposizionare un angolo.",
+      "autoDetect": "Rileva bordi automaticamente",
+      "skip": "Salta ritaglio",
+      "apply": "Applica correzione"
     }
   },
   "shortcuts": {
@@ -630,8 +637,9 @@
       "title": "Percorso e distanza",
       "startLabel": "Punto di partenza",
       "endLabel": "Punto di arrivo",
-      "searchPlaceholder": "Cerca indirizzo…",
+      "searchPlaceholder": "Cerca indirizzo… (min. 3 caratteri)",
       "noStopSelected": "Nessuna fermata selezionata.",
+      "noResults": "Nessun risultato. Prova a riformulare la ricerca (es. \"Via Roma, Milano\" invece di abbreviazioni).",
       "autoDistanceHint": "Distanza automatica (linea d’aria o guida se configurato)",
       "mapTitle": "Mappa percorso",
       "actions": {
@@ -840,6 +848,7 @@
     "statistics": "Statistiche",
     "settings": "Impostazioni",
     "chat": "Chat",
+    "files": "File",
     "admin": "Admin"
   },
   "protectedShell": {
@@ -1346,7 +1355,9 @@
       "copying": "Copia in corso…",
       "copySuccessTitle": "Copiata nel tuo account",
       "copySuccessBody": "Puoi modificare subito la copia personale.",
-      "copyFailedTitle": "Impossibile copiare la procedura"
+      "copyFailedTitle": "Impossibile copiare la procedura",
+      "alreadyCopiedTitle": "Procedura già nel tuo account",
+      "alreadyCopiedBody": "Hai già una copia di questa procedura nel tuo account."
     },
     "actions": {
       "new": "Nuova procedura",
@@ -1381,7 +1392,23 @@
       "submitSuccessBody": "La procedura globale è in attesa di revisione.",
       "adminPublishSuccessTitle": "Pubblicata globalmente",
       "adminPublishSuccessBody": "La procedura è ora visibile a tutti gli utenti.",
-      "submitFailedTitle": "Impossibile inviare la procedura"
+      "submitFailedTitle": "Impossibile inviare la procedura",
+      "alreadySubmittedTitle": "Procedura già inviata",
+      "alreadySubmittedBody": "Hai già una richiesta in attesa di approvazione per questa procedura.",
+      "alreadyApprovedTitle": "Procedura già globale",
+      "alreadyApprovedBody": "Questa procedura è già stata pubblicata globalmente."
+    }
+  },
+  "notifications": {
+    "bellLabel": "Notifiche",
+    "panelTitle": "Notifiche",
+    "empty": "Nessuna notifica.",
+    "createdBy": "Da: {email}",
+    "relative": {
+      "justNow": "ora",
+      "minutesAgo": "{n} min fa",
+      "hoursAgo": "{n} h fa",
+      "daysAgo": "{n} g fa"
     }
   },
   "suggestions": {
@@ -2125,5 +2152,72 @@
     "wipeConfirmCta": "Sì, elimina ed esci",
     "wiping": "Eliminazione in corso…",
     "cancel": "Annulla"
+  },
+  "files": {
+    "root": "I miei file",
+    "empty": "Nessun file — trascina qui o clicca per caricare.",
+    "scan": {
+      "clean": "Sicuro",
+      "infected": "Infetto",
+      "pending": "Scansione…"
+    },
+    "upload": {
+      "dropHere": "Trascina i file qui o clicca per caricare",
+      "hint": "Max 50 MB · I file eseguibili sono bloccati",
+      "errors": {
+        "blocked_extension": "Tipo di file non consentito.",
+        "file_too_large": "Il file supera il limite di 50 MB.",
+        "generic": "Caricamento fallito. Riprova."
+      }
+    },
+    "folder": {
+      "newButton": "Nuova cartella",
+      "newTitle": "Nuova cartella",
+      "namePlaceholder": "Nome cartella",
+      "createButton": "Crea",
+      "createError": "Creazione cartella fallita."
+    },
+    "share": {
+      "title": "Condividi file",
+      "emailLabel": "Invita tramite email",
+      "emailPlaceholder": "collega@esempio.com",
+      "permView": "Visualizza",
+      "permEdit": "Modifica",
+      "addButton": "Condividi",
+      "currentShares": "Condiviso con",
+      "noShares": "Non ancora condiviso con nessuno.",
+      "errors": {
+        "userNotFound": "Nessun account trovato con questa email.",
+        "cannotShareWithSelf": "Non puoi condividere un file con te stesso.",
+        "generic": "Condivisione fallita. Riprova."
+      },
+      "toasts": {
+        "sharedTitle": "File condiviso",
+        "unsharedTitle": "Accesso rimosso"
+      }
+    },
+    "delete": {
+      "title": "Elimina file",
+      "confirm": "Eliminare \"{name}\"? L'operazione non è reversibile.",
+      "button": "Elimina",
+      "success": "File eliminato."
+    },
+    "audit": {
+      "title": "Registro attività",
+      "empty": "Nessuna attività registrata."
+    },
+    "actions": {
+      "download": "Scarica",
+      "share": "Condividi…",
+      "rename": "Rinomina",
+      "delete": "Elimina",
+      "auditLog": "Registro attività",
+      "more": "Altre opzioni",
+      "viewOnly": "Condiviso con te (sola lettura)"
+    },
+    "common": {
+      "cancel": "Annulla",
+      "save": "Salva"
+    }
   }
 }

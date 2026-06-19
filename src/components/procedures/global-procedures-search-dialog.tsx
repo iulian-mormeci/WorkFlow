@@ -150,6 +150,15 @@ export function GlobalProceduresSearchDialog({
       onOpenChange(false);
       if (created && onCopiedEdit) onCopiedEdit(created);
     } catch (e) {
+      if (e instanceof Error && e.name === "ProcedureAlreadyClonedError") {
+        toast({
+          title: t("procedures.global.alreadyCopiedTitle"),
+          description: t("procedures.global.alreadyCopiedBody")
+        });
+        setViewing(null);
+        onOpenChange(false);
+        return;
+      }
       toast({
         title: t("procedures.global.copyFailedTitle"),
         description: e instanceof Error ? e.message : t("common.unknownError"),

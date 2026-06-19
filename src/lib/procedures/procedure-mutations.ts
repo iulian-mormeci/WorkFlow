@@ -14,6 +14,8 @@ export type ProcedureFormValues = {
   content?: string;
   tags: string[];
   imageIds: string[];
+  /** Set when cloning from a global preset — stored for dedup checks. */
+  sourceGlobalId?: string;
 };
 
 function clean(s: string | undefined): string | undefined {
@@ -55,6 +57,7 @@ export async function createProcedure(values: ProcedureFormValues): Promise<stri
     content: clean(sanitizeProcedureHtml(values.content ?? "")),
     tags: normalizeTags(values.tags),
     imageIds: values.imageIds.length ? values.imageIds : undefined,
+    sourceGlobalId: values.sourceGlobalId ?? undefined,
     createdAt: nowIso,
     updatedAt: nowIso
   });
