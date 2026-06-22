@@ -120,13 +120,13 @@ function SortableRow({ item, plu, onChange, onPriceChange, onDelete }: RowProps)
       </td>
       {/* KP_PLU_NOTES — always empty, read-only */}
       <td className={`${td} w-12 ${ro}`}>—</td>
-      {/* PRICE_1 … PRICE_6 */}
+      {/* PRICE_1 … PRICE_6 — shown in euros, CSV output in cents */}
       {[0, 1, 2, 3, 4, 5].map((i) => (
         <td key={i} className={`${td} w-18`}>
           <input
             className={`${inp} text-right font-mono`}
             value={item.prezzi[i] !== undefined ? String(item.prezzi[i]) : ""}
-            placeholder={i === 0 ? "0.00" : ""}
+            placeholder={i === 0 ? "€ 0.00" : ""}
             onChange={(e) => onPriceChange(item.id, i, e.target.value)}
           />
         </td>
@@ -449,8 +449,8 @@ export function MenuToCsvClient() {
           )}
 
           {/* Scrollable table — full bleed on mobile */}
-          <div className="w-full overflow-x-auto rounded-lg border border-border" style={{ WebkitOverflowScrolling: "touch" }}>
-            <table className="border-collapse text-xs" style={{ minWidth: "max-content" }}>
+          <div className="overflow-x-auto rounded-lg border border-border" style={{ WebkitOverflowScrolling: "touch" }}>
+            <table className="border-collapse text-xs" style={{ minWidth: "1100px", width: "max-content" }}>
               <thead>
                 <tr className="bg-muted/50 border-b border-border">
                   {HEADERS.map((h, i) => (

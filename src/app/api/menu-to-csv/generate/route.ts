@@ -78,10 +78,10 @@ export async function POST(req: Request) {
       ? item.description
       : item.descrizione_lunga;
 
-    // PRICE_1 through PRICE_6 (6 slots)
+    // PRICE_1 through PRICE_6 (6 slots) — cash register expects cents (integer)
     const prices: string[] = [];
     for (let i = 0; i < 6; i++) {
-      prices.push(item.prezzi[i] !== undefined ? String(item.prezzi[i]) : "");
+      prices.push(item.prezzi[i] !== undefined ? String(Math.round(item.prezzi[i] * 100)) : "");
     }
 
     const row = [
