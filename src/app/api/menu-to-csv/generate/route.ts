@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type MenuItem = {
-  prodotto: string;
+  description: string;
   descrizione_lunga: string;
   gruppo: string;
   reparto: string;
@@ -19,7 +19,26 @@ type GenerateBody = {
   };
 };
 
-function sanitizeCsvField(v: string, sep: string): string {
+// Exact column order required by the cash register
+const COLUMNS = [
+  "#PLU",
+  "GROUP",
+  "DEPT",
+  "DESCRIPTION",
+  "LONG_DESCRIPTION",
+  "KP_PLU_NOTES",
+  "PRICE_1",
+  "PRICE_2",
+  "PRICE_3",
+  "PRICE_4",
+  "PRICE_5",
+  "PRICE_6",
+  "BARCODE",
+  "PREFERED",
+  "ON_TDE"
+];
+
+function csvField(v: string, sep: string): string {
   const s = String(v ?? "").trim();
   if (s.includes(sep) || s.includes('"') || s.includes("\n") || s.includes("\r")) {
     return `"${s.replaceAll('"', '""')}"`;
@@ -31,9 +50,7 @@ export async function POST(req: Request) {
   const supabase = await createSupabaseServerClient();
   if (!supabase) return NextResponse.json({ error: "unavailable" }, { status: 503 });
 
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   let body: GenerateBody;
@@ -50,45 +67,34 @@ export async function POST(req: Request) {
   const pluStart = typeof body.settings?.pluStart === "number" ? body.settings.pluStart : 1;
   const duplicateDesc = body.settings?.duplicateDesc === true;
   const sep = typeof body.settings?.separator === "string" && body.settings.separator.length > 0
-    ? body.settings.separator
-    : ";";
+    ? body.settings.separator : ";";
   const useBom = body.settings?.encoding !== "utf8";
-
-  const COLUMNS = [
-    "PLU",
-    "GRUPPO",
-    "REPARTO",
-    "PRODOTTO",
-    "DESCRIZIONE LUNGA",
-    "PREZZO 1",
-    "PREZZO 2",
-    "PREZZO 3",
-    "PREZZO 4",
-    "PREZZO 5",
-    "ON TDE"
-  ];
 
   const lines: string[] = [COLUMNS.join(sep)];
 
   let plu = pluStart;
   for (const item of body.items) {
-    const descLunga = duplicateDesc && !item.descrizione_lunga.trim()
-      ? item.prodotto
+    const longDesc = duplicateDesc && !item.descrizione_lunga.trim()
+      ? item.description
       : item.descrizione_lunga;
 
-    const priceFields: string[] = [];
-    for (let i = 0; i < 5; i++) {
-      priceFields.push(item.prezzi[i] !== undefined ? String(item.prezzi[i]) : "");
+    // PRICE_1 through PRICE_6 (6 slots)
+    const prices: string[] = [];
+    for (let i = 0; i < 6; i++) {
+      prices.push(item.prezzi[i] !== undefined ? String(item.prezzi[i]) : "");
     }
 
     const row = [
-      String(plu++),
-      sanitizeCsvField(item.gruppo, sep),
-      sanitizeCsvField(item.reparto, sep),
-      sanitizeCsvField(item.prodotto, sep),
-      sanitizeCsvField(descLunga, sep),
-      ...priceFields,
-      "1"
+      String(plu++),           // #PLU
+      csvField(item.gruppo, sep),       // GROUP
+      csvField(item.reparto, sep),      // DEPT
+      csvField(item.description, sep),  // DESCRIPTION (≤20 chars)
+      csvField(longDesc, sep),          // LONG_DESCRIPTION
+      "",                               // KP_PLU_NOTES (always empty)
+      ...prices,                        // PRICE_1 … PRICE_6
+      "",                               // BARCODE (always empty)
+      "",                               // PREFERED (always empty)
+      "1"                               // ON_TDE (always 1)
     ].join(sep);
 
     lines.push(row);

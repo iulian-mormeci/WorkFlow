@@ -25,15 +25,25 @@ export async function GET(_req: Request, { params }: Params) {
   if (file.scan_status === "infected") {
     return NextResponse.json({ error: "file_infected" }, { status: 403 });
   }
+  // Bug fix 2: folders have no storage_path (they are virtual in Supabase Storage)
   if (!file.storage_path) return NextResponse.json({ error: "no_storage" }, { status: 404 });
 
   // Generate signed URL via service role (bypasses storage RLS for shared access).
   const service = createSupabaseServiceClient();
   if (!service) return NextResponse.json({ error: "unavailable" }, { status: 503 });
 
+  // Bug fix 1: encode each path segment so spaces/special chars don't break createSignedUrl
+  const cleanPath = file.storage_path
+    .replace(/^shared-files\//, "")
+    .replace(/^\//, "");
+  const encodedPath = cleanPath
+    .split("/")
+    .map((segment: string) => encodeURIComponent(segment))
+    .join("/");
+
   const { data: signed, error: signErr } = await service.storage
     .from("shared-files")
-    .createSignedUrl(file.storage_path.replace(/^shared-files\//, ""), 60, {
+    .createSignedUrl(encodedPath, 60, {
       download: file.name ?? true
     });
 
