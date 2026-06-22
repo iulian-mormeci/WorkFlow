@@ -337,6 +337,10 @@ export type SupportEmailOutboxItem = {
 /** Per-user toggles synced via wf_user_settings.preferences. */
 export type UserPreferences = {
   calendarAutoExportCompleted?: boolean;
+  menuToCsvPluStart?: number;
+  menuToCsvDuplicateDesc?: boolean;
+  menuToCsvSeparator?: string;
+  menuToCsvEncoding?: "utf8bom" | "utf8";
 };
 
 /** Per-user settings row (id === user_id). Working hours sync across devices. */

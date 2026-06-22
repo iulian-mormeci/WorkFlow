@@ -15,6 +15,7 @@ import {
   MessagesSquare,
   NotebookPen,
   Package,
+  Receipt,
   Settings,
   ShieldCheck,
   Users
@@ -42,7 +43,8 @@ export type SidebarIconName =
   | "settings"
   | "chat"
   | "files"
-  | "admin";
+  | "admin"
+  | "menuToCsv";
 
 /** Lucide icons for each `SidebarIconName` (sidebar + mobile menu). */
 export const SIDEBAR_NAV_ICONS = {
@@ -61,7 +63,8 @@ export const SIDEBAR_NAV_ICONS = {
   settings: Settings,
   chat: MessageCircle,
   files: FolderOpen,
-  admin: ShieldCheck
+  admin: ShieldCheck,
+  menuToCsv: Receipt
 } satisfies Record<SidebarIconName, typeof Home>;
 
 export type SidebarNavItem = {

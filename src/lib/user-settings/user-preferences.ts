@@ -6,7 +6,13 @@ export function normalizeUserPreferences(raw: unknown): UserPreferences {
   if (!raw || typeof raw !== "object") return {};
   const o = raw as Record<string, unknown>;
   return {
-    calendarAutoExportCompleted: o.calendarAutoExportCompleted === true
+    calendarAutoExportCompleted: o.calendarAutoExportCompleted === true,
+    menuToCsvPluStart: typeof o.menuToCsvPluStart === "number" ? o.menuToCsvPluStart : undefined,
+    menuToCsvDuplicateDesc: o.menuToCsvDuplicateDesc === true,
+    menuToCsvSeparator: typeof o.menuToCsvSeparator === "string" ? o.menuToCsvSeparator : undefined,
+    menuToCsvEncoding: o.menuToCsvEncoding === "utf8" || o.menuToCsvEncoding === "utf8bom"
+      ? o.menuToCsvEncoding
+      : undefined,
   };
 }
 

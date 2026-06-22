@@ -849,7 +849,8 @@
     "settings": "Impostazioni",
     "chat": "Chat",
     "files": "File",
-    "admin": "Admin"
+    "admin": "Admin",
+    "menuToCsv": "Menu PDF → CSV"
   },
   "protectedShell": {
     "signedIn": "Accesso effettuato",
@@ -2218,6 +2219,71 @@
     "common": {
       "cancel": "Annulla",
       "save": "Salva"
+    }
+  },
+  "menuToCsv": {
+    "page": {
+      "title": "Menu PDF → CSV Registratore di Cassa",
+      "subtitle": "Carica il menu del locale in PDF e scarica un CSV pronto per il registratore telematico"
+    },
+    "upload": {
+      "title": "Carica Menu PDF",
+      "dragDrop": "Trascina qui il menu PDF oppure",
+      "browse": "sfoglia file",
+      "pdfOnly": "Solo file PDF, max 10 MB",
+      "extracting": "Estrazione in corso...",
+      "extractingHint": "L'AI sta analizzando il menu, attendere 15-30 secondi",
+      "extract": "Estrai voci menu"
+    },
+    "preview": {
+      "title": "Anteprima — verifica e correggi le voci estratte",
+      "subtitle": "Puoi modificare qualsiasi campo, eliminare righe errate, aggiungere righe manualmente e riordinare le voci. Il PLU si aggiorna automaticamente.",
+      "generateCsv": "Genera e scarica CSV",
+      "addRow": "Aggiungi riga",
+      "groupLabel": "Gruppo",
+      "newExtraction": "Nuova estrazione"
+    },
+    "table": {
+      "plu": "PLU",
+      "gruppo": "Gruppo",
+      "reparto": "Reparto",
+      "prodotto": "Prodotto",
+      "descrizioneLunga": "Descrizione Lunga",
+      "prezzo1": "Prezzo 1",
+      "prezzo2": "Prezzo 2",
+      "prezzo3": "Prezzo 3",
+      "prezzo4": "Prezzo 4",
+      "prezzo5": "Prezzo 5",
+      "onTde": "ON TDE",
+      "actions": "Azioni"
+    },
+    "errors": {
+      "title": "Voci scartate (prezzo non leggibile)",
+      "subtitle": "Queste voci non sono state incluse nel CSV. Aggiungile manualmente se necessario.",
+      "rawLabel": "Testo originale"
+    },
+    "success": "CSV generato e scaricato con successo!",
+    "errorGeneric": "Errore durante l'elaborazione. Riprova.",
+    "errorFile": "Carica un file PDF valido (max 10 MB).",
+    "errorAi": "L'AI non ha restituito dati validi. Riprova.",
+    "errorTooLarge": "Il file è troppo grande (max 10 MB).",
+    "errorNotPdf": "Il file deve essere in formato PDF.",
+    "settings": {
+      "page": {
+        "title": "Impostazioni Menu PDF → CSV",
+        "subtitle": "Configura i parametri di esportazione CSV per il registratore telematico"
+      },
+      "pluStart": "PLU di partenza",
+      "pluStartHint": "Il primo PLU assegnato alle voci estratte (default: 1)",
+      "duplicateDesc": "Duplica prodotto in Descrizione Lunga se vuota",
+      "duplicateDescHint": "Se la descrizione lunga è assente nel menu, copia il nome del prodotto",
+      "separator": "Separatore CSV",
+      "separatorHint": "Carattere separatore delle colonne (default: ;)",
+      "encoding": "Encoding output",
+      "encodingUtf8bom": "UTF-8 con BOM (consigliato per Excel)",
+      "encodingUtf8": "UTF-8 senza BOM",
+      "save": "Salva impostazioni",
+      "saved": "Impostazioni salvate"
     }
   }
 }

@@ -227,6 +227,23 @@ export async function middleware(req: NextRequest) {
     }
   }
 
+  if (req.method === "POST" && pathnameNoLocale.startsWith("/api/menu-to-csv")) {
+    const c = RATE_LIMITS.menuToCsv;
+    const rl = checkRateLimit(`api:menu-to-csv:${ip}`, c.limit, c.windowMs);
+    if (!rl.allowed) {
+      logSecurityEvent({
+        event: "rate_limited",
+        route: "/api/menu-to-csv",
+        ip,
+        retryAfterSec: rl.retryAfterSec
+      });
+      return finish(
+        req,
+        NextResponse.json({ error: "Troppe richieste, riprova tra poco" }, { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } })
+      );
+    }
+  }
+
   const pathnameWithLocale = req.nextUrl.pathname;
   const hasEnPrefix = pathnameWithLocale === "/en" || pathnameWithLocale.startsWith("/en/");
   const hasItPrefix = pathnameWithLocale === "/it" || pathnameWithLocale.startsWith("/it/");

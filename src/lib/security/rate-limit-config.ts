@@ -9,5 +9,6 @@ export const RATE_LIMITS = {
   geocode: { limit: 90, windowMs: 60 * 1000 },
   mapStatic: { limit: 120, windowMs: 60 * 60 * 1000 },
   routeGeometry: { limit: 120, windowMs: 60 * 60 * 1000 },
-  routeDistance: { limit: 120, windowMs: 60 * 60 * 1000 }
+  routeDistance: { limit: 120, windowMs: 60 * 60 * 1000 },
+  menuToCsv: { limit: 10, windowMs: 15 * 60 * 1000 }
 } as const;

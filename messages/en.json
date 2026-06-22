@@ -849,7 +849,8 @@
     "settings": "Settings",
     "chat": "Chat",
     "files": "Files",
-    "admin": "Admin"
+    "admin": "Admin",
+    "menuToCsv": "Menu → CSV"
   },
   "protectedShell": {
     "signedIn": "Signed in",
@@ -2218,6 +2219,71 @@
     "common": {
       "cancel": "Cancel",
       "save": "Save"
+    }
+  },
+  "menuToCsv": {
+    "page": {
+      "title": "Menu PDF → Cash Register CSV",
+      "subtitle": "Upload a restaurant menu PDF and download a CSV ready for the Italian telematic cash register"
+    },
+    "upload": {
+      "title": "Upload Menu PDF",
+      "dragDrop": "Drag and drop the menu PDF here or",
+      "browse": "browse files",
+      "pdfOnly": "PDF files only, max 10 MB",
+      "extracting": "Extracting…",
+      "extractingHint": "AI is analyzing the menu, please wait 15-30 seconds",
+      "extract": "Extract menu items"
+    },
+    "preview": {
+      "title": "Preview — verify and correct extracted items",
+      "subtitle": "You can edit any field, delete incorrect rows, add rows manually, and reorder items. PLU updates automatically.",
+      "generateCsv": "Generate and download CSV",
+      "addRow": "Add row",
+      "groupLabel": "Group",
+      "newExtraction": "New extraction"
+    },
+    "table": {
+      "plu": "PLU",
+      "gruppo": "Group",
+      "reparto": "Department",
+      "prodotto": "Product",
+      "descrizioneLunga": "Long Description",
+      "prezzo1": "Price 1",
+      "prezzo2": "Price 2",
+      "prezzo3": "Price 3",
+      "prezzo4": "Price 4",
+      "prezzo5": "Price 5",
+      "onTde": "ON TDE",
+      "actions": "Actions"
+    },
+    "errors": {
+      "title": "Discarded items (unreadable price)",
+      "subtitle": "These items were not included in the CSV. Add them manually if needed.",
+      "rawLabel": "Original text"
+    },
+    "success": "CSV generated and downloaded successfully!",
+    "errorGeneric": "Processing error. Please try again.",
+    "errorFile": "Please upload a valid PDF file (max 10 MB).",
+    "errorAi": "AI returned invalid data. Please try again.",
+    "errorTooLarge": "File is too large (max 10 MB).",
+    "errorNotPdf": "File must be in PDF format.",
+    "settings": {
+      "page": {
+        "title": "Menu PDF → CSV Settings",
+        "subtitle": "Configure CSV export parameters for the telematic cash register"
+      },
+      "pluStart": "Starting PLU",
+      "pluStartHint": "First PLU assigned to extracted items (default: 1)",
+      "duplicateDesc": "Duplicate product name in Long Description if empty",
+      "duplicateDescHint": "If the long description is absent in the menu, copy the product name",
+      "separator": "CSV separator",
+      "separatorHint": "Column separator character (default: ;)",
+      "encoding": "Output encoding",
+      "encodingUtf8bom": "UTF-8 with BOM (recommended for Excel)",
+      "encodingUtf8": "UTF-8 without BOM",
+      "save": "Save settings",
+      "saved": "Settings saved"
     }
   }
 }
