@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-export const maxDuration = 35;
+export const maxDuration = 60;
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { logSecurityEvent } from "@/lib/security/security-log";
 import Anthropic from "@anthropic-ai/sdk";
@@ -10,7 +10,7 @@ import { join } from "path";
 import { randomBytes } from "crypto";
 
 const MAX_PDF_BYTES = 10 * 1_048_576;
-const AI_TIMEOUT_MS = 30_000;
+const AI_TIMEOUT_MS = 55_000;
 
 const EXTRACTION_PROMPT = `Analizza questo menu PDF e restituisci SOLO un array JSON valido (nessun testo aggiuntivo prima o dopo il JSON).
 
@@ -171,7 +171,7 @@ export async function POST(req: Request) {
     } catch (e: unknown) {
       if (e instanceof Error && (e.name === "AbortError" || e.message.includes("abort"))) {
         logSecurityEvent({ event: "menu_to_csv_timeout", userId: user.id });
-        return NextResponse.json({ error: "Timeout: elaborazione AI troppo lunga (>30s)" }, { status: 504 });
+        return NextResponse.json({ error: "Timeout: elaborazione AI troppo lunga (>55s)" }, { status: 504 });
       }
       logSecurityEvent({ event: "menu_to_csv_ai_error", userId: user.id, message: String(e) });
       return NextResponse.json({ error: "Errore durante l'elaborazione AI" }, { status: 502 });
