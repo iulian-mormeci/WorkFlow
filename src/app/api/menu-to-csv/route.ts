@@ -1,6 +1,4 @@
 import { NextResponse } from "next/server";
-
-export const maxDuration = 60;
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { logSecurityEvent } from "@/lib/security/security-log";
 import Anthropic from "@anthropic-ai/sdk";
@@ -9,59 +7,95 @@ import { writeFile, unlink } from "fs/promises";
 import { join } from "path";
 import { randomBytes } from "crypto";
 
+export const maxDuration = 120;
+
 const MAX_PDF_BYTES = 10 * 1_048_576;
-const AI_TIMEOUT_MS = 55_000;
+// Fast path (text extracted locally → Haiku): 45s is plenty
+const AI_TIMEOUT_TEXT_MS = 45_000;
+// Vision path (image-based PDF → Sonnet vision): needs more time
+const AI_TIMEOUT_VISION_MS = 100_000;
 
-const EXTRACTION_PROMPT = `Analizza questo menu PDF e restituisci SOLO un array JSON valido (nessun testo aggiuntivo prima o dopo il JSON).
+const EXTRACTION_PROMPT = `Hai ricevuto il testo estratto da un menu di ristorante/pizzeria. Restituisci SOLO un array JSON valido (nessun testo aggiuntivo prima o dopo).
 
-Ogni elemento dell'array rappresenta una voce ordinabile del menu e deve avere esattamente questi campi:
-- "prodotto": nome del piatto/voce esattamente come scritto nel menu (stringa)
-- "descrizione_lunga": descrizione con ingredienti se presente nel menu, altrimenti stringa vuota ""
-- "gruppo": titolo della sezione principale riconosciuta nel menu (es. "Pizze", "Antipasti", "Carta Vini", "Bevande") — ricavato dalla struttura visiva del PDF
-- "reparto": titolo della sotto-sezione se presente (es. "Vini Bianchi", "Vini Rossi", "Bollicine"); se non ci sono sottosezioni usa lo stesso valore di "gruppo"
-- "prezzi": array di numeri con il/i prezzo/i. Un solo elemento se il menu ha un prezzo unico per la voce; più elementi se il menu mostra esplicitamente più prezzi per la stessa voce (es. calice/bottiglia, piccola/media/grande), massimo 5. Usa "." come separatore decimale.
+Ogni elemento rappresenta una voce ordinabile del menu:
+- "prodotto": nome del piatto esattamente come nel menu (stringa)
+- "descrizione_lunga": ingredienti/descrizione se presenti, altrimenti "" (stringa)
+- "gruppo": sezione principale del menu (es. "Antipasti", "Pizze", "Carta Vini", "Bevande")
+- "reparto": sotto-sezione se presente (es. "Vini Bianchi"); se non c'è uguale a "gruppo"
+- "prezzi": array di numeri (es. [8.50]). Più elementi solo se il menu mostra più prezzi per la stessa voce (calice/bottiglia, piccola/media/grande). Max 5. Separatore decimale: "."
 
-REGOLE FONDAMENTALI:
-1. NON includere titoli di sezione, intestazioni, sottotitoli o descrittori generici come voci — solo prodotti con prezzo
-2. Riconosci la gerarchia visiva: i titoli di sezione nel PDF definiscono "gruppo", i sottotitoli definiscono "reparto"
-3. Se il menu ha una sola sezione senza sottosezioni, "gruppo" e "reparto" sono identici
-4. I prezzi devono essere numeri puri (es. 8.50, non "8,50 €" o "8.50€")
-5. Se una voce non ha prezzo leggibile, omettila dall'array
+REGOLE:
+1. Solo prodotti con prezzo — niente titoli, intestazioni o descrittori senza prezzo
+2. La gerarchia sezione/sottosezione del testo definisce gruppo/reparto
+3. Prezzi come numeri puri senza simboli (8.50 non "8,50 €")
+4. Voci senza prezzo leggibile: omettile
 
-Restituisci SOLO l'array JSON, senza markdown, senza commenti, senza testo introduttivo.`;
+Rispondi SOLO con l'array JSON grezzo, zero testo aggiuntivo.`;
+
+/**
+ * Extracts all text from a PDF buffer using pdfjs-dist (server-side, no worker).
+ * Falls back gracefully if the PDF is image-only.
+ */
+async function extractPdfText(buffer: Buffer): Promise<string> {
+  // Dynamic import of legacy build — works in Node.js without a DOM/worker
+  const pdfjsLib = await import(
+    "pdfjs-dist/legacy/build/pdf.mjs" as string
+  ) as typeof import("pdfjs-dist");
+
+  // Disable web worker — not available in Node.js
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "";
+
+  const uint8 = new Uint8Array(buffer);
+  const loadingTask = pdfjsLib.getDocument({
+    data: uint8,
+    useWorkerFetch: false,
+    disableFontFace: true
+  });
+  const pdf = await loadingTask.promise;
+
+  const pageParts: string[] = [];
+  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+    const page = await pdf.getPage(pageNum);
+    const content = await page.getTextContent();
+    const pageText = content.items
+      .filter((item) => "str" in item)
+      .map((item) => (item as { str: string }).str)
+      .join(" ")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+    if (pageText) pageParts.push(pageText);
+  }
+
+  return pageParts.join("\n\n");
+}
 
 /**
  * Tries several strategies to extract a JSON array from raw AI text.
- * Handles: bare array, markdown code block, object wrapper {items:[...]}, etc.
+ * Handles: bare array, markdown code block, object wrapper {items:[...]}.
  */
 function extractJsonArray(text: string): unknown[] {
-  // Strip markdown code fences if present
   const stripped = text
     .replace(/^```(?:json)?\s*/i, "")
     .replace(/\s*```\s*$/, "")
     .trim();
 
-  // Strategy 1: entire stripped text is a JSON array
   if (stripped.startsWith("[")) {
     const parsed: unknown = JSON.parse(stripped);
     if (Array.isArray(parsed)) return parsed;
   }
 
-  // Strategy 2: find the outermost [...] in the original text
   const arrMatch = text.match(/\[[\s\S]*\]/);
   if (arrMatch) {
     const parsed: unknown = JSON.parse(arrMatch[0]);
     if (Array.isArray(parsed)) return parsed;
   }
 
-  // Strategy 3: response is a JSON object containing an array field
   const objMatch = text.match(/\{[\s\S]*\}/);
   if (objMatch) {
     const obj = JSON.parse(objMatch[0]) as Record<string, unknown>;
     for (const key of ["items", "voci", "menu", "prodotti", "data", "results"]) {
       if (Array.isArray(obj[key])) return obj[key] as unknown[];
     }
-    // Any array-valued key
     const arrayVal = Object.values(obj).find(Array.isArray);
     if (arrayVal) return arrayVal as unknown[];
   }
@@ -92,7 +126,6 @@ export type ExtractError = {
 
 function sanitizeField(v: string): string {
   const trimmed = v.trim();
-  // Prevent CSV injection: prefix dangerous leading characters
   if (/^[=+\-@\t\r]/.test(trimmed)) return `'${trimmed}`;
   return trimmed;
 }
@@ -110,9 +143,7 @@ export async function POST(req: Request) {
   const supabase = await createSupabaseServerClient();
   if (!supabase) return NextResponse.json({ error: "unavailable" }, { status: 503 });
 
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -144,42 +175,76 @@ export async function POST(req: Request) {
   try {
     await writeFile(tmpPath, bytes);
 
-    const base64 = bytes.toString("base64");
     const anthropic = new Anthropic({ apiKey });
 
+    // Step 1: try to extract text from PDF locally (fast path)
+    let menuText = "";
+    try {
+      menuText = await extractPdfText(bytes);
+    } catch (e) {
+      logSecurityEvent({ event: "menu_to_csv_pdf_extract_warn", userId: user.id, message: String(e) });
+    }
+
+    const isImagePdf = menuText.trim().length < 50;
+
+    // Step 2: call AI — fast path (text → Haiku) or vision path (image PDF → Sonnet)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+    const timeoutMs = isImagePdf ? AI_TIMEOUT_VISION_MS : AI_TIMEOUT_TEXT_MS;
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     let aiText: string;
     try {
-      const docBlock: DocumentBlockParam = {
-        type: "document",
-        source: { type: "base64", media_type: "application/pdf", data: base64 }
-      };
-      const textBlock: TextBlockParam = { type: "text", text: EXTRACTION_PROMPT };
+      let response;
 
-      const response = await anthropic.messages.create(
-        {
-          model: "claude-sonnet-4-6",
-          max_tokens: 8096,
-          messages: [{ role: "user", content: [docBlock, textBlock] }]
-        },
-        { signal: controller.signal as AbortSignal }
-      );
+      if (isImagePdf) {
+        // Vision path: PDF is image-only (e.g. scanned without OCR layer)
+        // Send the PDF as a document block directly to Sonnet
+        const docBlock: DocumentBlockParam = {
+          type: "document",
+          source: { type: "base64", media_type: "application/pdf", data: bytes.toString("base64") }
+        };
+        const textBlock: TextBlockParam = { type: "text", text: EXTRACTION_PROMPT };
+        response = await anthropic.messages.create(
+          {
+            model: "claude-sonnet-4-6",
+            max_tokens: 8096,
+            messages: [{ role: "user", content: [docBlock, textBlock] }]
+          },
+          { signal: controller.signal as AbortSignal }
+        );
+      } else {
+        // Fast path: send extracted text to Haiku (5-15s)
+        response = await anthropic.messages.create(
+          {
+            model: "claude-haiku-4-5-20251001",
+            max_tokens: 8096,
+            messages: [{
+              role: "user",
+              content: `${EXTRACTION_PROMPT}\n\n---TESTO DEL MENU---\n${menuText}`
+            }]
+          },
+          { signal: controller.signal as AbortSignal }
+        );
+      }
+
       if (response.stop_reason === "max_tokens") {
         return NextResponse.json(
-          { error: "Il menu è troppo lungo: la risposta AI è stata troncata. Prova con un menu più corto o con meno voci." },
+          { error: "Il menu è troppo lungo. Prova a dividere il PDF in sezioni più piccole." },
           { status: 422 }
         );
       }
+
       aiText = response.content
         .filter((b) => b.type === "text")
         .map((b) => (b as { type: "text"; text: string }).text)
         .join("");
     } catch (e: unknown) {
       if (e instanceof Error && (e.name === "AbortError" || e.message.includes("abort"))) {
-        logSecurityEvent({ event: "menu_to_csv_timeout", userId: user.id });
-        return NextResponse.json({ error: "Timeout: elaborazione AI troppo lunga (>55s)" }, { status: 504 });
+        logSecurityEvent({ event: "menu_to_csv_timeout", userId: user.id, visionPath: isImagePdf });
+        const hint = isImagePdf
+          ? "Il PDF è composto da immagini e richiede più tempo. Riprova o usa un PDF con testo selezionabile."
+          : "Timeout AI. Riprova.";
+        return NextResponse.json({ error: hint }, { status: 504 });
       }
       logSecurityEvent({ event: "menu_to_csv_ai_error", userId: user.id, message: String(e) });
       return NextResponse.json({ error: "Errore durante l'elaborazione AI" }, { status: 502 });
@@ -187,22 +252,19 @@ export async function POST(req: Request) {
       clearTimeout(timeoutId);
     }
 
-    // Extract JSON array from AI response — robust multi-strategy parsing
+    // Step 3: parse JSON from AI response
     let rawItems: unknown[];
     try {
       rawItems = extractJsonArray(aiText);
     } catch {
-      logSecurityEvent({
-        event: "menu_to_csv_parse_error",
-        userId: user.id,
-        preview: aiText.slice(0, 300)
-      });
+      logSecurityEvent({ event: "menu_to_csv_parse_error", userId: user.id, preview: aiText.slice(0, 300) });
       return NextResponse.json(
         { error: "L'AI non ha restituito dati strutturati validi. Riprova." },
         { status: 502 }
       );
     }
 
+    // Step 4: validate and sanitize each item
     const items: ExtractedItem[] = [];
     const errors: ExtractError[] = [];
 
@@ -225,10 +287,7 @@ export async function POST(req: Request) {
 
       for (const p of prezziRaw.slice(0, 5)) {
         const n = parsePrice(p);
-        if (n === null) {
-          badPrice = true;
-          break;
-        }
+        if (n === null) { badPrice = true; break; }
         prezzi.push(n);
       }
 
