@@ -87,7 +87,7 @@ export default async function ProtectedLayout({
         </aside>
 
         <main
-          className="rounded-2xl border bg-background p-3 max-md:pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:p-5 md:pb-5 lg:p-6"
+          className="min-w-0 rounded-2xl border bg-background p-3 max-md:pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:p-5 md:pb-5 lg:p-6"
         >
           {/* Client: polls Dexie every 45s for due reminders (notifications + email). */}
           <InterventionRemindersProvider />
