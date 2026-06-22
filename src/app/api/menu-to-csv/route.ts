@@ -30,6 +30,45 @@ REGOLE FONDAMENTALI:
 
 Restituisci SOLO l'array JSON, senza markdown, senza commenti, senza testo introduttivo.`;
 
+/**
+ * Tries several strategies to extract a JSON array from raw AI text.
+ * Handles: bare array, markdown code block, object wrapper {items:[...]}, etc.
+ */
+function extractJsonArray(text: string): unknown[] {
+  // Strip markdown code fences if present
+  const stripped = text
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```\s*$/, "")
+    .trim();
+
+  // Strategy 1: entire stripped text is a JSON array
+  if (stripped.startsWith("[")) {
+    const parsed: unknown = JSON.parse(stripped);
+    if (Array.isArray(parsed)) return parsed;
+  }
+
+  // Strategy 2: find the outermost [...] in the original text
+  const arrMatch = text.match(/\[[\s\S]*\]/);
+  if (arrMatch) {
+    const parsed: unknown = JSON.parse(arrMatch[0]);
+    if (Array.isArray(parsed)) return parsed;
+  }
+
+  // Strategy 3: response is a JSON object containing an array field
+  const objMatch = text.match(/\{[\s\S]*\}/);
+  if (objMatch) {
+    const obj = JSON.parse(objMatch[0]) as Record<string, unknown>;
+    for (const key of ["items", "voci", "menu", "prodotti", "data", "results"]) {
+      if (Array.isArray(obj[key])) return obj[key] as unknown[];
+    }
+    // Any array-valued key
+    const arrayVal = Object.values(obj).find(Array.isArray);
+    if (arrayVal) return arrayVal as unknown[];
+  }
+
+  throw new Error("no extractable JSON array");
+}
+
 type AiRawItem = {
   prodotto: unknown;
   descrizione_lunga: unknown;
@@ -121,7 +160,7 @@ export async function POST(req: Request) {
 
       const response = await anthropic.messages.create(
         {
-          model: "claude-haiku-4-5-20251001",
+          model: "claude-sonnet-4-6",
           max_tokens: 4096,
           messages: [{ role: "user", content: [docBlock, textBlock] }]
         },
@@ -132,7 +171,7 @@ export async function POST(req: Request) {
     } catch (e: unknown) {
       if (e instanceof Error && (e.name === "AbortError" || e.message.includes("abort"))) {
         logSecurityEvent({ event: "menu_to_csv_timeout", userId: user.id });
-        return NextResponse.json({ error: "Timeout: elaborazione AI troppo lunga (>60s)" }, { status: 504 });
+        return NextResponse.json({ error: "Timeout: elaborazione AI troppo lunga (>30s)" }, { status: 504 });
       }
       logSecurityEvent({ event: "menu_to_csv_ai_error", userId: user.id, message: String(e) });
       return NextResponse.json({ error: "Errore durante l'elaborazione AI" }, { status: 502 });
@@ -140,17 +179,20 @@ export async function POST(req: Request) {
       clearTimeout(timeoutId);
     }
 
-    // Extract JSON array from AI response
+    // Extract JSON array from AI response — robust multi-strategy parsing
     let rawItems: unknown[];
     try {
-      const jsonMatch = aiText.match(/\[[\s\S]*\]/);
-      if (!jsonMatch) throw new Error("no JSON array");
-      const parsed: unknown = JSON.parse(jsonMatch[0]);
-      if (!Array.isArray(parsed)) throw new Error("not array");
-      rawItems = parsed;
+      rawItems = extractJsonArray(aiText);
     } catch {
-      logSecurityEvent({ event: "menu_to_csv_parse_error", userId: user.id });
-      return NextResponse.json({ error: "L'AI non ha restituito dati strutturati validi. Riprova." }, { status: 502 });
+      logSecurityEvent({
+        event: "menu_to_csv_parse_error",
+        userId: user.id,
+        preview: aiText.slice(0, 300)
+      });
+      return NextResponse.json(
+        { error: "L'AI non ha restituito dati strutturati validi. Riprova." },
+        { status: 502 }
+      );
     }
 
     const items: ExtractedItem[] = [];
