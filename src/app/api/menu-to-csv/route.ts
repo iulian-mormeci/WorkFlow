@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-export const maxDuration = 60;
+export const maxDuration = 35;
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { logSecurityEvent } from "@/lib/security/security-log";
 import Anthropic from "@anthropic-ai/sdk";
@@ -10,7 +10,7 @@ import { join } from "path";
 import { randomBytes } from "crypto";
 
 const MAX_PDF_BYTES = 10 * 1_048_576;
-const AI_TIMEOUT_MS = 60_000;
+const AI_TIMEOUT_MS = 30_000;
 
 const EXTRACTION_PROMPT = `Analizza questo menu PDF e restituisci SOLO un array JSON valido (nessun testo aggiuntivo prima o dopo il JSON).
 
@@ -121,8 +121,8 @@ export async function POST(req: Request) {
 
       const response = await anthropic.messages.create(
         {
-          model: "claude-sonnet-4-6",
-          max_tokens: 8096,
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 4096,
           messages: [{ role: "user", content: [docBlock, textBlock] }]
         },
         { signal: controller.signal as AbortSignal }
