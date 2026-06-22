@@ -245,8 +245,22 @@ export function MenuToCsvClient() {
       const res = await fetch("/api/menu-to-csv", { method: "POST", body: form });
 
       if (!res.ok) {
-        const data = (await res.json().catch(() => ({ error: "" }))) as { error?: string };
-        throw new Error(data.error ?? t("errorGeneric"));
+        let errMsg = t("errorGeneric");
+        if (res.status === 413) {
+          errMsg = t("errorTooLarge");
+        } else if (res.status === 503) {
+          errMsg = "Chiave API AI non configurata sul server.";
+        } else if (res.status === 429) {
+          errMsg = "Troppe richieste, riprova tra qualche minuto.";
+        } else {
+          try {
+            const data = (await res.json()) as { error?: string };
+            errMsg = data.error || t("errorGeneric");
+          } catch {
+            errMsg = `${t("errorGeneric")} (HTTP ${res.status})`;
+          }
+        }
+        throw new Error(errMsg);
       }
 
       const data = (await res.json()) as {

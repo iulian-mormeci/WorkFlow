@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+
+export const maxDuration = 60;
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { logSecurityEvent } from "@/lib/security/security-log";
 import Anthropic from "@anthropic-ai/sdk";
