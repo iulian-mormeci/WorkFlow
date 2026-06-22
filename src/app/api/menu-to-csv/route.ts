@@ -161,13 +161,21 @@ export async function POST(req: Request) {
       const response = await anthropic.messages.create(
         {
           model: "claude-sonnet-4-6",
-          max_tokens: 4096,
+          max_tokens: 8096,
           messages: [{ role: "user", content: [docBlock, textBlock] }]
         },
         { signal: controller.signal as AbortSignal }
       );
-      const block = response.content[0];
-      aiText = block.type === "text" ? block.text : "";
+      if (response.stop_reason === "max_tokens") {
+        return NextResponse.json(
+          { error: "Il menu è troppo lungo: la risposta AI è stata troncata. Prova con un menu più corto o con meno voci." },
+          { status: 422 }
+        );
+      }
+      aiText = response.content
+        .filter((b) => b.type === "text")
+        .map((b) => (b as { type: "text"; text: string }).text)
+        .join("");
     } catch (e: unknown) {
       if (e instanceof Error && (e.name === "AbortError" || e.message.includes("abort"))) {
         logSecurityEvent({ event: "menu_to_csv_timeout", userId: user.id });
