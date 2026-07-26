@@ -1520,7 +1520,18 @@
       "copySuccessBody": "Puoi modificare subito la copia personale.",
       "copyFailedTitle": "Impossibile copiare la procedura",
       "alreadyCopiedTitle": "Procedura già nel tuo account",
-      "alreadyCopiedBody": "Hai già una copia di questa procedura nel tuo account."
+      "alreadyCopiedBody": "Hai già una copia di questa procedura nel tuo account.",
+      "copiedFromGlobalBadge": "Da procedura online",
+      "alreadyInLibraryBadge": "Già nella tua libreria",
+      "uncopiedCount": "{count, plural, one {# procedura online non ancora nella tua libreria} other {# procedure online non ancora nella tua libreria}}",
+      "addAllButton": "Aggiungi tutte",
+      "addAllBusy": "Aggiunta in corso…",
+      "addAllConfirmTitle": "Aggiungere tutte le procedure online?",
+      "addAllConfirmBody": "{count, plural, one {Verrà copiata # procedura online non ancora presente nel tuo account personale.} other {Verranno copiate # procedure online non ancora presenti nel tuo account personale.}}",
+      "addAllSuccessTitle": "Procedure aggiunte",
+      "addAllSuccessBody": "{count, plural, one {# procedura aggiunta al tuo account.} other {# procedure aggiunte al tuo account.}}",
+      "addAllNoneTitle": "Nessuna procedura da aggiungere",
+      "addAllFailedTitle": "Impossibile aggiungere le procedure"
     },
     "company": {
       "badge": "Aziendale",

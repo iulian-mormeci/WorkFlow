@@ -45,9 +45,9 @@ export default async function ProtectedLayout({
       }}
     >
       <div className="grid grid-cols-1 gap-3 px-3 py-2 max-md:pt-[3.25rem] md:grid-cols-[260px_1fr] md:gap-4 md:px-5 md:py-5 md:pt-5 lg:px-6 lg:py-6 xl:px-8">
-        <aside className="hidden rounded-2xl border bg-background p-3.5 md:sticky md:top-5 md:block md:h-[calc(100dvh-2.5rem)] md:overflow-auto lg:p-4">
+        <aside className="hidden rounded-2xl border bg-background p-3.5 md:sticky md:top-5 md:block md:h-[calc(100dvh-2.5rem)] md:overflow-y-auto md:overflow-x-hidden lg:p-4">
           <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
+            <div className="min-w-0 space-y-0.5">
               <div className="text-base font-semibold tracking-tight">
                 {t("common.appName")}
               </div>
@@ -58,7 +58,7 @@ export default async function ProtectedLayout({
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex shrink-0 items-center gap-1">
               <NotificationsBell />
               <SidebarSignOut />
             </div>

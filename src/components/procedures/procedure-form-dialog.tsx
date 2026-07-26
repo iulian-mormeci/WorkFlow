@@ -84,8 +84,20 @@ export function ProcedureFormDialog({
   const removedExistingRef = useRef<Set<string>>(new Set());
   const savedRef = useRef(false);
 
+  // `procedure`/`defaults` are read through refs instead of the effect's deps below: the
+  // parent re-creates the `defaults` object (and can hand us a fresh `procedure` reference
+  // after a background sync) on every render, e.g. after a tab-visibility session refresh
+  // triggers a resync. Seeding on every such re-render wiped in-progress drafts — the form
+  // must only seed once, on the actual closed→open transition, not on every parent re-render.
+  const procedureRef = useRef(procedure);
+  procedureRef.current = procedure;
+  const defaultsRef = useRef(defaults);
+  defaultsRef.current = defaults;
+
   useEffect(() => {
     if (!open) return;
+    const procedure = procedureRef.current;
+    const defaults = defaultsRef.current;
     savedRef.current = false;
     sessionAddedRef.current = new Set();
     removedExistingRef.current = new Set();
@@ -102,7 +114,7 @@ export function ProcedureFormDialog({
     setUploading(false);
     setSaving(false);
     setSeedKey(procedure?.id ?? `new-${Date.now()}`);
-  }, [open, procedure, defaults]);
+  }, [open]);
 
   // Only offer "share with my company" once we know the user actually belongs to one.
   useEffect(() => {

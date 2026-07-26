@@ -5,6 +5,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import {
   BookOpen,
   Building2,
+  CheckCircle2,
   Copy,
   Globe,
   Image as ImageIcon,
@@ -22,8 +23,13 @@ import {
   type GlobalProcedure,
   type Procedure
 } from "@/lib/db/workflow-db";
-import { cloneCompanyProcedureToPersonal, cloneGlobalProcedureToPersonal } from "@/lib/procedures/clone-global-procedure";
 import {
+  cloneAllGlobalProceduresToPersonal,
+  cloneCompanyProcedureToPersonal,
+  cloneGlobalProcedureToPersonal
+} from "@/lib/procedures/clone-global-procedure";
+import {
+  clonedGlobalIdSet,
   procedureLikeFromCompany,
   procedureLikeFromGlobal,
   procedureLikeFromPersonal,
@@ -170,13 +176,55 @@ export function GlobalProceduresSearchDialog({
       return procedureSearchHaystack(like).includes(qv);
     });
 
-    return { filtered, brands, models, globalCount: globals.length, companyCount: company.length };
+    const cloned = clonedGlobalIdSet(personal);
+    const uncloned = globals.filter((g) => (g.status ?? "approved") === "approved" && !cloned.has(g.id));
+
+    return {
+      filtered,
+      brands,
+      models,
+      globalCount: globals.length,
+      companyCount: company.length,
+      cloned,
+      uncloned
+    };
   }, [q, category, brand, model, scopeTab, sectorFilter, showAllSectors, liveEpoch]);
 
   const list = data?.filtered ?? [];
   const brands = data?.brands ?? [];
   const models = data?.models ?? [];
   const hasCompanyProcedures = (data?.companyCount ?? 0) > 0 || scopeTab === "company";
+  const clonedIds = data?.cloned ?? new Set<string>();
+  const uncloned = data?.uncloned ?? [];
+
+  const [addAllOpen, setAddAllOpen] = useState(false);
+  const [addAllBusy, setAddAllBusy] = useState(false);
+
+  async function handleAddAll() {
+    if (addAllBusy) return;
+    setAddAllBusy(true);
+    try {
+      const result = await cloneAllGlobalProceduresToPersonal(uncloned);
+      scheduleWorkflowSync();
+      setAddAllOpen(false);
+      if (result.added > 0) {
+        toast({
+          title: t("procedures.global.addAllSuccessTitle"),
+          description: t("procedures.global.addAllSuccessBody", { count: result.added })
+        });
+      } else {
+        toast({ title: t("procedures.global.addAllNoneTitle") });
+      }
+    } catch (e) {
+      toast({
+        title: t("procedures.global.addAllFailedTitle"),
+        description: e instanceof Error ? e.message : t("common.unknownError"),
+        variant: "destructive"
+      });
+    } finally {
+      setAddAllBusy(false);
+    }
+  }
 
   const viewingLike: ProcedureLike | null = useMemo(() => {
     if (!viewing) return null;
@@ -277,6 +325,23 @@ export function GlobalProceduresSearchDialog({
               ))}
             </div>
 
+            {uncloned.length > 0 && scopeTab !== "personal" && scopeTab !== "company" ? (
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-violet-200/80 bg-violet-50/40 p-2.5 dark:border-violet-900/50 dark:bg-violet-950/20">
+                <p className="text-xs text-violet-950 dark:text-violet-100">
+                  {t("procedures.global.uncopiedCount", { count: uncloned.length })}
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="min-h-9 gap-1.5 bg-violet-600 hover:bg-violet-700"
+                  onClick={() => setAddAllOpen(true)}
+                >
+                  <Copy className="h-4 w-4" />
+                  {t("procedures.global.addAllButton")}
+                </Button>
+              </div>
+            ) : null}
+
             <div className="flex flex-wrap items-center gap-2">
               {(["all", ...PROCEDURE_CATEGORIES] as const).map((c) => (
                 <Button
@@ -359,6 +424,7 @@ export function GlobalProceduresSearchDialog({
                 const imageCount = p.imageIds?.length ?? 0;
                 const isGlobal = hit.scope === "global";
                 const isCompany = hit.scope === "company";
+                const alreadyCloned = isGlobal && clonedIds.has(p.id);
                 return (
                   <div
                     key={`${hit.scope}-${p.id}`}
@@ -390,6 +456,12 @@ export function GlobalProceduresSearchDialog({
                             {t("procedures.global.personalBadge")}
                           </Badge>
                         )}
+                        {alreadyCloned ? (
+                          <Badge className="border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-100">
+                            <CheckCircle2 className="mr-1 h-3 w-3" />
+                            {t("procedures.global.alreadyInLibraryBadge")}
+                          </Badge>
+                        ) : null}
                         {!isGlobal && !isCompany && userSector && (hit.row as Procedure).sectorTags?.includes(userSector) ? (
                           <Badge className="border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-100">
                             <Sparkles className="mr-1 h-3 w-3" />
@@ -447,7 +519,7 @@ export function GlobalProceduresSearchDialog({
                       >
                         {t("procedures.actions.open")}
                       </Button>
-                      {isGlobal || isCompany ? (
+                      {(isGlobal || isCompany) && !alreadyCloned ? (
                         <Button
                           type="button"
                           size="sm"
@@ -500,12 +572,36 @@ export function GlobalProceduresSearchDialog({
             : undefined
         }
         onCopy={
-          viewing?.scope === "global" || viewing?.scope === "company"
+          (viewing?.scope === "global" && !clonedIds.has(viewing.row.id)) || viewing?.scope === "company"
             ? () => void handleCopy(viewing)
             : undefined
         }
         copying={(viewing?.scope === "global" || viewing?.scope === "company") && copyingId === viewing.row.id}
       />
+
+      <Dialog open={addAllOpen} onOpenChange={(o) => !addAllBusy && setAddAllOpen(o)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("procedures.global.addAllConfirmTitle")}</DialogTitle>
+            <DialogDescription>
+              {t("procedures.global.addAllConfirmBody", { count: uncloned.length })}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 flex items-center justify-end gap-2">
+            <Button variant="outline" onClick={() => setAddAllOpen(false)} disabled={addAllBusy}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              className="gap-2 bg-violet-600 hover:bg-violet-700"
+              onClick={() => void handleAddAll()}
+              disabled={addAllBusy}
+            >
+              {addAllBusy && <Loader2 className="h-4 w-4 animate-spin" />}
+              {addAllBusy ? t("procedures.global.addAllBusy") : t("procedures.global.addAllButton")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

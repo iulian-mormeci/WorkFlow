@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   BookOpen,
+  CheckCircle2,
+  Clock,
   Globe,
   Image as ImageIcon,
   Loader2,
@@ -13,7 +15,8 @@ import {
   Tag,
   Trash2,
   User,
-  Wrench
+  Wrench,
+  XCircle
 } from "lucide-react";
 import {
   PROCEDURE_CATEGORIES,
@@ -35,7 +38,7 @@ import {
 import { GlobalProceduresSearchDialog } from "@/components/procedures/global-procedures-search-dialog";
 import { ProcedureFormDialog } from "@/components/procedures/procedure-form-dialog";
 import { ProcedureViewDialog } from "@/components/procedures/procedure-view-dialog";
-import { procedureLikeFromPersonal } from "@/lib/procedures/procedure-shared";
+import { procedureLikeFromPersonal, publishStatusFor } from "@/lib/procedures/procedure-shared";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
@@ -85,7 +88,10 @@ export function ProceduresClient() {
   );
 
   const data = useLiveQuery(async () => {
-    const all = await db.procedures.orderBy("updatedAt").reverse().toArray();
+    const [all, globals] = await Promise.all([
+      db.procedures.orderBy("updatedAt").reverse().toArray(),
+      db.globalProcedures.toArray()
+    ]);
     const brands = uniqueSorted(all.map((p) => p.brand));
     const models = uniqueSorted(all.map((p) => p.model));
 
@@ -107,12 +113,13 @@ export function ProceduresClient() {
       return haystack.includes(qv);
     });
 
-    return { filtered, brands, models, total: all.length };
+    return { filtered, brands, models, total: all.length, globals };
   }, [q, category, brand, model, liveEpoch]);
 
   const list = data?.filtered ?? [];
   const brands = data?.brands ?? [];
   const models = data?.models ?? [];
+  const globals = data?.globals ?? [];
 
   const activeFilters = useMemo(
     () => category !== "all" || brand !== "all" || model !== "all" || q.trim().length > 0,
@@ -254,6 +261,7 @@ export function ProceduresClient() {
         {list.map((p) => {
           const preview = procedureHtmlToText(p.content ?? "");
           const imageCount = p.imageIds?.length ?? 0;
+          const publishStatus = publishStatusFor(p.id, globals);
           return (
             <div key={p.id} className="rounded-2xl border p-4 transition-colors hover:bg-muted/40">
               <button
@@ -270,6 +278,28 @@ export function ProceduresClient() {
                     )}
                     {p.title}
                   </span>
+                  {p.sourceGlobalId ? (
+                    <Badge className="border-violet-300 bg-violet-50 text-violet-900 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-100">
+                      <Globe className="mr-1 h-3 w-3" />
+                      {t("procedures.global.copiedFromGlobalBadge")}
+                    </Badge>
+                  ) : null}
+                  {publishStatus === "approved" ? (
+                    <Badge className="border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-100">
+                      <CheckCircle2 className="mr-1 h-3 w-3" />
+                      {t("procedures.submitGlobal.approvedBadge")}
+                    </Badge>
+                  ) : publishStatus === "pending" ? (
+                    <Badge className="border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
+                      <Clock className="mr-1 h-3 w-3" />
+                      {t("procedures.submitGlobal.pendingBadge")}
+                    </Badge>
+                  ) : publishStatus === "rejected" ? (
+                    <Badge className="border-red-300 bg-red-50 text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-100">
+                      <XCircle className="mr-1 h-3 w-3" />
+                      {t("procedures.submitGlobal.rejectedBadge")}
+                    </Badge>
+                  ) : null}
                   {p.brand ? (
                     <span className="rounded-full border bg-muted/60 px-2 py-0.5 text-xs text-muted-foreground">
                       {p.brand}

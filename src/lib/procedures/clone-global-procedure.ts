@@ -57,6 +57,51 @@ export async function cloneGlobalProcedureToPersonal(
   return createProcedure(values);
 }
 
+export type CloneAllGlobalResult = {
+  added: number;
+  skipped: number;
+  failed: number;
+};
+
+/**
+ * Clone every approved global preset not yet in the user's personal library.
+ * Best-effort per row — one failure doesn't stop the rest.
+ */
+export async function cloneAllGlobalProceduresToPersonal(
+  globals: readonly GlobalProcedure[]
+): Promise<CloneAllGlobalResult> {
+  const already = new Set(
+    (await db.procedures.where("sourceGlobalId").anyOf(globals.map((g) => g.id)).toArray()).map(
+      (p) => p.sourceGlobalId
+    )
+  );
+
+  let added = 0;
+  let skipped = 0;
+  let failed = 0;
+  for (const g of globals) {
+    if ((g.status ?? "approved") !== "approved") {
+      skipped++;
+      continue;
+    }
+    if (already.has(g.id)) {
+      skipped++;
+      continue;
+    }
+    try {
+      await cloneGlobalProcedureToPersonal(g);
+      added++;
+    } catch (e) {
+      if (e instanceof Error && e.name === "ProcedureAlreadyClonedError") {
+        skipped++;
+      } else {
+        failed++;
+      }
+    }
+  }
+  return { added, skipped, failed };
+}
+
 /**
  * Copy a teammate's company-shared procedure into the current user's own
  * personal library (a plain, independent copy — not linked back, since

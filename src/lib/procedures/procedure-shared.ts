@@ -52,6 +52,36 @@ export function procedureLikeFromCompany(p: CompanyProcedure): ProcedureLike {
   };
 }
 
+export type PublishStatus = "approved" | "pending" | "rejected";
+
+/**
+ * Best-known status of "this personal procedure was submitted to the global
+ * catalog", if any (a personal procedure can be resubmitted after rejection,
+ * so pick the most favorable status: approved > pending > rejected).
+ */
+export function publishStatusFor(
+  procedureId: string,
+  globals: readonly GlobalProcedure[]
+): PublishStatus | null {
+  const rank: Record<PublishStatus, number> = { approved: 2, pending: 1, rejected: 0 };
+  let best: PublishStatus | null = null;
+  for (const g of globals) {
+    if (g.sourceProcedureId !== procedureId) continue;
+    const status = (g.status ?? "approved") as PublishStatus;
+    if (best === null || rank[status] > rank[best]) best = status;
+  }
+  return best;
+}
+
+/** IDs of global procedures already cloned into the personal library. */
+export function clonedGlobalIdSet(personal: readonly Procedure[]): Set<string> {
+  const set = new Set<string>();
+  for (const p of personal) {
+    if (p.sourceGlobalId) set.add(p.sourceGlobalId);
+  }
+  return set;
+}
+
 /** Lowercase haystack for title, content, brand, model, category, tags. */
 export function procedureSearchHaystack(p: ProcedureLike): string {
   return [

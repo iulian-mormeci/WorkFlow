@@ -1520,7 +1520,18 @@
       "copySuccessBody": "You can edit your personal copy now.",
       "copyFailedTitle": "Could not copy procedure",
       "alreadyCopiedTitle": "Procedure already in your account",
-      "alreadyCopiedBody": "You already have a copy of this procedure in your account."
+      "alreadyCopiedBody": "You already have a copy of this procedure in your account.",
+      "copiedFromGlobalBadge": "From online procedure",
+      "alreadyInLibraryBadge": "Already in your library",
+      "uncopiedCount": "{count, plural, one {# online procedure not yet in your library} other {# online procedures not yet in your library}}",
+      "addAllButton": "Add all",
+      "addAllBusy": "Adding…",
+      "addAllConfirmTitle": "Add all online procedures?",
+      "addAllConfirmBody": "{count, plural, one {# online procedure not yet in your personal account will be copied.} other {# online procedures not yet in your personal account will be copied.}}",
+      "addAllSuccessTitle": "Procedures added",
+      "addAllSuccessBody": "{count, plural, one {# procedure added to your account.} other {# procedures added to your account.}}",
+      "addAllNoneTitle": "Nothing to add",
+      "addAllFailedTitle": "Could not add the procedures"
     },
     "company": {
       "badge": "Company",
