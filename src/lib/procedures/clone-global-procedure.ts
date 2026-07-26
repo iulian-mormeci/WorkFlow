@@ -1,6 +1,8 @@
-import { db, type CompanyProcedure, type GlobalProcedure } from "@/lib/db/workflow-db";
+import { db, type CompanyProcedure, type GlobalProcedure, type Procedure } from "@/lib/db/workflow-db";
 import { createProcedure, type ProcedureFormValues } from "@/lib/procedures/procedure-mutations";
 import { sanitizeProcedureHtml } from "@/lib/procedures/sanitize-html";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { performStandaloneAttachmentCloudDelete } from "@/lib/sync/cloud-delete";
 
 /** Duplicate one attachment blob under a new id (owned by the current user on sync). */
 export async function cloneAttachmentBlob(sourceId: string): Promise<string | null> {
@@ -100,6 +102,49 @@ export async function cloneAllGlobalProceduresToPersonal(
     }
   }
   return { added, skipped, failed };
+}
+
+/**
+ * Overwrite an existing personal procedure with a global preset's content
+ * (chosen by the user when the two were flagged as the same procedure with
+ * differing content). Old images are swapped for fresh copies of the
+ * global's own images and best-effort deleted from cloud storage.
+ */
+export async function replacePersonalProcedureWithGlobal(
+  existing: Procedure,
+  global: GlobalProcedure
+): Promise<void> {
+  const imageIds: string[] = [];
+  for (const srcId of global.imageIds ?? []) {
+    const newId = await cloneAttachmentBlob(srcId);
+    if (newId) imageIds.push(newId);
+  }
+
+  const nowIso = new Date().toISOString();
+  await db.procedures.update(existing.id, {
+    title: global.title.trim(),
+    category: global.category,
+    brand: global.brand,
+    model: global.model,
+    content: sanitizeProcedureHtml(global.content ?? ""),
+    tags: global.tags?.length ? global.tags : undefined,
+    imageIds: imageIds.length ? imageIds : undefined,
+    sectorTags: global.sectorTags,
+    sourceGlobalId: global.id,
+    updatedAt: nowIso
+  });
+
+  const oldImageIds = existing.imageIds ?? [];
+  if (oldImageIds.length) {
+    const supabase = createSupabaseBrowserClient();
+    for (const id of oldImageIds) {
+      try {
+        await performStandaloneAttachmentCloudDelete({ attachmentId: id, supabase, userId: null });
+      } catch {
+        /* best-effort */
+      }
+    }
+  }
 }
 
 /**

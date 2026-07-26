@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
+  AlertTriangle,
   BookOpen,
   Building2,
   CheckCircle2,
@@ -26,14 +27,16 @@ import {
 import {
   cloneAllGlobalProceduresToPersonal,
   cloneCompanyProcedureToPersonal,
-  cloneGlobalProcedureToPersonal
+  cloneGlobalProcedureToPersonal,
+  replacePersonalProcedureWithGlobal
 } from "@/lib/procedures/clone-global-procedure";
 import {
-  clonedGlobalIdSet,
+  classifyGlobalProcedure,
   procedureLikeFromCompany,
   procedureLikeFromGlobal,
   procedureLikeFromPersonal,
   procedureSearchHaystack,
+  type GlobalProcedureRelation,
   type ProcedureLike
 } from "@/lib/procedures/procedure-shared";
 import { procedureHtmlToText } from "@/lib/procedures/sanitize-html";
@@ -176,8 +179,18 @@ export function GlobalProceduresSearchDialog({
       return procedureSearchHaystack(like).includes(qv);
     });
 
-    const cloned = clonedGlobalIdSet(personal);
-    const uncloned = globals.filter((g) => (g.status ?? "approved") === "approved" && !cloned.has(g.id));
+    const relationByGlobalId = new Map<string, GlobalProcedureRelation>();
+    for (const g of globals) {
+      relationByGlobalId.set(g.id, classifyGlobalProcedure(g, personal));
+    }
+    const safeToAdd = globals.filter((g) => {
+      if ((g.status ?? "approved") !== "approved") return false;
+      return relationByGlobalId.get(g.id)?.kind === "new";
+    });
+    const needsReview = globals.filter((g) => {
+      if ((g.status ?? "approved") !== "approved") return false;
+      return relationByGlobalId.get(g.id)?.kind === "differs";
+    });
 
     return {
       filtered,
@@ -185,8 +198,9 @@ export function GlobalProceduresSearchDialog({
       models,
       globalCount: globals.length,
       companyCount: company.length,
-      cloned,
-      uncloned
+      relationByGlobalId,
+      safeToAdd,
+      needsReview
     };
   }, [q, category, brand, model, scopeTab, sectorFilter, showAllSectors, liveEpoch]);
 
@@ -194,17 +208,31 @@ export function GlobalProceduresSearchDialog({
   const brands = data?.brands ?? [];
   const models = data?.models ?? [];
   const hasCompanyProcedures = (data?.companyCount ?? 0) > 0 || scopeTab === "company";
-  const clonedIds = data?.cloned ?? new Set<string>();
-  const uncloned = data?.uncloned ?? [];
+  const relationByGlobalId = data?.relationByGlobalId ?? new Map<string, GlobalProcedureRelation>();
+  const safeToAdd = data?.safeToAdd ?? [];
+  const needsReview = data?.needsReview ?? [];
+  const addAllCandidateCount = safeToAdd.length + needsReview.length;
 
   const [addAllOpen, setAddAllOpen] = useState(false);
   const [addAllBusy, setAddAllBusy] = useState(false);
+
+  type ReviewItem = { global: GlobalProcedure; match: Procedure };
+  type ReviewQueue = { items: ReviewItem[]; index: number; singleFlow: boolean };
+  const [reviewQueue, setReviewQueue] = useState<ReviewQueue | null>(null);
+  const [reviewBusy, setReviewBusy] = useState(false);
+
+  function matchFor(global: GlobalProcedure): Procedure | null {
+    const relation = relationByGlobalId.get(global.id);
+    return relation && "match" in relation ? relation.match : null;
+  }
 
   async function handleAddAll() {
     if (addAllBusy) return;
     setAddAllBusy(true);
     try {
-      const result = await cloneAllGlobalProceduresToPersonal(uncloned);
+      const result = safeToAdd.length
+        ? await cloneAllGlobalProceduresToPersonal(safeToAdd)
+        : { added: 0, skipped: 0, failed: 0 };
       scheduleWorkflowSync();
       setAddAllOpen(false);
       if (result.added > 0) {
@@ -212,8 +240,15 @@ export function GlobalProceduresSearchDialog({
           title: t("procedures.global.addAllSuccessTitle"),
           description: t("procedures.global.addAllSuccessBody", { count: result.added })
         });
-      } else {
+      } else if (needsReview.length === 0) {
         toast({ title: t("procedures.global.addAllNoneTitle") });
+      }
+      if (needsReview.length > 0) {
+        setReviewQueue({
+          items: needsReview.map((global) => ({ global, match: matchFor(global)! })),
+          index: 0,
+          singleFlow: false
+        });
       }
     } catch (e) {
       toast({
@@ -226,6 +261,48 @@ export function GlobalProceduresSearchDialog({
     }
   }
 
+  const currentReview =
+    reviewQueue && reviewQueue.index < reviewQueue.items.length ? reviewQueue.items[reviewQueue.index] : null;
+
+  async function resolveReview(action: "keepMine" | "replace" | "keepBoth") {
+    if (!reviewQueue || !currentReview || reviewBusy) return;
+    setReviewBusy(true);
+    try {
+      let createdId: string | undefined;
+      if (action === "replace") {
+        await replacePersonalProcedureWithGlobal(currentReview.match, currentReview.global);
+        createdId = currentReview.match.id;
+      } else if (action === "keepBoth") {
+        createdId = await cloneGlobalProcedureToPersonal(currentReview.global);
+      }
+
+      const nextIndex = reviewQueue.index + 1;
+      if (nextIndex >= reviewQueue.items.length) {
+        scheduleWorkflowSync();
+        const { singleFlow } = reviewQueue;
+        setReviewQueue(null);
+        if (singleFlow && createdId) {
+          const created = await db.procedures.get(createdId);
+          setViewing(null);
+          onOpenChange(false);
+          if (created && onCopiedEdit) onCopiedEdit(created);
+        } else if (!singleFlow) {
+          toast({ title: t("procedures.global.reviewDoneTitle") });
+        }
+      } else {
+        setReviewQueue({ ...reviewQueue, index: nextIndex });
+      }
+    } catch (e) {
+      toast({
+        title: t("procedures.global.copyFailedTitle"),
+        description: e instanceof Error ? e.message : t("common.unknownError"),
+        variant: "destructive"
+      });
+    } finally {
+      setReviewBusy(false);
+    }
+  }
+
   const viewingLike: ProcedureLike | null = useMemo(() => {
     if (!viewing) return null;
     return viewing.scope === "global"
@@ -234,6 +311,18 @@ export function GlobalProceduresSearchDialog({
         ? procedureLikeFromCompany(viewing.row)
         : procedureLikeFromPersonal(viewing.row);
   }, [viewing]);
+
+  function startCopy(hit: { scope: "global"; row: GlobalProcedure } | { scope: "company"; row: CompanyProcedure }) {
+    if (hit.scope === "global" && relationByGlobalId.get(hit.row.id)?.kind === "differs") {
+      setReviewQueue({
+        items: [{ global: hit.row, match: matchFor(hit.row)! }],
+        index: 0,
+        singleFlow: true
+      });
+      return;
+    }
+    void handleCopy(hit);
+  }
 
   async function handleCopy(hit: { scope: "global"; row: GlobalProcedure } | { scope: "company"; row: CompanyProcedure }) {
     if (copyingId) return;
@@ -325,10 +414,10 @@ export function GlobalProceduresSearchDialog({
               ))}
             </div>
 
-            {uncloned.length > 0 && scopeTab !== "personal" && scopeTab !== "company" ? (
+            {addAllCandidateCount > 0 && scopeTab !== "personal" && scopeTab !== "company" ? (
               <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-violet-200/80 bg-violet-50/40 p-2.5 dark:border-violet-900/50 dark:bg-violet-950/20">
                 <p className="text-xs text-violet-950 dark:text-violet-100">
-                  {t("procedures.global.uncopiedCount", { count: uncloned.length })}
+                  {t("procedures.global.uncopiedCount", { count: addAllCandidateCount })}
                 </p>
                 <Button
                   type="button"
@@ -424,7 +513,12 @@ export function GlobalProceduresSearchDialog({
                 const imageCount = p.imageIds?.length ?? 0;
                 const isGlobal = hit.scope === "global";
                 const isCompany = hit.scope === "company";
-                const alreadyCloned = isGlobal && clonedIds.has(p.id);
+                const relation = isGlobal ? relationByGlobalId.get(p.id) : undefined;
+                const alreadyOwned =
+                  relation?.kind === "owned-cloned" ||
+                  relation?.kind === "owned-published" ||
+                  relation?.kind === "identical";
+                const isDuplicateCandidate = relation?.kind === "differs";
                 return (
                   <div
                     key={`${hit.scope}-${p.id}`}
@@ -456,10 +550,20 @@ export function GlobalProceduresSearchDialog({
                             {t("procedures.global.personalBadge")}
                           </Badge>
                         )}
-                        {alreadyCloned ? (
+                        {relation?.kind === "owned-published" ? (
+                          <Badge className="border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-100">
+                            <CheckCircle2 className="mr-1 h-3 w-3" />
+                            {t("procedures.global.publishedByYouBadge")}
+                          </Badge>
+                        ) : alreadyOwned ? (
                           <Badge className="border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-100">
                             <CheckCircle2 className="mr-1 h-3 w-3" />
                             {t("procedures.global.alreadyInLibraryBadge")}
+                          </Badge>
+                        ) : isDuplicateCandidate ? (
+                          <Badge className="border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
+                            <AlertTriangle className="mr-1 h-3 w-3" />
+                            {t("procedures.global.possibleDuplicateBadge")}
                           </Badge>
                         ) : null}
                         {!isGlobal && !isCompany && userSector && (hit.row as Procedure).sectorTags?.includes(userSector) ? (
@@ -519,14 +623,19 @@ export function GlobalProceduresSearchDialog({
                       >
                         {t("procedures.actions.open")}
                       </Button>
-                      {(isGlobal || isCompany) && !alreadyCloned ? (
+                      {(isGlobal || isCompany) && !alreadyOwned ? (
                         <Button
                           type="button"
                           size="sm"
-                          className="min-h-10 gap-1.5 bg-violet-600 hover:bg-violet-700"
+                          className={cn(
+                            "min-h-10 gap-1.5",
+                            isDuplicateCandidate
+                              ? "bg-amber-600 hover:bg-amber-700"
+                              : "bg-violet-600 hover:bg-violet-700"
+                          )}
                           disabled={Boolean(copyingId)}
                           onClick={() => {
-                            if (hit.scope === "global" || hit.scope === "company") void handleCopy(hit);
+                            if (hit.scope === "global" || hit.scope === "company") startCopy(hit);
                           }}
                         >
                           {copyingId === p.id ? (
@@ -572,8 +681,12 @@ export function GlobalProceduresSearchDialog({
             : undefined
         }
         onCopy={
-          (viewing?.scope === "global" && !clonedIds.has(viewing.row.id)) || viewing?.scope === "company"
-            ? () => void handleCopy(viewing)
+          (viewing?.scope === "global" &&
+            !["owned-cloned", "owned-published", "identical"].includes(
+              relationByGlobalId.get(viewing.row.id)?.kind ?? ""
+            )) ||
+          viewing?.scope === "company"
+            ? () => startCopy(viewing)
             : undefined
         }
         copying={(viewing?.scope === "global" || viewing?.scope === "company") && copyingId === viewing.row.id}
@@ -584,7 +697,7 @@ export function GlobalProceduresSearchDialog({
           <DialogHeader>
             <DialogTitle>{t("procedures.global.addAllConfirmTitle")}</DialogTitle>
             <DialogDescription>
-              {t("procedures.global.addAllConfirmBody", { count: uncloned.length })}
+              {t("procedures.global.addAllConfirmBody", { safe: safeToAdd.length, review: needsReview.length })}
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4 flex items-center justify-end gap-2">
@@ -600,6 +713,75 @@ export function GlobalProceduresSearchDialog({
               {addAllBusy ? t("procedures.global.addAllBusy") : t("procedures.global.addAllButton")}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(currentReview)} onOpenChange={(o) => !o && !reviewBusy && setReviewQueue(null)}>
+        <DialogContent className="sm:max-w-lg">
+          {currentReview ? (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-amber-600" />
+                  {t("procedures.global.reviewDialogTitle")}
+                </DialogTitle>
+                <DialogDescription>
+                  {t("procedures.global.reviewDialogSubtitle")}
+                  {reviewQueue && reviewQueue.items.length > 1
+                    ? ` (${t("procedures.global.reviewProgress", {
+                        current: reviewQueue.index + 1,
+                        total: reviewQueue.items.length
+                      })})`
+                    : ""}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border bg-sky-50/60 p-3 dark:bg-sky-950/20">
+                  <Badge className="border-sky-300 bg-sky-50 text-sky-900">
+                    <User className="mr-1 h-3 w-3" />
+                    {t("procedures.global.reviewYourVersion")}
+                  </Badge>
+                  <p className="mt-2 text-sm font-semibold">{currentReview.match.title}</p>
+                  <p className="mt-1 line-clamp-4 text-xs text-muted-foreground">
+                    {procedureHtmlToText(currentReview.match.content ?? "")}
+                  </p>
+                </div>
+                <div className="rounded-xl border bg-violet-50/60 p-3 dark:bg-violet-950/20">
+                  <Badge className="border-violet-300 bg-violet-100 text-violet-900 dark:bg-violet-950 dark:text-violet-100">
+                    <Globe className="mr-1 h-3 w-3" />
+                    {t("procedures.global.reviewOnlineVersion")}
+                  </Badge>
+                  <p className="mt-2 text-sm font-semibold">{currentReview.global.title}</p>
+                  <p className="mt-1 line-clamp-4 text-xs text-muted-foreground">
+                    {procedureHtmlToText(currentReview.global.content ?? "")}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+                <Button variant="outline" disabled={reviewBusy} onClick={() => void resolveReview("keepMine")}>
+                  {t("procedures.global.reviewKeepMine")}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-amber-300 text-amber-900 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-100"
+                  disabled={reviewBusy}
+                  onClick={() => void resolveReview("replace")}
+                >
+                  {t("procedures.global.reviewReplace")}
+                </Button>
+                <Button
+                  className="gap-2 bg-violet-600 hover:bg-violet-700"
+                  disabled={reviewBusy}
+                  onClick={() => void resolveReview("keepBoth")}
+                >
+                  {reviewBusy && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {t("procedures.global.reviewKeepBoth")}
+                </Button>
+              </div>
+            </>
+          ) : null}
         </DialogContent>
       </Dialog>
     </>
