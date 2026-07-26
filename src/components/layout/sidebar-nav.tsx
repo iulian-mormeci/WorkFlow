@@ -4,11 +4,13 @@ import { Link, usePathname } from "@/i18n/navigation";
 import {
   BarChart3,
   BookOpen,
+  CalendarClock,
   ClipboardList,
   FileScan,
   FolderOpen,
   Home,
   Layers,
+  LayoutGrid,
   LineChart,
   ListTodo,
   MessageCircle,
@@ -16,8 +18,9 @@ import {
   NotebookPen,
   Package,
   Receipt,
-  Settings,
+  Settings2,
   ShieldCheck,
+  User,
   Users
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -26,6 +29,7 @@ import { useTranslations } from "next-intl";
 import { useAuthStore } from "@/stores/auth";
 import { isGlobalProcedureAdmin } from "@/lib/procedures/global-procedure-admin";
 import { useChatUnreadStore } from "@/stores/chat-unread";
+import { useUserServicesStore } from "@/stores/user-services";
 
 export type SidebarIconName =
   | "home"
@@ -40,11 +44,14 @@ export type SidebarIconName =
   | "spareParts"
   | "reports"
   | "statistics"
-  | "settings"
+  | "account"
   | "chat"
   | "files"
   | "admin"
-  | "menuToCsv";
+  | "menuToCsv"
+  | "agenda"
+  | "services"
+  | "adminServices";
 
 /** Lucide icons for each `SidebarIconName` (sidebar + mobile menu). */
 export const SIDEBAR_NAV_ICONS = {
@@ -60,11 +67,14 @@ export const SIDEBAR_NAV_ICONS = {
   spareParts: Package,
   reports: BarChart3,
   statistics: LineChart,
-  settings: Settings,
+  account: User,
   chat: MessageCircle,
   files: FolderOpen,
   admin: ShieldCheck,
-  menuToCsv: Receipt
+  menuToCsv: Receipt,
+  agenda: CalendarClock,
+  services: LayoutGrid,
+  adminServices: Settings2
 } satisfies Record<SidebarIconName, typeof Home>;
 
 export type SidebarNavItem = {
@@ -76,7 +86,21 @@ export type SidebarNavItem = {
   iconName: SidebarIconName;
   /** When true, the item is only rendered for admin/owner users. */
   adminOnly?: boolean;
+  /**
+   * When set, the item only renders once the user has activated this
+   * service (wf_user_services). Core services never set this — they're
+   * always visible. See /services and useUserServicesStore.
+   */
+  serviceId?: string;
 };
+
+/** Shared by SidebarNav and MobileMenu so both drop the same optional items. */
+export function isServiceNavItemVisible(
+  item: SidebarNavItem,
+  activatedServiceIds: ReadonlySet<string>
+): boolean {
+  return !item.serviceId || activatedServiceIds.has(item.serviceId);
+}
 
 export function SidebarNav({ items }: { items: readonly SidebarNavItem[] }) {
   const pathname = usePathname();
@@ -84,8 +108,11 @@ export function SidebarNav({ items }: { items: readonly SidebarNavItem[] }) {
   const user = useAuthStore((s) => s.user);
   const isAdmin = isGlobalProcedureAdmin(user);
   const chatUnread = useChatUnreadStore((s) => s.count);
+  const activatedServiceIds = useUserServicesStore((s) => s.activatedIds);
 
-  const visible = items.filter((item) => !item.adminOnly || isAdmin);
+  const visible = items.filter(
+    (item) => (!item.adminOnly || isAdmin) && isServiceNavItemVisible(item, activatedServiceIds)
+  );
 
   return (
     <nav className="mt-4 grid gap-0.5 lg:mt-5">

@@ -72,10 +72,12 @@ type Props = {
   onOpenChange: (open: boolean) => void;
   /** Provide to edit; omit to create a new activity. */
   activity?: Activity | null;
+  /** Prefill the due date/time when creating (ignored once `activity` is set). */
+  initialDueAt?: string;
   onSaved?: () => void;
 };
 
-export function ActivityFormDialog({ open, onOpenChange, activity, onSaved }: Props) {
+export function ActivityFormDialog({ open, onOpenChange, activity, initialDueAt, onSaved }: Props) {
   const t = useTranslations();
   const { toast } = useToast();
   const isEdit = Boolean(activity);
@@ -95,7 +97,7 @@ export function ActivityFormDialog({ open, onOpenChange, activity, onSaved }: Pr
 
   useEffect(() => {
     if (!open) return;
-    const due = isoToLocalParts(activity?.dueAt);
+    const due = isoToLocalParts(activity?.dueAt ?? (!activity ? initialDueAt : undefined));
     const custom = isoToLocalParts(activity?.reminderCustomAt);
     setTitle(activity?.title ?? "");
     setDescription(activity?.description ?? "");
@@ -109,7 +111,7 @@ export function ActivityFormDialog({ open, onOpenChange, activity, onSaved }: Pr
     setPriority(activity?.priority ?? "medium");
     setCategory(activity?.category ?? "");
     setSaving(false);
-  }, [open, activity]);
+  }, [open, activity, initialDueAt]);
 
   const canSave = useMemo(() => title.trim().length > 1, [title]);
 

@@ -1,6 +1,30 @@
-import { db, type UserSettings, type UserPreferences } from "@/lib/db/workflow-db";
+import { db, type UserSettings, type UserPreferences, type DashboardWidgetPref } from "@/lib/db/workflow-db";
 import { cloneConfig, DEFAULT_WORKING_HOURS } from "@/lib/interventions/working-hours";
 import { scheduleWorkflowSync } from "@/lib/sync/sync-engine";
+
+function num(v: unknown): number | undefined {
+  return typeof v === "number" && Number.isFinite(v) ? v : undefined;
+}
+
+function normalizeDashboardWidgets(raw: unknown): DashboardWidgetPref[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const out: DashboardWidgetPref[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== "object") continue;
+    const e = entry as Record<string, unknown>;
+    if (typeof e.id === "string" && e.id) {
+      out.push({
+        id: e.id,
+        visible: e.visible !== false,
+        x: num(e.x),
+        y: num(e.y),
+        w: num(e.w),
+        h: num(e.h)
+      });
+    }
+  }
+  return out.length ? out : undefined;
+}
 
 export function normalizeUserPreferences(raw: unknown): UserPreferences {
   if (!raw || typeof raw !== "object") return {};
@@ -13,6 +37,7 @@ export function normalizeUserPreferences(raw: unknown): UserPreferences {
     menuToCsvEncoding: o.menuToCsvEncoding === "utf8" || o.menuToCsvEncoding === "utf8bom"
       ? o.menuToCsvEncoding
       : undefined,
+    dashboardWidgets: normalizeDashboardWidgets(o.dashboardWidgets)
   };
 }
 

@@ -6,20 +6,23 @@ import type { SidebarNavItem } from "@/components/layout/sidebar-nav";
  */
 export const PROTECTED_NAV_ITEMS = [
   { href: "/dashboard", labelKey: "nav.dashboard", label: "Dashboard", iconName: "home" },
+  { href: "/agenda", labelKey: "nav.agenda", label: "Agenda", iconName: "agenda" },
   { href: "/interventions", labelKey: "nav.work", label: "Work", iconName: "interventions" },
   { href: "/notes", labelKey: "nav.notes", label: "Notes", iconName: "notes" },
   { href: "/templates", labelKey: "nav.templates", label: "Templates", iconName: "templates" },
-  { href: "/documents", labelKey: "nav.documents", label: "Documents", iconName: "documents" },
+  { href: "/documents", labelKey: "nav.documents", label: "Documents", iconName: "documents", serviceId: "documents" },
   { href: "/crm-tickets", labelKey: "nav.crmTickets", label: "CRM Tickets", iconName: "crmTickets" },
   { href: "/activities", labelKey: "nav.activities", label: "Activities", iconName: "activities" },
   { href: "/procedures", labelKey: "nav.procedures", label: "Procedures", iconName: "procedures" },
   { href: "/clients", labelKey: "nav.clients", label: "Clients", iconName: "clients" },
   { href: "/spare-parts", labelKey: "nav.spareParts", label: "Spare parts", iconName: "spareParts" },
-  { href: "/chat", labelKey: "nav.chat", label: "Chat", iconName: "chat" },
+  { href: "/chat", labelKey: "nav.chat", label: "Chat", iconName: "chat", serviceId: "chat" },
   { href: "/files", labelKey: "nav.files", label: "Files", iconName: "files" },
   { href: "/reports", labelKey: "nav.reports", label: "Reports", iconName: "reports" },
   { href: "/statistics", labelKey: "nav.statistics", label: "Statistics", iconName: "statistics" },
-  { href: "/menu-to-csv", labelKey: "nav.menuToCsv", label: "Menu → CSV", iconName: "menuToCsv" },
-  { href: "/settings", labelKey: "nav.settings", label: "Settings", iconName: "settings" },
-  { href: "/admin", labelKey: "nav.admin", label: "Admin", iconName: "admin", adminOnly: true }
+  { href: "/menu-to-csv", labelKey: "nav.menuToCsv", label: "Menu → CSV", iconName: "menuToCsv", serviceId: "menu-to-csv" },
+  { href: "/services", labelKey: "nav.services", label: "Services", iconName: "services" },
+  { href: "/account", labelKey: "nav.account", label: "Account", iconName: "account" },
+  { href: "/admin", labelKey: "nav.admin", label: "Admin", iconName: "admin", adminOnly: true },
+  { href: "/admin/services", labelKey: "nav.adminServices", label: "Manage services", iconName: "adminServices", adminOnly: true }
 ] as const satisfies readonly SidebarNavItem[];

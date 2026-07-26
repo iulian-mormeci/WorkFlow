@@ -834,6 +834,9 @@
   },
   "nav": {
     "dashboard": "Dashboard",
+    "agenda": "Agenda",
+    "services": "Services",
+    "adminServices": "Manage services",
     "interventions": "Interventions",
     "work": "Work",
     "notes": "Notes",
@@ -846,7 +849,7 @@
     "spareParts": "Spare parts",
     "reports": "Reports",
     "statistics": "Statistics",
-    "settings": "Settings",
+    "account": "Account",
     "chat": "Chat",
     "files": "Files",
     "admin": "Admin",
@@ -858,6 +861,33 @@
     "offlineFirstNote": "Offline-first. Data stays on the device until it syncs.",
     "keyboardHint": "Keyboard (iPad): ⌘K search • ⌘R reload",
     "languageLabel": "Language"
+  },
+  "onboarding": {
+    "skip": "Skip for now",
+    "back": "Back",
+    "next": "Next",
+    "finish": "Finish",
+    "saving": "Saving…",
+    "saveFailedTitle": "Save failed",
+    "step1": {
+      "title": "Welcome! Tell us about yourself",
+      "subtitle": "This shows up on your Account profile.",
+      "firstNameLabel": "First name",
+      "lastNameLabel": "Last name",
+      "roleTitleLabel": "Role / profession",
+      "roleTitlePlaceholder": "e.g. Plumber, Chef, Consultant…",
+      "roleCategoryLabel": "Category",
+      "roleCategoryPlaceholder": "Choose a category"
+    },
+    "step2": {
+      "title": "What's your sector?",
+      "subtitle": "Drives which services and procedures get suggested to you first. You can change it anytime from Account."
+    },
+    "step3": {
+      "title": "Activate the services you need",
+      "subtitle": "Core services are already active for everyone. You can change your mind anytime from Services.",
+      "recommended": "Recommended"
+    }
   },
   "dashboard": {
     "title": "Dashboard",
@@ -928,6 +958,133 @@
         "title": "Running timers",
         "subtitle": "Work timers currently counting.",
         "empty": "No active timers."
+      }
+    },
+    "customize": {
+      "sectionTitle": "Your dashboard",
+      "button": "Edit",
+      "done": "Done",
+      "addWidget": "Add widget",
+      "removeWidget": "Remove widget",
+      "dragHandleAria": "Drag to reorder",
+      "emptyDashboard": "No widgets visible. Tap “Edit” then “Add widget” to get started."
+    },
+    "gallery": {
+      "title": "Add widget",
+      "subtitle": "Choose which widgets to show on your dashboard, grouped by area.",
+      "categories": {
+        "overview": "Overview",
+        "productivity": "Productivity",
+        "clientsWork": "Clients & work",
+        "communication": "Communication",
+        "company": "Company",
+        "analytics": "Analytics"
+      }
+    },
+    "widgets": {
+      "dragHandleAria": "Drag to reorder",
+      "stats": { "title": "Quick stats" },
+      "todaysFocus": { "title": "Today's focus" },
+      "attention": { "title": "Needs attention" },
+      "recentInterventions": { "title": "Recent interventions" },
+      "activitiesSummary": { "title": "Activities summary" },
+      "quickActions": { "title": "Quick actions" },
+      "todayQuickActions": { "title": "Today's quick actions" },
+      "notes": {
+        "title": "Notes",
+        "subtitle": "Your most recently edited notes.",
+        "viewAll": "View all",
+        "empty": "No notes yet.",
+        "untitled": "Untitled"
+      },
+      "templates": {
+        "title": "Templates",
+        "subtitle": "Your intervention templates.",
+        "viewAll": "View all",
+        "empty": "No templates yet."
+      },
+      "documents": {
+        "title": "Documents",
+        "subtitle": "Your latest scanned documents.",
+        "viewAll": "View all",
+        "empty": "No documents yet."
+      },
+      "clients": {
+        "title": "Clients",
+        "subtitle": "Your most recently updated clients.",
+        "viewAll": "View all",
+        "empty": "No clients yet."
+      },
+      "crmTickets": {
+        "title": "CRM tickets",
+        "subtitle": "Open or pending tickets.",
+        "viewAll": "View all",
+        "empty": "No open tickets.",
+        "priority": { "low": "Low priority", "medium": "Medium priority", "high": "High priority" }
+      },
+      "spareParts": {
+        "title": "Low-stock spare parts",
+        "subtitle": "Spare parts below their minimum threshold.",
+        "viewAll": "View all",
+        "empty": "Every spare part is above its minimum threshold.",
+        "stockLine": "{stock} in stock · minimum {min}"
+      },
+      "chat": {
+        "title": "Chat",
+        "subtitle": "Your latest messages.",
+        "subtitleUnread": "{count, plural, one {# unread message} other {# unread messages}}",
+        "viewAll": "Open chat",
+        "empty": "No messages yet."
+      },
+      "reports": {
+        "title": "Reports",
+        "subtitle": "Generate PDF reports of your interventions.",
+        "cta": "Go to reports"
+      },
+      "statistics": {
+        "title": "Statistics",
+        "subtitle": "How your work has trended over time.",
+        "cta": "Go to statistics"
+      },
+      "menuToCsv": {
+        "title": "Menu PDF → CSV",
+        "subtitle": "Convert the venue's menu into a CSV.",
+        "cta": "Go to converter"
+      },
+      "agenda": {
+        "title": "Agenda",
+        "subtitle": "Upcoming interventions and activities.",
+        "viewAll": "View all",
+        "empty": "Nothing scheduled."
+      },
+      "calendarWeek": { "title": "Weekly calendar" },
+      "recentProcedures": {
+        "title": "Recently used procedures",
+        "subtitle": "Your most recently edited procedures.",
+        "viewAll": "View all",
+        "empty": "No procedures yet."
+      },
+      "recentFiles": {
+        "title": "Recent files",
+        "subtitle": "Your latest uploads.",
+        "viewAll": "View all",
+        "empty": "No files yet."
+      },
+      "companyActivity": {
+        "title": "Recent company activity",
+        "subtitle": "What's been happening in your company lately.",
+        "empty": "No company activity yet.",
+        "noCompany": "Join or create a company to see this widget.",
+        "someone": "A teammate",
+        "memberJoined": "{who} joined the company",
+        "memberLeft": "{who} left the company",
+        "procedureShared": "{who} shared the procedure “{title}”"
+      },
+      "activeServices": {
+        "title": "Active services",
+        "subtitle": "Quick access to your services.",
+        "viewAll": "Manage",
+        "empty": "No active services."
       }
     }
   },
@@ -1303,7 +1460,10 @@
       "brand": "Brand",
       "brandAll": "All brands",
       "model": "Model",
-      "modelAll": "All models"
+      "modelAll": "All models",
+      "sectorAll": "All sectors",
+      "sectorYours": "yours",
+      "showAllSectors": "Show every procedure"
     },
     "fields": {
       "title": "Title",
@@ -1316,7 +1476,9 @@
       "content": "Content",
       "tags": "Tags",
       "tagsPlaceholder": "e.g. boiler, error-code, reset",
-      "tagsHint": "Separate tags with commas. Used for search and quick reference."
+      "tagsHint": "Separate tags with commas. Used for search and quick reference.",
+      "sectorTags": "Recommended sectors",
+      "sectorTagsHint": "Used to suggest this procedure to the right users once it's global or company-shared. None selected = fits every sector."
     },
     "editor": {
       "contentLabel": "Procedure content",
@@ -1345,7 +1507,7 @@
       "myProceduresHint": "Editable copies saved on your account and synced across devices.",
       "searchButton": "Search global procedures",
       "searchTitle": "Search procedures",
-      "searchSubtitle": "Company presets and your personal procedures — search by title, content, brand, model, category or tags.",
+      "searchSubtitle": "Platform-wide presets, procedures shared by teammates, and your personal procedures — search by title, content, brand, model, category or tags.",
       "searchPlaceholder": "Search title, content, brand, model, category, tags…",
       "searchEmpty": "No procedures match your search.",
       "presetsAvailable": "{count, plural, one {# preset procedure available offline} other {# preset procedures available offline}}",
@@ -1359,6 +1521,15 @@
       "copyFailedTitle": "Could not copy procedure",
       "alreadyCopiedTitle": "Procedure already in your account",
       "alreadyCopiedBody": "You already have a copy of this procedure in your account."
+    },
+    "company": {
+      "badge": "Company",
+      "scopeCompany": "Company",
+      "presetsAvailable": "{count, plural, one {# company procedure shared by a teammate} other {# company procedures shared by teammates}}"
+    },
+    "shareCompany": {
+      "checkboxLabel": "Share with my company",
+      "checkboxHint": "Teammates in your company can view it and copy it into their own library; only you can edit it."
     },
     "actions": {
       "new": "New procedure",
@@ -1462,14 +1633,219 @@
       }
     }
   },
-  "settings": {
+  "services": {
     "page": {
-      "title": "Settings",
-      "subtitle": "Profile, cloud sync, appearance, local backup and your data rights."
+      "title": "Services",
+      "subtitle": "Activate the services you need: they'll show up in the sidebar."
     },
-    "appVersion": "{appName} • v{version}",
+    "loading": "Loading services…",
+    "filters": {
+      "allCategories": "All categories",
+      "allSectors": "All sectors"
+    },
+    "categories": {
+      "documents": "Documents",
+      "productivity": "Productivity",
+      "horeca": "HoReCa",
+      "generic": "Generic"
+    },
+    "activeBadge": "Active",
+    "recommendedBadge": "Recommended for you",
+    "alwaysOn": "Always on",
+    "preview": "Preview",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "close": "Close",
+    "empty": "No services match these filters.",
+    "toasts": {
+      "activatedTitle": "{name} activated",
+      "deactivatedTitle": "{name} deactivated",
+      "toggleFailedTitle": "Operation failed"
+    }
+  },
+  "agenda": {
+    "page": {
+      "title": "Agenda",
+      "subtitle": "Scheduled interventions and upcoming activity deadlines."
+    },
+    "card": {
+      "title": "Upcoming",
+      "subtitle": "Interventions and activities in the next {days} days."
+    },
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "overdue": "Overdue",
+    "empty": "Nothing scheduled.",
+    "untitledIntervention": "Intervention",
+    "views": {
+      "list": "Upcoming",
+      "week": "Week",
+      "month": "Month",
+      "year": "Year"
+    },
+    "todayButton": "Today",
+    "prevAria": "Previous",
+    "nextAria": "Next",
+    "weekdaysShort": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+    "yearHint": "Click a month to open it, a day to see the week.",
+    "toasts": {
+      "moveFailedTitle": "Move failed",
+      "resizeFailedTitle": "Resize failed"
+    },
+    "create": {
+      "newButton": "New",
+      "chooserTitle": "What do you want to add?",
+      "chooserSubtitle": "Choose what kind of item to create.",
+      "newIntervention": "Intervention",
+      "newActivity": "Activity",
+      "cellHint": "Click an empty day to add an intervention or activity on that date.",
+      "slotHint": "Click a free time slot to add an intervention or activity at that time."
+    },
+    "eventTooltip": {
+      "dueBy": "Due by:"
+    }
+  },
+  "adminServices": {
+    "page": {
+      "title": "Manage services",
+      "subtitle": "Add, edit and disable the services available on the platform."
+    },
+    "loading": "Loading…",
+    "availableOnPlatform": "Available on the platform",
+    "delete": "Delete service",
+    "coreNotice": "Core service: always visible to every user, cannot be deactivated.",
+    "longDescriptionPlaceholder": "Extended description shown in the preview…",
+    "newService": {
+      "title": "New service",
+      "subtitle": "Add a service to the catalog without touching the code.",
+      "idPlaceholder": "unique-id (e.g. inventory)",
+      "namePlaceholder": "Service name",
+      "hrefPlaceholder": "/page-path",
+      "descriptionPlaceholder": "Short description shown on the card",
+      "submit": "Create service"
+    },
+    "toasts": {
+      "saveFailedTitle": "Save failed",
+      "createdTitle": "Service created",
+      "createFailedTitle": "Creation failed"
+    }
+  },
+  "account": {
+    "page": {
+      "title": "Account",
+      "subtitle": "Personal profile, company and all the app settings.",
+      "appVersion": "{appName} • v{version}"
+    },
+    "nav": {
+      "account": "Account",
+      "security": "Security",
+      "workingHours": "Working hours",
+      "calendar": "Calendar",
+      "sync": "Sync",
+      "appearance": "Appearance",
+      "data": "Data"
+    },
     "profile": {
-      "title": "Profile",
+      "title": "Personal profile",
+      "subtitle": "What other members of your company see about you.",
+      "loading": "Loading profile…",
+      "avatarLabel": "Profile photo",
+      "avatarHint": "Tap to upload a photo (JPG, PNG, WEBP, max 5MB).",
+      "firstNameLabel": "First name",
+      "firstNamePlaceholder": "e.g. Mario",
+      "lastNameLabel": "Last name",
+      "lastNamePlaceholder": "e.g. Rossi",
+      "roleTitleLabel": "Role / profession",
+      "roleTitlePlaceholder": "e.g. Plumber, Chef, Consultant…",
+      "roleCategoryLabel": "Category",
+      "roleCategoryPlaceholder": "Choose a category",
+      "roleCategoryOptions": {
+        "technician": "Technician",
+        "restaurateur": "Restaurateur",
+        "merchant": "Merchant",
+        "freelancer": "Freelancer",
+        "other": "Other"
+      },
+      "sectorLabel": "Work sector",
+      "sectorPlaceholder": "Choose a sector",
+      "sectorHint": "Drives which procedures and services get suggested to you first.",
+      "sectorOptions": {
+        "horeca": "HoReCa (Restaurants/Bars)",
+        "it": "IT",
+        "retail": "Retail",
+        "craft": "Craft",
+        "services": "Services",
+        "other": "Other"
+      },
+      "bioLabel": "Short bio",
+      "bioPlaceholder": "A few words about you (optional).",
+      "supabaseNotConfigured": "Supabase not configured.",
+      "toasts": {
+        "saveFailedTitle": "Save failed",
+        "avatarUpdatedTitle": "Profile photo updated",
+        "avatarFailedTitle": "Photo upload failed"
+      }
+    },
+    "company": {
+      "title": "Company",
+      "loading": "Loading company…",
+      "roleLabel": "Your role: {role}",
+      "logoLabel": "Company logo",
+      "pivaLabel": "VAT number",
+      "sectorLabel": "Company sector",
+      "addressLabel": "Office address",
+      "websiteLabel": "Website",
+      "emailLabel": "Company email",
+      "phoneLabel": "Phone",
+      "inviteCodeLabel": "Invite code",
+      "copyInviteCode": "Copy code",
+      "notInCompany": {
+        "subtitle": "You're not part of a company yet: create one or join with an invite code."
+      },
+      "createForm": {
+        "title": "Create a new company",
+        "namePlaceholder": "Company name",
+        "pivaPlaceholder": "VAT number (optional)",
+        "sectorPlaceholder": "Sector (optional)",
+        "submit": "Create company"
+      },
+      "joinForm": {
+        "title": "Join an existing company",
+        "hint": "Ask your company admin for the 8-character invite code.",
+        "codePlaceholder": "Invite code",
+        "submit": "Join with code"
+      },
+      "members": {
+        "title": "Members ({count})",
+        "unnamed": "Unnamed user",
+        "you": "you",
+        "remove": "Remove member"
+      },
+      "roles": {
+        "admin": "Admin",
+        "manager": "Manager",
+        "member": "Member"
+      },
+      "leaveCompany": "Leave company",
+      "toasts": {
+        "createdTitle": "Company created",
+        "createFailedTitle": "Creation failed",
+        "joinedTitle": "You joined the company",
+        "joinFailedTitle": "Could not join the company",
+        "saveFailedTitle": "Save failed",
+        "logoUpdatedTitle": "Logo updated",
+        "logoFailedTitle": "Logo upload failed",
+        "leftTitle": "You left the company"
+      },
+      "errors": {
+        "already_in_company": "You're already part of a company: leave it before creating or joining another one.",
+        "invalid_invite_code": "Invalid invite code.",
+        "name_required": "Company name is required.",
+        "not_authenticated": "You need to sign in to continue."
+      }
+    },
+    "preferences": {
+      "title": "Preferences",
       "subtitle": "Supabase account information.",
       "supabaseNotConfigured": "Supabase not configured.",
       "techNameLabel": "Technician name (for PDF/CRM)",
@@ -1488,7 +1864,9 @@
       "officeAddressLabel": "Default office address",
       "officeAddressPlaceholder": "e.g. Via Roma 10, Milan",
       "officeAddressHint": "Used by the Round trip button (Start → Office → Start) when creating an intervention. Synced to your user profile when online."
-    },
+    }
+  },
+  "settings": {
     "security": {
       "title": "Security",
       "subtitle": "Account session, sign-out everywhere, and privacy. Cloud tables use Row Level Security (RLS).",

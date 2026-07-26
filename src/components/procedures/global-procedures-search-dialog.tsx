@@ -1,21 +1,30 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   BookOpen,
+  Building2,
   Copy,
   Globe,
   Image as ImageIcon,
   Loader2,
   Search,
+  Sparkles,
   Tag,
   User,
   Wrench
 } from "lucide-react";
-import { db, PROCEDURE_CATEGORIES, type GlobalProcedure, type Procedure } from "@/lib/db/workflow-db";
-import { cloneGlobalProcedureToPersonal } from "@/lib/procedures/clone-global-procedure";
 import {
+  db,
+  PROCEDURE_CATEGORIES,
+  type CompanyProcedure,
+  type GlobalProcedure,
+  type Procedure
+} from "@/lib/db/workflow-db";
+import { cloneCompanyProcedureToPersonal, cloneGlobalProcedureToPersonal } from "@/lib/procedures/clone-global-procedure";
+import {
+  procedureLikeFromCompany,
   procedureLikeFromGlobal,
   procedureLikeFromPersonal,
   procedureSearchHaystack,
@@ -23,6 +32,8 @@ import {
 } from "@/lib/procedures/procedure-shared";
 import { procedureHtmlToText } from "@/lib/procedures/sanitize-html";
 import { scheduleWorkflowSync } from "@/lib/sync";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { WORK_SECTORS, type WorkSector } from "@/lib/account/sectors";
 import { ProcedureViewDialog } from "@/components/procedures/procedure-view-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,10 +51,12 @@ import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 
 type CategoryFilter = "all" | Procedure["category"];
+type ScopeTab = "all" | "global" | "personal" | "company";
 
 type SearchHit =
   | { scope: "global"; row: GlobalProcedure }
-  | { scope: "personal"; row: Procedure };
+  | { scope: "personal"; row: Procedure }
+  | { scope: "company"; row: CompanyProcedure };
 
 type Props = {
   open: boolean;
@@ -81,65 +94,107 @@ export function GlobalProceduresSearchDialog({
   const [category, setCategory] = useState<CategoryFilter>("all");
   const [brand, setBrand] = useState("all");
   const [model, setModel] = useState("all");
-  const [scopeTab, setScopeTab] = useState<"all" | "global" | "personal">("all");
+  const [scopeTab, setScopeTab] = useState<ScopeTab>("all");
+  const [userSector, setUserSector] = useState<WorkSector | null>(null);
+  const [sectorFilter, setSectorFilter] = useState<WorkSector | "all">("all");
+  const [showAllSectors, setShowAllSectors] = useState(false);
 
   const [viewing, setViewing] = useState<SearchHit | null>(null);
   const [copyingId, setCopyingId] = useState<string | null>(null);
 
+  // Default the sector filter to the user's own profile sector once known.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    void (async () => {
+      const supabase = createSupabaseBrowserClient();
+      if (!supabase) return;
+      const {
+        data: { user }
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from("wf_profiles").select("sector").eq("id", user.id).maybeSingle();
+      const sector = (data?.sector as WorkSector | undefined) ?? null;
+      if (!cancelled) {
+        setUserSector(sector);
+        setSectorFilter(sector ?? "all");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
   const data = useLiveQuery(async () => {
-    const [globals, personal] = await Promise.all([
+    const [globals, personal, company] = await Promise.all([
       db.globalProcedures.orderBy("updatedAt").reverse().toArray(),
-      db.procedures.orderBy("updatedAt").reverse().toArray()
+      db.procedures.orderBy("updatedAt").reverse().toArray(),
+      db.companyProcedures.orderBy("updatedAt").reverse().toArray()
     ]);
     const brands = uniqueSorted([
       ...globals.map((p) => p.brand),
-      ...personal.map((p) => p.brand)
+      ...personal.map((p) => p.brand),
+      ...company.map((p) => p.brand)
     ]);
     const models = uniqueSorted([
       ...globals.map((p) => p.model),
-      ...personal.map((p) => p.model)
+      ...personal.map((p) => p.model),
+      ...company.map((p) => p.model)
     ]);
 
     const hits: SearchHit[] = [
       ...globals.map((row) => ({ scope: "global" as const, row })),
-      ...personal.map((row) => ({ scope: "personal" as const, row }))
+      ...personal.map((row) => ({ scope: "personal" as const, row })),
+      ...company.map((row) => ({ scope: "company" as const, row }))
     ];
 
     const qv = q.trim().toLowerCase();
     const filtered = hits.filter((hit) => {
-      if (scopeTab === "global" && hit.scope !== "global") return false;
-      if (scopeTab === "personal" && hit.scope !== "personal") return false;
+      if (scopeTab !== "all" && hit.scope !== scopeTab) return false;
       const p = hit.row;
       if (category !== "all" && p.category !== category) return false;
       if (brand !== "all" && (p.brand ?? "").toLowerCase() !== brand.toLowerCase()) return false;
       if (model !== "all" && (p.model ?? "").toLowerCase() !== model.toLowerCase()) return false;
+      // Sector filter only narrows shared content (global/company) — personal procedures always show.
+      if (!showAllSectors && sectorFilter !== "all" && hit.scope !== "personal") {
+        const tags = (p as GlobalProcedure | CompanyProcedure).sectorTags ?? [];
+        if (tags.length > 0 && !tags.includes(sectorFilter)) return false;
+      }
       if (!qv) return true;
       const like: ProcedureLike =
         hit.scope === "global"
           ? procedureLikeFromGlobal(hit.row)
-          : procedureLikeFromPersonal(hit.row);
+          : hit.scope === "company"
+            ? procedureLikeFromCompany(hit.row)
+            : procedureLikeFromPersonal(hit.row);
       return procedureSearchHaystack(like).includes(qv);
     });
 
-    return { filtered, brands, models, globalCount: globals.length };
-  }, [q, category, brand, model, scopeTab, liveEpoch]);
+    return { filtered, brands, models, globalCount: globals.length, companyCount: company.length };
+  }, [q, category, brand, model, scopeTab, sectorFilter, showAllSectors, liveEpoch]);
 
   const list = data?.filtered ?? [];
   const brands = data?.brands ?? [];
   const models = data?.models ?? [];
+  const hasCompanyProcedures = (data?.companyCount ?? 0) > 0 || scopeTab === "company";
 
   const viewingLike: ProcedureLike | null = useMemo(() => {
     if (!viewing) return null;
     return viewing.scope === "global"
       ? procedureLikeFromGlobal(viewing.row)
-      : procedureLikeFromPersonal(viewing.row);
+      : viewing.scope === "company"
+        ? procedureLikeFromCompany(viewing.row)
+        : procedureLikeFromPersonal(viewing.row);
   }, [viewing]);
 
-  async function handleCopy(global: GlobalProcedure) {
+  async function handleCopy(hit: { scope: "global"; row: GlobalProcedure } | { scope: "company"; row: CompanyProcedure }) {
     if (copyingId) return;
-    setCopyingId(global.id);
+    setCopyingId(hit.row.id);
     try {
-      const newId = await cloneGlobalProcedureToPersonal(global);
+      const newId =
+        hit.scope === "global"
+          ? await cloneGlobalProcedureToPersonal(hit.row)
+          : await cloneCompanyProcedureToPersonal(hit.row);
       scheduleWorkflowSync();
       const created = await db.procedures.get(newId);
       toast({
@@ -198,7 +253,8 @@ export function GlobalProceduresSearchDialog({
                 [
                   ["all", t("procedures.global.scopeAll")],
                   ["global", t("procedures.global.scopeGlobal")],
-                  ["personal", t("procedures.global.scopePersonal")]
+                  ["personal", t("procedures.global.scopePersonal")],
+                  ...(hasCompanyProcedures ? [["company", t("procedures.company.scopeCompany")] as const] : [])
                 ] as const
               ).map(([key, label]) => (
                 <Button
@@ -207,12 +263,14 @@ export function GlobalProceduresSearchDialog({
                   size="sm"
                   variant={scopeTab === key ? "default" : "outline"}
                   className="min-h-10"
-                  onClick={() => setScopeTab(key)}
+                  onClick={() => setScopeTab(key as ScopeTab)}
                 >
                   {key === "global" ? (
                     <Globe className="mr-1.5 h-4 w-4" />
                   ) : key === "personal" ? (
                     <User className="mr-1.5 h-4 w-4" />
+                  ) : key === "company" ? (
+                    <Building2 className="mr-1.5 h-4 w-4" />
                   ) : null}
                   {label}
                 </Button>
@@ -234,6 +292,31 @@ export function GlobalProceduresSearchDialog({
                     : t(`procedures.categories.${c}`)}
                 </Button>
               ))}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-muted/30 p-2.5">
+              <select
+                className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                value={sectorFilter}
+                disabled={showAllSectors}
+                onChange={(e) => setSectorFilter(e.target.value as WorkSector | "all")}
+              >
+                <option value="all">{t("procedures.filters.sectorAll")}</option>
+                {WORK_SECTORS.map((s) => (
+                  <option key={s} value={s}>
+                    {t(`account.profile.sectorOptions.${s}`)}
+                    {s === userSector ? ` (${t("procedures.filters.sectorYours")})` : ""}
+                  </option>
+                ))}
+              </select>
+              <label className="flex items-center gap-1.5 text-xs font-medium">
+                <input
+                  type="checkbox"
+                  checked={showAllSectors}
+                  onChange={(e) => setShowAllSectors(e.target.checked)}
+                />
+                {t("procedures.filters.showAllSectors")}
+              </label>
             </div>
 
             <div className="grid gap-2 sm:grid-cols-2">
@@ -275,12 +358,14 @@ export function GlobalProceduresSearchDialog({
                 const preview = procedureHtmlToText(p.content ?? "");
                 const imageCount = p.imageIds?.length ?? 0;
                 const isGlobal = hit.scope === "global";
+                const isCompany = hit.scope === "company";
                 return (
                   <div
                     key={`${hit.scope}-${p.id}`}
                     className={cn(
                       "rounded-2xl border p-4",
-                      isGlobal ? "border-violet-200/80 bg-violet-50/40 dark:border-violet-900/50 dark:bg-violet-950/20" : ""
+                      isGlobal && "border-violet-200/80 bg-violet-50/40 dark:border-violet-900/50 dark:bg-violet-950/20",
+                      isCompany && "border-amber-200/80 bg-amber-50/40 dark:border-amber-900/50 dark:bg-amber-950/20"
                     )}
                   >
                     <button
@@ -294,12 +379,23 @@ export function GlobalProceduresSearchDialog({
                             <Globe className="mr-1 h-3 w-3" />
                             {t("procedures.global.badge")}
                           </Badge>
+                        ) : isCompany ? (
+                          <Badge className="border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
+                            <Building2 className="mr-1 h-3 w-3" />
+                            {t("procedures.company.badge")}
+                          </Badge>
                         ) : (
                           <Badge className="border-sky-300 bg-sky-50 text-sky-900">
                             <User className="mr-1 h-3 w-3" />
                             {t("procedures.global.personalBadge")}
                           </Badge>
                         )}
+                        {!isGlobal && !isCompany && userSector && (hit.row as Procedure).sectorTags?.includes(userSector) ? (
+                          <Badge className="border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-100">
+                            <Sparkles className="mr-1 h-3 w-3" />
+                            {t("procedures.filters.sectorYours")}
+                          </Badge>
+                        ) : null}
                         <span className="inline-flex items-center gap-1.5 text-base font-semibold">
                           {p.category === "brand_model" ? (
                             <Wrench className="h-4 w-4 text-muted-foreground" />
@@ -351,14 +447,14 @@ export function GlobalProceduresSearchDialog({
                       >
                         {t("procedures.actions.open")}
                       </Button>
-                      {isGlobal ? (
+                      {isGlobal || isCompany ? (
                         <Button
                           type="button"
                           size="sm"
                           className="min-h-10 gap-1.5 bg-violet-600 hover:bg-violet-700"
                           disabled={Boolean(copyingId)}
                           onClick={() => {
-                            if (hit.scope === "global") void handleCopy(hit.row);
+                            if (hit.scope === "global" || hit.scope === "company") void handleCopy(hit);
                           }}
                         >
                           {copyingId === p.id ? (
@@ -404,9 +500,11 @@ export function GlobalProceduresSearchDialog({
             : undefined
         }
         onCopy={
-          viewing?.scope === "global" ? () => void handleCopy(viewing.row) : undefined
+          viewing?.scope === "global" || viewing?.scope === "company"
+            ? () => void handleCopy(viewing)
+            : undefined
         }
-        copying={viewing?.scope === "global" && copyingId === viewing.row.id}
+        copying={(viewing?.scope === "global" || viewing?.scope === "company") && copyingId === viewing.row.id}
       />
     </>
   );

@@ -17,6 +17,7 @@ import {
 import { createProcedureImageAttachment } from "@/lib/procedures/image-attachment";
 import { submitProcedureForGlobal } from "@/lib/procedures/submit-global-procedure";
 import { isGlobalProcedureAdmin } from "@/lib/procedures/global-procedure-admin";
+import { WORK_SECTORS, type WorkSector } from "@/lib/account/sectors";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { performStandaloneAttachmentCloudDelete } from "@/lib/sync/cloud-delete";
 import { useAuthStore } from "@/stores/auth";
@@ -70,6 +71,9 @@ export function ProcedureFormDialog({
   const [tagsInput, setTagsInput] = useState("");
   const [imageIds, setImageIds] = useState<string[]>([]);
   const [submitGlobal, setSubmitGlobal] = useState(false);
+  const [sectorTags, setSectorTags] = useState<WorkSector[]>([]);
+  const [shareWithCompany, setShareWithCompany] = useState(false);
+  const [userCompanyId, setUserCompanyId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [seedKey, setSeedKey] = useState("new");
@@ -93,10 +97,35 @@ export function ProcedureFormDialog({
     setTagsInput((procedure?.tags ?? []).join(", "));
     setImageIds(procedure?.imageIds ?? []);
     setSubmitGlobal(false);
+    setSectorTags((procedure?.sectorTags ?? []) as WorkSector[]);
+    setShareWithCompany(Boolean(procedure?.companyId));
     setUploading(false);
     setSaving(false);
     setSeedKey(procedure?.id ?? `new-${Date.now()}`);
   }, [open, procedure, defaults]);
+
+  // Only offer "share with my company" once we know the user actually belongs to one.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    void (async () => {
+      const supabase = createSupabaseBrowserClient();
+      if (!supabase) return;
+      const {
+        data: { user: authUser }
+      } = await supabase.auth.getUser();
+      if (!authUser) return;
+      const { data } = await supabase
+        .from("wf_company_members")
+        .select("company_id")
+        .eq("user_id", authUser.id)
+        .maybeSingle();
+      if (!cancelled) setUserCompanyId((data?.company_id as string | undefined) ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
 
   // Resolve object URLs for the working image set.
   const attachments = useLiveQuery(async () => {
@@ -196,7 +225,9 @@ export function ProcedureFormDialog({
       model,
       content,
       tags: parseTagsInput(tagsInput),
-      imageIds
+      imageIds,
+      sectorTags,
+      companyId: shareWithCompany && userCompanyId ? userCompanyId : undefined
     };
     try {
       let savedId: string | undefined;
@@ -347,6 +378,50 @@ export function ProcedureFormDialog({
             />
             <p className="text-xs text-muted-foreground">{t("procedures.fields.tagsHint")}</p>
           </div>
+
+          <div className="grid gap-2">
+            <Label>{t("procedures.fields.sectorTags")}</Label>
+            <div className="flex flex-wrap gap-2">
+              {WORK_SECTORS.map((sector) => {
+                const active = sectorTags.includes(sector);
+                return (
+                  <Button
+                    key={sector}
+                    type="button"
+                    size="sm"
+                    variant={active ? "default" : "outline"}
+                    onClick={() =>
+                      setSectorTags((prev) =>
+                        active ? prev.filter((s) => s !== sector) : [...prev, sector]
+                      )
+                    }
+                  >
+                    {t(`account.profile.sectorOptions.${sector}`)}
+                  </Button>
+                );
+              })}
+            </div>
+            <p className="text-xs text-muted-foreground">{t("procedures.fields.sectorTagsHint")}</p>
+          </div>
+
+          {userCompanyId && (
+            <div className="rounded-xl border bg-muted/40 p-3.5">
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  id="share-company"
+                  checked={shareWithCompany}
+                  onCheckedChange={(v) => setShareWithCompany(v === true)}
+                  className="mt-0.5 shrink-0"
+                />
+                <div className="min-w-0 space-y-1">
+                  <label htmlFor="share-company" className="cursor-pointer text-sm font-medium">
+                    {t("procedures.shareCompany.checkboxLabel")}
+                  </label>
+                  <p className="text-xs text-muted-foreground">{t("procedures.shareCompany.checkboxHint")}</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Submit as global procedure — available both when creating and editing */}
           <div className="rounded-xl border bg-muted/40 p-3.5">

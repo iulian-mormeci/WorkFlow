@@ -79,6 +79,10 @@ export function ProceduresClient() {
     () => db.globalProcedures.count(),
     [liveEpoch]
   );
+  const companyCount = useLiveQuery(
+    () => db.companyProcedures.count(),
+    [liveEpoch]
+  );
 
   const data = useLiveQuery(async () => {
     const all = await db.procedures.orderBy("updatedAt").reverse().toArray();
@@ -189,6 +193,11 @@ export function ProceduresClient() {
       {(globalCount ?? 0) > 0 ? (
         <p className="text-xs text-muted-foreground">
           {t("procedures.global.presetsAvailable", { count: globalCount ?? 0 })}
+        </p>
+      ) : null}
+      {(companyCount ?? 0) > 0 ? (
+        <p className="text-xs text-muted-foreground">
+          {t("procedures.company.presetsAvailable", { count: companyCount ?? 0 })}
         </p>
       ) : null}
 

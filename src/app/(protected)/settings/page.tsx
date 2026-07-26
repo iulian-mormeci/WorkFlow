@@ -1,21 +1,7 @@
-import { SettingsClient } from "@/components/settings/settings-client";
-import { OfflineBanner } from "@/components/offline/offline-banner";
-import { getTranslations } from "next-intl/server";
+import { redirect } from "next/navigation";
 
-export default async function SettingsPage() {
-  const t = await getTranslations("settings");
-  return (
-    <div className="space-y-3">
-      <header className="space-y-0.5">
-        <h1 className="text-xl font-semibold tracking-tight md:text-2xl">{t("page.title")}</h1>
-        <p className="text-sm text-muted-foreground">
-          {t("page.subtitle")}
-        </p>
-      </header>
-
-      <OfflineBanner />
-      <SettingsClient />
-    </div>
-  );
+// The Settings page was renamed to Account (Fase 1: profilo account e azienda).
+// Keep this route alive as a permanent redirect for old bookmarks/links.
+export default function SettingsPage() {
+  redirect("/account");
 }
-

@@ -16,6 +16,7 @@ import { MobileMenu } from "@/components/layout/mobile-menu";
 import { PROTECTED_NAV_ITEMS } from "@/lib/navigation/protected-nav";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { ChatNotificationsProvider } from "@/components/chat/chat-notifications-provider";
+import { UserServicesProvider } from "@/components/services/user-services-provider";
 import { NotificationsProvider } from "@/components/notifications/notifications-provider";
 import { NotificationsBell } from "@/components/notifications/notifications-bell";
 import { getLocale, getTranslations, setRequestLocale } from "next-intl/server";
@@ -43,7 +44,7 @@ export default async function ProtectedLayout({
         paddingTop: "env(safe-area-inset-top)"
       }}
     >
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-3 px-3 py-2 max-md:pt-[3.25rem] md:grid-cols-[260px_1fr] md:gap-4 md:px-5 md:py-5 md:pt-5 lg:px-6 lg:py-6">
+      <div className="grid grid-cols-1 gap-3 px-3 py-2 max-md:pt-[3.25rem] md:grid-cols-[260px_1fr] md:gap-4 md:px-5 md:py-5 md:pt-5 lg:px-6 lg:py-6 xl:px-8">
         <aside className="hidden rounded-2xl border bg-background p-3.5 md:sticky md:top-5 md:block md:h-[calc(100dvh-2.5rem)] md:overflow-auto lg:p-4">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
@@ -97,6 +98,8 @@ export default async function ProtectedLayout({
           <TicketRemindersProvider />
           {/* Client: global chat Realtime listener — keeps unread badge in sync. */}
           <ChatNotificationsProvider />
+          {/* Client: hydrates which optional services the sidebar should show. */}
+          <UserServicesProvider />
           {/* Client: in-app notifications (global procedures etc.) via Realtime. */}
           <NotificationsProvider />
           {children}

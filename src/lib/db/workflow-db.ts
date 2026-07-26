@@ -254,9 +254,34 @@ export type Procedure = {
   imageIds?: Id[];
   /** ID of the global preset this procedure was cloned from (set once on clone). */
   sourceGlobalId?: Id;
+  /** Recommended sectors (wf_profiles.sector vocabulary); empty/unset = every sector. */
+  sectorTags?: string[];
+  /** Set to share this (still only-owner-editable) procedure with teammates in that company. */
+  companyId?: Id;
   createdAt: string;
   updatedAt: string;
 } & SyncMeta;
+
+/**
+ * Read-only mirror of teammates' company-shared procedures (their own
+ * wf_procedures rows with company_id set). Never edited locally — the
+ * "Aziendali" tab lets the viewer clone one into their own personal library,
+ * mirroring how wf_global_procedures / cloneGlobalProcedureToPersonal works.
+ */
+export type CompanyProcedure = {
+  id: Id;
+  ownerId: Id;
+  title: string;
+  category: ProcedureCategory;
+  brand?: string;
+  model?: string;
+  content?: string;
+  tags?: string[];
+  imageIds?: Id[];
+  sectorTags?: string[];
+  createdAt: string;
+  updatedAt: string;
+};
 
 /** Standalone note (text + optional voice refs + optional entity links). */
 export type Note = {
@@ -286,6 +311,8 @@ export type GlobalProcedure = {
   content?: string;
   tags?: string[];
   imageIds?: Id[];
+  /** Recommended sectors (wf_profiles.sector vocabulary); empty/unset = every sector. */
+  sectorTags?: string[];
   /** Approval workflow state (default "approved" for pre-existing admin rows). */
   status?: GlobalProcedureStatus;
   rejectionReason?: string;
@@ -334,6 +361,17 @@ export type SupportEmailOutboxItem = {
   updatedAt: string;
 } & SyncMeta;
 
+/** One dashboard widget slot: which widget, shown or hidden, and its grid position/size. */
+export type DashboardWidgetPref = {
+  id: string;
+  visible: boolean;
+  /** Grid position/size in react-grid-layout units; undefined until first placed. */
+  x?: number;
+  y?: number;
+  w?: number;
+  h?: number;
+};
+
 /** Per-user toggles synced via wf_user_settings.preferences. */
 export type UserPreferences = {
   calendarAutoExportCompleted?: boolean;
@@ -341,6 +379,8 @@ export type UserPreferences = {
   menuToCsvDuplicateDesc?: boolean;
   menuToCsvSeparator?: string;
   menuToCsvEncoding?: "utf8bom" | "utf8";
+  /** Order = display order; entries the user hasn't toggled default to visible. */
+  dashboardWidgets?: DashboardWidgetPref[];
 };
 
 /** Per-user settings row (id === user_id). Working hours sync across devices. */
@@ -385,6 +425,7 @@ export class WorkFlowDB extends Dexie {
   activities!: Table<Activity, Id>;
   procedures!: Table<Procedure, Id>;
   globalProcedures!: Table<GlobalProcedure, Id>;
+  companyProcedures!: Table<CompanyProcedure, Id>;
   notes!: Table<Note, Id>;
   userSettings!: Table<UserSettings, Id>;
 
@@ -779,6 +820,29 @@ export class WorkFlowDB extends Dexie {
       activities: "&id, status, priority, dueAt, category, updatedAt, syncedAt",
       procedures: "&id, category, brand, model, sourceGlobalId, updatedAt, syncedAt",
       globalProcedures: "&id, category, brand, model, status, createdBy, updatedAt, syncedAt",
+      notes:
+        "&id, updatedAt, linkedClientId, linkedInterventionId, linkedActivityId, syncedAt",
+      userSettings: "&id, updatedAt, syncedAt"
+    });
+
+    // Add companyProcedures: read-only mirror of teammates' company-shared procedures (Fase 3).
+    this.version(24).stores({
+      clients: "&id, name, clientType, updatedAt, syncedAt",
+      interventions:
+        "&id, clientId, startAt, updatedAt, status, createdBy, timerStartedAt, workCategory, dueAt, timerRunState, syncedAt",
+      spareParts: "&id, sku, name, updatedAt, syncedAt",
+      stockMovements: "&id, sparePartId, createdAt, interventionId, syncedAt",
+      tickets:
+        "&id, status, priority, reminderAt, dueAt, updatedAt, clientId, interventionId, syncedAt",
+      attachments: "&id, kind, createdAt, mime, syncedAt",
+      documents: "&id, interventionId, createdAt, title, syncedAt",
+      supportEmailOutbox:
+        "&id, status, to, createdAt, updatedAt, documentId, interventionId, syncedAt",
+      templates: "&id, name, updatedAt, workCategory, syncedAt",
+      activities: "&id, status, priority, dueAt, category, updatedAt, syncedAt",
+      procedures: "&id, category, brand, model, sourceGlobalId, updatedAt, syncedAt",
+      globalProcedures: "&id, category, brand, model, status, createdBy, updatedAt, syncedAt",
+      companyProcedures: "&id, ownerId, category, updatedAt",
       notes:
         "&id, updatedAt, linkedClientId, linkedInterventionId, linkedActivityId, syncedAt",
       userSettings: "&id, updatedAt, syncedAt"

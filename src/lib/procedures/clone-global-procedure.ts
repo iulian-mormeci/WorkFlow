@@ -1,4 +1,4 @@
-import { db, type GlobalProcedure } from "@/lib/db/workflow-db";
+import { db, type CompanyProcedure, type GlobalProcedure } from "@/lib/db/workflow-db";
 import { createProcedure, type ProcedureFormValues } from "@/lib/procedures/procedure-mutations";
 import { sanitizeProcedureHtml } from "@/lib/procedures/sanitize-html";
 
@@ -50,7 +50,34 @@ export async function cloneGlobalProcedureToPersonal(
     content: sanitizeProcedureHtml(global.content ?? ""),
     tags: global.tags ?? [],
     imageIds,
-    sourceGlobalId: global.id
+    sourceGlobalId: global.id,
+    sectorTags: global.sectorTags
+  };
+
+  return createProcedure(values);
+}
+
+/**
+ * Copy a teammate's company-shared procedure into the current user's own
+ * personal library (a plain, independent copy — not linked back, since
+ * company-shared rows stay owned and editable only by their original author).
+ */
+export async function cloneCompanyProcedureToPersonal(source: CompanyProcedure): Promise<string> {
+  const imageIds: string[] = [];
+  for (const srcId of source.imageIds ?? []) {
+    const newId = await cloneAttachmentBlob(srcId);
+    if (newId) imageIds.push(newId);
+  }
+
+  const values: ProcedureFormValues = {
+    title: source.title.trim(),
+    category: source.category,
+    brand: source.brand,
+    model: source.model,
+    content: sanitizeProcedureHtml(source.content ?? ""),
+    tags: source.tags ?? [],
+    imageIds,
+    sectorTags: source.sectorTags
   };
 
   return createProcedure(values);

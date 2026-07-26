@@ -834,6 +834,9 @@
   },
   "nav": {
     "dashboard": "Dashboard",
+    "agenda": "Agenda",
+    "services": "Servizi",
+    "adminServices": "Gestione servizi",
     "interventions": "Interventi",
     "work": "Lavorazioni",
     "notes": "Note",
@@ -846,7 +849,7 @@
     "spareParts": "Ricambi",
     "reports": "Report",
     "statistics": "Statistiche",
-    "settings": "Impostazioni",
+    "account": "Account",
     "chat": "Chat",
     "files": "File",
     "admin": "Admin",
@@ -858,6 +861,33 @@
     "offlineFirstNote": "Offline-first. I dati restano sul dispositivo finché non vengono sincronizzati.",
     "keyboardHint": "Tastiera (iPad): ⌘K ricerca • ⌘R ricarica",
     "languageLabel": "Lingua"
+  },
+  "onboarding": {
+    "skip": "Salta per ora",
+    "back": "Indietro",
+    "next": "Avanti",
+    "finish": "Fine",
+    "saving": "Salvataggio…",
+    "saveFailedTitle": "Salvataggio non riuscito",
+    "step1": {
+      "title": "Benvenuto! Parlaci di te",
+      "subtitle": "Queste informazioni compaiono nel tuo profilo Account.",
+      "firstNameLabel": "Nome",
+      "lastNameLabel": "Cognome",
+      "roleTitleLabel": "Ruolo / professione",
+      "roleTitlePlaceholder": "es. Idraulico, Cuoco, Consulente…",
+      "roleCategoryLabel": "Categoria",
+      "roleCategoryPlaceholder": "Scegli una categoria"
+    },
+    "step2": {
+      "title": "Qual è il tuo settore?",
+      "subtitle": "Determina quali servizi e procedure ti vengono suggeriti per primi. Puoi cambiarlo in qualsiasi momento dall'Account."
+    },
+    "step3": {
+      "title": "Attiva i servizi che ti servono",
+      "subtitle": "I servizi core sono già attivi per tutti. Puoi cambiare idea in qualsiasi momento da Servizi.",
+      "recommended": "Consigliato"
+    }
   },
   "dashboard": {
     "title": "Dashboard",
@@ -928,6 +958,133 @@
         "title": "Timer attivi",
         "subtitle": "Cronometri attualmente in esecuzione.",
         "empty": "Nessun timer attivo."
+      }
+    },
+    "customize": {
+      "sectionTitle": "La tua dashboard",
+      "button": "Modifica",
+      "done": "Fatto",
+      "addWidget": "Aggiungi widget",
+      "removeWidget": "Rimuovi widget",
+      "dragHandleAria": "Trascina per riordinare",
+      "emptyDashboard": "Nessun widget visibile. Tocca “Modifica” poi “Aggiungi widget” per iniziare."
+    },
+    "gallery": {
+      "title": "Aggiungi widget",
+      "subtitle": "Scegli i widget da mostrare in dashboard, raggruppati per area.",
+      "categories": {
+        "overview": "Panoramica",
+        "productivity": "Produttività",
+        "clientsWork": "Clienti e lavoro",
+        "communication": "Comunicazione",
+        "company": "Azienda",
+        "analytics": "Analisi"
+      }
+    },
+    "widgets": {
+      "dragHandleAria": "Trascina per riordinare",
+      "stats": { "title": "Statistiche rapide" },
+      "todaysFocus": { "title": "Focus di oggi" },
+      "attention": { "title": "Da tenere d'occhio" },
+      "recentInterventions": { "title": "Interventi recenti" },
+      "activitiesSummary": { "title": "Riepilogo attività" },
+      "quickActions": { "title": "Azioni rapide" },
+      "todayQuickActions": { "title": "Azioni rapide di oggi" },
+      "notes": {
+        "title": "Note",
+        "subtitle": "Le ultime note modificate.",
+        "viewAll": "Vedi tutte",
+        "empty": "Nessuna nota ancora.",
+        "untitled": "Senza titolo"
+      },
+      "templates": {
+        "title": "Modelli",
+        "subtitle": "I tuoi modelli di intervento.",
+        "viewAll": "Vedi tutti",
+        "empty": "Nessun modello ancora."
+      },
+      "documents": {
+        "title": "Documenti",
+        "subtitle": "Gli ultimi documenti scansionati.",
+        "viewAll": "Vedi tutti",
+        "empty": "Nessun documento ancora."
+      },
+      "clients": {
+        "title": "Clienti",
+        "subtitle": "I clienti aggiornati più di recente.",
+        "viewAll": "Vedi tutti",
+        "empty": "Nessun cliente ancora."
+      },
+      "crmTickets": {
+        "title": "Ticket CRM",
+        "subtitle": "Ticket aperti o in attesa.",
+        "viewAll": "Vedi tutti",
+        "empty": "Nessun ticket aperto.",
+        "priority": { "low": "Bassa priorità", "medium": "Media priorità", "high": "Alta priorità" }
+      },
+      "spareParts": {
+        "title": "Ricambi sotto scorta",
+        "subtitle": "Ricambi sotto la soglia minima impostata.",
+        "viewAll": "Vedi tutti",
+        "empty": "Tutti i ricambi sono sopra la soglia minima.",
+        "stockLine": "{stock} in giacenza · minimo {min}"
+      },
+      "chat": {
+        "title": "Chat",
+        "subtitle": "I tuoi ultimi messaggi.",
+        "subtitleUnread": "{count, plural, one {# messaggio non letto} other {# messaggi non letti}}",
+        "viewAll": "Apri chat",
+        "empty": "Nessun messaggio ancora."
+      },
+      "reports": {
+        "title": "Report",
+        "subtitle": "Genera report PDF dei tuoi interventi.",
+        "cta": "Vai ai report"
+      },
+      "statistics": {
+        "title": "Statistiche",
+        "subtitle": "Andamento del lavoro nel tempo.",
+        "cta": "Vai alle statistiche"
+      },
+      "menuToCsv": {
+        "title": "Menu PDF → CSV",
+        "subtitle": "Converti il menu del locale in CSV.",
+        "cta": "Vai al convertitore"
+      },
+      "agenda": {
+        "title": "Agenda",
+        "subtitle": "Prossimi interventi e attività.",
+        "viewAll": "Vedi tutti",
+        "empty": "Nessun impegno in programma."
+      },
+      "calendarWeek": { "title": "Calendario settimanale" },
+      "recentProcedures": {
+        "title": "Ultime procedure usate",
+        "subtitle": "Le procedure modificate più di recente.",
+        "viewAll": "Vedi tutte",
+        "empty": "Nessuna procedura ancora."
+      },
+      "recentFiles": {
+        "title": "File recenti",
+        "subtitle": "Gli ultimi file caricati.",
+        "viewAll": "Vedi tutti",
+        "empty": "Nessun file ancora."
+      },
+      "companyActivity": {
+        "title": "Attività aziendali recenti",
+        "subtitle": "Cosa è successo di recente nella tua azienda.",
+        "empty": "Nessuna attività aziendale ancora.",
+        "noCompany": "Entra o crea un'azienda per vedere questo widget.",
+        "someone": "Un collega",
+        "memberJoined": "{who} è entrato in azienda",
+        "memberLeft": "{who} ha lasciato l'azienda",
+        "procedureShared": "{who} ha condiviso la procedura “{title}”"
+      },
+      "activeServices": {
+        "title": "Servizi attivi",
+        "subtitle": "Accesso rapido ai tuoi servizi.",
+        "viewAll": "Gestisci",
+        "empty": "Nessun servizio attivo."
       }
     }
   },
@@ -1303,7 +1460,10 @@
       "brand": "Marca",
       "brandAll": "Tutte le marche",
       "model": "Modello",
-      "modelAll": "Tutti i modelli"
+      "modelAll": "Tutti i modelli",
+      "sectorAll": "Tutti i settori",
+      "sectorYours": "il tuo",
+      "showAllSectors": "Mostra tutte le procedure"
     },
     "fields": {
       "title": "Titolo",
@@ -1316,7 +1476,9 @@
       "content": "Contenuto",
       "tags": "Tag",
       "tagsPlaceholder": "es. caldaia, codice-errore, reset",
-      "tagsHint": "Separa i tag con le virgole. Usati per ricerca e consultazione rapida."
+      "tagsHint": "Separa i tag con le virgole. Usati per ricerca e consultazione rapida.",
+      "sectorTags": "Settori consigliati",
+      "sectorTagsHint": "Usati per suggerire questa procedura agli utenti giusti quando è globale o aziendale. Nessuna selezione = adatta a tutti i settori."
     },
     "editor": {
       "contentLabel": "Contenuto della procedura",
@@ -1345,7 +1507,7 @@
       "myProceduresHint": "Copie modificabili sul tuo account, sincronizzate su tutti i dispositivi.",
       "searchButton": "Cerca procedure globali",
       "searchTitle": "Cerca procedure",
-      "searchSubtitle": "Preset aziendali e le tue procedure personali — cerca per titolo, contenuto, marca, modello, categoria o tag.",
+      "searchSubtitle": "Preset globali della piattaforma, procedure condivise dai colleghi e le tue procedure personali — cerca per titolo, contenuto, marca, modello, categoria o tag.",
       "searchPlaceholder": "Cerca titolo, contenuto, marca, modello, categoria, tag…",
       "searchEmpty": "Nessuna procedura corrisponde alla ricerca.",
       "presetsAvailable": "{count, plural, one {# procedura preset disponibile offline} other {# procedure preset disponibili offline}}",
@@ -1359,6 +1521,15 @@
       "copyFailedTitle": "Impossibile copiare la procedura",
       "alreadyCopiedTitle": "Procedura già nel tuo account",
       "alreadyCopiedBody": "Hai già una copia di questa procedura nel tuo account."
+    },
+    "company": {
+      "badge": "Aziendale",
+      "scopeCompany": "Aziendali",
+      "presetsAvailable": "{count, plural, one {# procedura aziendale condivisa da un collega} other {# procedure aziendali condivise dai colleghi}}"
+    },
+    "shareCompany": {
+      "checkboxLabel": "Condividi con la mia azienda",
+      "checkboxHint": "I colleghi della tua azienda potranno vederla e copiarla nella loro libreria; resta modificabile solo da te."
     },
     "actions": {
       "new": "Nuova procedura",
@@ -1462,14 +1633,219 @@
       }
     }
   },
-  "settings": {
+  "services": {
     "page": {
-      "title": "Impostazioni",
-      "subtitle": "Profilo, sincronizzazione cloud, aspetto, backup locale e diritti sui dati."
+      "title": "Servizi",
+      "subtitle": "Attiva i servizi che ti servono: appariranno nel menu laterale."
     },
-    "appVersion": "{appName} • v{version}",
+    "loading": "Caricamento servizi…",
+    "filters": {
+      "allCategories": "Tutte le categorie",
+      "allSectors": "Tutti i settori"
+    },
+    "categories": {
+      "documents": "Documenti",
+      "productivity": "Produttività",
+      "horeca": "HoReCa",
+      "generic": "Generico"
+    },
+    "activeBadge": "Attivo",
+    "recommendedBadge": "Consigliato per te",
+    "alwaysOn": "Sempre attivo",
+    "preview": "Anteprima",
+    "activate": "Attiva",
+    "deactivate": "Disattiva",
+    "close": "Chiudi",
+    "empty": "Nessun servizio trovato con questi filtri.",
+    "toasts": {
+      "activatedTitle": "{name} attivato",
+      "deactivatedTitle": "{name} disattivato",
+      "toggleFailedTitle": "Operazione non riuscita"
+    }
+  },
+  "agenda": {
+    "page": {
+      "title": "Agenda",
+      "subtitle": "Interventi programmati e attività in scadenza dei prossimi giorni."
+    },
+    "card": {
+      "title": "Prossimi impegni",
+      "subtitle": "Interventi e attività nei prossimi {days} giorni."
+    },
+    "today": "Oggi",
+    "tomorrow": "Domani",
+    "overdue": "In ritardo",
+    "empty": "Nessun impegno in programma.",
+    "untitledIntervention": "Intervento",
+    "views": {
+      "list": "Impegni",
+      "week": "Settimana",
+      "month": "Mese",
+      "year": "Anno"
+    },
+    "todayButton": "Oggi",
+    "prevAria": "Precedente",
+    "nextAria": "Successivo",
+    "weekdaysShort": ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"],
+    "yearHint": "Clicca su un mese per aprirlo, su un giorno per vedere la settimana.",
+    "toasts": {
+      "moveFailedTitle": "Spostamento non riuscito",
+      "resizeFailedTitle": "Ridimensionamento non riuscito"
+    },
+    "create": {
+      "newButton": "Nuovo",
+      "chooserTitle": "Cosa vuoi aggiungere?",
+      "chooserSubtitle": "Scegli il tipo di impegno da creare.",
+      "newIntervention": "Intervento",
+      "newActivity": "Attività",
+      "cellHint": "Clicca su un giorno vuoto per aggiungere un intervento o un'attività in quella data.",
+      "slotHint": "Clicca su un orario libero per aggiungere un intervento o un'attività in quel momento."
+    },
+    "eventTooltip": {
+      "dueBy": "Da finire entro:"
+    }
+  },
+  "adminServices": {
+    "page": {
+      "title": "Gestione servizi",
+      "subtitle": "Aggiungi, modifica e disattiva i servizi disponibili sulla piattaforma."
+    },
+    "loading": "Caricamento…",
+    "availableOnPlatform": "Disponibile sulla piattaforma",
+    "delete": "Elimina servizio",
+    "coreNotice": "Servizio core: sempre visibile a tutti gli utenti, non disattivabile.",
+    "longDescriptionPlaceholder": "Descrizione estesa mostrata nell'anteprima…",
+    "newService": {
+      "title": "Nuovo servizio",
+      "subtitle": "Aggiungi un servizio al catalogo senza toccare il codice.",
+      "idPlaceholder": "id-univoco (es. inventario)",
+      "namePlaceholder": "Nome servizio",
+      "hrefPlaceholder": "/percorso-pagina",
+      "descriptionPlaceholder": "Descrizione breve mostrata nella card",
+      "submit": "Crea servizio"
+    },
+    "toasts": {
+      "saveFailedTitle": "Salvataggio non riuscito",
+      "createdTitle": "Servizio creato",
+      "createFailedTitle": "Creazione non riuscita"
+    }
+  },
+  "account": {
+    "page": {
+      "title": "Account",
+      "subtitle": "Profilo personale, azienda e tutte le impostazioni dell'app.",
+      "appVersion": "{appName} • v{version}"
+    },
+    "nav": {
+      "account": "Account",
+      "security": "Sicurezza",
+      "workingHours": "Orari di lavoro",
+      "calendar": "Calendario",
+      "sync": "Sincronizzazione",
+      "appearance": "Aspetto",
+      "data": "Dati"
+    },
     "profile": {
-      "title": "Profilo",
+      "title": "Profilo personale",
+      "subtitle": "Le informazioni che gli altri membri della tua azienda vedono di te.",
+      "loading": "Caricamento profilo…",
+      "avatarLabel": "Foto profilo",
+      "avatarHint": "Tocca per caricare una foto (JPG, PNG, WEBP, max 5MB).",
+      "firstNameLabel": "Nome",
+      "firstNamePlaceholder": "es. Mario",
+      "lastNameLabel": "Cognome",
+      "lastNamePlaceholder": "es. Rossi",
+      "roleTitleLabel": "Ruolo / professione",
+      "roleTitlePlaceholder": "es. Idraulico, Cuoco, Consulente…",
+      "roleCategoryLabel": "Categoria",
+      "roleCategoryPlaceholder": "Scegli una categoria",
+      "roleCategoryOptions": {
+        "technician": "Tecnico",
+        "restaurateur": "Ristoratore",
+        "merchant": "Commerciante",
+        "freelancer": "Libero professionista",
+        "other": "Altro"
+      },
+      "sectorLabel": "Settore di lavoro",
+      "sectorPlaceholder": "Scegli un settore",
+      "sectorHint": "Determina quali procedure e servizi ti vengono suggeriti per primi.",
+      "sectorOptions": {
+        "horeca": "HoReCa (Ristoranti/Bar)",
+        "it": "Informatica",
+        "retail": "Retail",
+        "craft": "Artigianato",
+        "services": "Servizi",
+        "other": "Altro"
+      },
+      "bioLabel": "Bio breve",
+      "bioPlaceholder": "Poche parole su di te (opzionale).",
+      "supabaseNotConfigured": "Supabase non è configurato.",
+      "toasts": {
+        "saveFailedTitle": "Salvataggio non riuscito",
+        "avatarUpdatedTitle": "Foto profilo aggiornata",
+        "avatarFailedTitle": "Caricamento foto non riuscito"
+      }
+    },
+    "company": {
+      "title": "Azienda",
+      "loading": "Caricamento azienda…",
+      "roleLabel": "Il tuo ruolo: {role}",
+      "logoLabel": "Logo azienda",
+      "pivaLabel": "P.IVA",
+      "sectorLabel": "Settore azienda",
+      "addressLabel": "Indirizzo sede",
+      "websiteLabel": "Sito web",
+      "emailLabel": "Email aziendale",
+      "phoneLabel": "Telefono",
+      "inviteCodeLabel": "Codice invito",
+      "copyInviteCode": "Copia codice",
+      "notInCompany": {
+        "subtitle": "Non fai ancora parte di nessuna azienda: creane una o entra con un codice invito."
+      },
+      "createForm": {
+        "title": "Crea una nuova azienda",
+        "namePlaceholder": "Nome azienda",
+        "pivaPlaceholder": "P.IVA (opzionale)",
+        "sectorPlaceholder": "Settore (opzionale)",
+        "submit": "Crea azienda"
+      },
+      "joinForm": {
+        "title": "Entra in un'azienda esistente",
+        "hint": "Chiedi il codice invito di 8 caratteri all'amministratore della tua azienda.",
+        "codePlaceholder": "Codice invito",
+        "submit": "Entra con il codice"
+      },
+      "members": {
+        "title": "Membri ({count})",
+        "unnamed": "Utente senza nome",
+        "you": "tu",
+        "remove": "Rimuovi membro"
+      },
+      "roles": {
+        "admin": "Admin",
+        "manager": "Manager",
+        "member": "Membro"
+      },
+      "leaveCompany": "Esci dall'azienda",
+      "toasts": {
+        "createdTitle": "Azienda creata",
+        "createFailedTitle": "Creazione non riuscita",
+        "joinedTitle": "Sei entrato nell'azienda",
+        "joinFailedTitle": "Impossibile entrare nell'azienda",
+        "saveFailedTitle": "Salvataggio non riuscito",
+        "logoUpdatedTitle": "Logo aggiornato",
+        "logoFailedTitle": "Caricamento logo non riuscito",
+        "leftTitle": "Hai lasciato l'azienda"
+      },
+      "errors": {
+        "already_in_company": "Fai già parte di un'azienda: esci prima di crearne o unirti a un'altra.",
+        "invalid_invite_code": "Codice invito non valido.",
+        "name_required": "Il nome dell'azienda è obbligatorio.",
+        "not_authenticated": "Devi accedere per continuare."
+      }
+    },
+    "preferences": {
+      "title": "Preferenze",
       "subtitle": "Informazioni account Supabase.",
       "supabaseNotConfigured": "Supabase non è configurato.",
       "techNameLabel": "Nome tecnico (per PDF/CRM)",
@@ -1488,7 +1864,9 @@
       "officeAddressLabel": "Indirizzo ufficio predefinito",
       "officeAddressPlaceholder": "es. Via Roma 10, Milano",
       "officeAddressHint": "Usato dal pulsante Andata e ritorno (Partenza → Ufficio → Partenza) in creazione intervento. Sincronizzato sul profilo utente quando sei online."
-    },
+    }
+  },
+  "settings": {
     "security": {
       "title": "Sicurezza",
       "subtitle": "Sessione account, disconnessione ovunque e privacy. Le tabelle cloud usano Row Level Security (RLS).",

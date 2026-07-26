@@ -1,13 +1,8 @@
-import { DashboardStats } from "@/components/dashboard/dashboard-stats";
-import { DashboardActivities } from "@/components/dashboard/dashboard-activities";
 import { OfflineBanner } from "@/components/offline/offline-banner";
-import { DashboardRecent } from "@/components/dashboard/dashboard-recent";
-import { DashboardQuickActions } from "@/components/dashboard/dashboard-quick-actions";
 import { QuickNoteFab } from "@/components/notes/quick-note-fab";
-import { DashboardAttention } from "@/components/dashboard/dashboard-attention";
-import { TodaysFocus } from "@/components/dashboard/todays-focus";
 import { InstallPromptBanner } from "@/components/pwa/install-prompt-banner";
-import { TodaysQuickActions } from "@/components/dashboard/todays-quick-actions";
+import { CustomizableWidgets } from "@/components/dashboard/customizable-widgets";
+import { OnboardingWizard } from "@/components/onboarding/onboarding-wizard";
 import { getTranslations } from "next-intl/server";
 
 export default async function ProtectedDashboardPage() {
@@ -23,25 +18,11 @@ export default async function ProtectedDashboardPage() {
 
       <OfflineBanner />
       <InstallPromptBanner />
-      <DashboardStats />
 
-      <DashboardActivities />
-
-      <DashboardAttention />
-
-      <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="grid gap-4">
-          <TodaysFocus />
-          <DashboardRecent />
-        </div>
-        <div className="grid gap-4">
-          <TodaysQuickActions />
-          <DashboardQuickActions />
-        </div>
-      </div>
+      <CustomizableWidgets />
 
       <QuickNoteFab />
+      <OnboardingWizard />
     </div>
   );
 }
-

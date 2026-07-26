@@ -1,4 +1,4 @@
-import type { GlobalProcedure, Procedure, ProcedureCategory } from "@/lib/db/workflow-db";
+import type { CompanyProcedure, GlobalProcedure, Procedure, ProcedureCategory } from "@/lib/db/workflow-db";
 import { procedureHtmlToText } from "@/lib/procedures/sanitize-html";
 
 /** Fields shared by personal and global procedure rows (UI + search). */
@@ -27,6 +27,19 @@ export function procedureLikeFromPersonal(p: Procedure): ProcedureLike {
 }
 
 export function procedureLikeFromGlobal(p: GlobalProcedure): ProcedureLike {
+  return {
+    id: p.id,
+    title: p.title,
+    category: p.category,
+    brand: p.brand,
+    model: p.model,
+    content: p.content,
+    tags: p.tags,
+    imageIds: p.imageIds
+  };
+}
+
+export function procedureLikeFromCompany(p: CompanyProcedure): ProcedureLike {
   return {
     id: p.id,
     title: p.title,

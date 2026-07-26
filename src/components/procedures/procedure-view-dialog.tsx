@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Copy, Globe, Loader2, Pencil, Tag, User, X } from "lucide-react";
+import { Building2, Copy, Globe, Loader2, Pencil, Tag, User, X } from "lucide-react";
 import { sanitizeProcedureHtml } from "@/lib/procedures/sanitize-html";
 import { db } from "@/lib/db/workflow-db";
 import type { ProcedureLike } from "@/lib/procedures/procedure-shared";
@@ -21,7 +21,7 @@ type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   procedure: ProcedureLike | null;
-  scope?: "global" | "personal";
+  scope?: "global" | "personal" | "company";
   onEdit?: () => void;
   onCopy?: () => void;
   copying?: boolean;
@@ -90,6 +90,11 @@ export function ProcedureViewDialog({
               <Badge className="border-sky-300 bg-sky-50 text-sky-900">
                 <User className="mr-1 h-3 w-3" />
                 {t("procedures.global.personalBadge")}
+              </Badge>
+            ) : scope === "company" ? (
+              <Badge className="border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
+                <Building2 className="mr-1 h-3 w-3" />
+                {t("procedures.company.badge")}
               </Badge>
             ) : null}
             <DialogTitle className="text-left">{procedure.title}</DialogTitle>

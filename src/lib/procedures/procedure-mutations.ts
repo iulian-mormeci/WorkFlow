@@ -16,6 +16,10 @@ export type ProcedureFormValues = {
   imageIds: string[];
   /** Set when cloning from a global preset — stored for dedup checks. */
   sourceGlobalId?: string;
+  /** Recommended sectors; empty/undefined = every sector. */
+  sectorTags?: string[];
+  /** Set to share this procedure (read-only) with teammates in that company. */
+  companyId?: string;
 };
 
 function clean(s: string | undefined): string | undefined {
@@ -58,6 +62,8 @@ export async function createProcedure(values: ProcedureFormValues): Promise<stri
     tags: normalizeTags(values.tags),
     imageIds: values.imageIds.length ? values.imageIds : undefined,
     sourceGlobalId: values.sourceGlobalId ?? undefined,
+    sectorTags: values.sectorTags?.length ? values.sectorTags : undefined,
+    companyId: values.companyId ?? undefined,
     createdAt: nowIso,
     updatedAt: nowIso
   });
@@ -77,6 +83,8 @@ export async function updateProcedure(
     content: clean(sanitizeProcedureHtml(values.content ?? "")),
     tags: normalizeTags(values.tags),
     imageIds: values.imageIds.length ? values.imageIds : undefined,
+    sectorTags: values.sectorTags?.length ? values.sectorTags : undefined,
+    companyId: values.companyId ?? undefined,
     updatedAt: nowIso
   });
 }

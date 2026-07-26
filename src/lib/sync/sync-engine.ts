@@ -55,6 +55,7 @@ import {
   type ActivityPostponement,
   type Attachment,
   type Client,
+  type CompanyProcedure,
   type Document,
   type Intervention,
   type InterventionTemplate,
@@ -618,6 +619,8 @@ function procedureToRow(p: Procedure, userId: string) {
     tags: p.tags?.length ? p.tags : null,
     image_ids: p.imageIds?.length ? p.imageIds : null,
     source_global_id: p.sourceGlobalId ?? null,
+    sector_tags: p.sectorTags ?? [],
+    company_id: p.companyId ?? null,
     created_at: p.createdAt,
     updated_at: p.updatedAt
   };
@@ -634,10 +637,29 @@ function procedureFromRow(r: Record<string, unknown>): Procedure {
     tags: stringArrayFromJson(r.tags),
     imageIds: stringArrayFromJson(r.image_ids),
     sourceGlobalId: (r.source_global_id as string) ?? undefined,
+    sectorTags: stringArrayFromJson(r.sector_tags),
+    companyId: (r.company_id as string) ?? undefined,
     createdAt: iso(r.created_at),
     updatedAt: iso(r.updated_at),
     syncedAt: new Date().toISOString(),
     remoteId: String(r.id)
+  };
+}
+
+function companyProcedureFromRow(r: Record<string, unknown>): CompanyProcedure {
+  return {
+    id: String(r.id),
+    ownerId: String(r.user_id),
+    title: String(r.title),
+    category: normalizeProcedureCategory(r.category),
+    brand: (r.brand as string) ?? undefined,
+    model: (r.model as string) ?? undefined,
+    content: (r.content as string) ?? undefined,
+    tags: stringArrayFromJson(r.tags),
+    imageIds: stringArrayFromJson(r.image_ids),
+    sectorTags: stringArrayFromJson(r.sector_tags),
+    createdAt: iso(r.created_at),
+    updatedAt: iso(r.updated_at)
   };
 }
 
@@ -683,6 +705,7 @@ function globalProcedureToRow(p: GlobalProcedure) {
     content: p.content ?? null,
     tags: p.tags?.length ? p.tags : null,
     image_ids: p.imageIds?.length ? p.imageIds : null,
+    sector_tags: p.sectorTags ?? [],
     status: p.status ?? "approved",
     rejection_reason: p.rejectionReason ?? null,
     reviewed_at: p.reviewedAt ?? null,
@@ -704,6 +727,7 @@ function globalProcedureFromRow(r: Record<string, unknown>): GlobalProcedure {
     content: (r.content as string) ?? undefined,
     tags: stringArrayFromJson(r.tags),
     imageIds: stringArrayFromJson(r.image_ids),
+    sectorTags: stringArrayFromJson(r.sector_tags),
     status: ((r.status as string) ?? "approved") as import("@/lib/db/workflow-db").GlobalProcedureStatus,
     rejectionReason: (r.rejection_reason as string) ?? undefined,
     reviewedAt: r.reviewed_at ? iso(r.reviewed_at) : undefined,
@@ -1684,6 +1708,70 @@ async function pullGlobalProcedures(supabase: SupabaseClient) {
   return n;
 }
 
+/** The caller's company, if any (wf_company_members has at most one row per user). */
+async function fetchCurrentCompanyId(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("wf_company_members")
+    .select("company_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw new Error(`wf_company_members lookup: ${error.message}`);
+  return (data?.company_id as string | undefined) ?? null;
+}
+
+async function pullCompanyProceduresPaged(
+  supabase: SupabaseClient,
+  companyId: string
+): Promise<Record<string, unknown>[]> {
+  const out: Record<string, unknown>[] = [];
+  let from = 0;
+  for (;;) {
+    const { data, error } = await supabase
+      .from("wf_procedures")
+      .select("*")
+      .eq("company_id", companyId)
+      .order("updated_at", { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) throw new Error(`wf_procedures (company) pull: ${error.message}`);
+    const rows = data ?? [];
+    out.push(...rows);
+    if (rows.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+  return out;
+}
+
+/**
+ * Read-only mirror of every procedure teammates shared with the caller's
+ * company (including the caller's own shared rows — harmless duplicate of
+ * what pullProcedures already keeps in `db.procedures`). Always a full
+ * replace-by-diff since nothing here is ever edited locally, unlike the
+ * personal/global procedure pulls which do last-writer-wins merges.
+ */
+async function pullCompanyProcedures(supabase: SupabaseClient, companyId: string | null) {
+  if (!companyId) {
+    await db.companyProcedures.clear();
+    return 0;
+  }
+  const rows = await pullCompanyProceduresPaged(supabase, companyId);
+  const serverIds = new Set<string>();
+  let n = 0;
+  for (const r of rows) {
+    const id = String(r.id);
+    serverIds.add(id);
+    await db.companyProcedures.put(companyProcedureFromRow(r));
+    n += 1;
+  }
+  const locals = await db.companyProcedures.toArray();
+  for (const local of locals) {
+    if (!serverIds.has(local.id)) await db.companyProcedures.delete(local.id);
+  }
+  return n;
+}
+
 async function pullDocuments(supabase: SupabaseClient, userId: string) {
   const rows = await pullPaged(supabase, "wf_documents", userId, "updated_at");
   const pend = getPendingSyncPullSkipContext();
@@ -1961,6 +2049,10 @@ export async function runFullSync(
       result.pulled.globalProcedureAttachments = await pullGlobalProcedureAttachments(
         supabase,
         user.id
+      );
+      result.pulled.companyProcedures = await pullCompanyProcedures(
+        supabase,
+        await fetchCurrentCompanyId(supabase, user.id)
       );
       result.pulled.documents = await pullDocuments(supabase, user.id);
       result.pulled.supportEmailOutbox = await pullOutbox(supabase, user.id);

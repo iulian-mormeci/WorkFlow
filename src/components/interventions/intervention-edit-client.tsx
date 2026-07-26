@@ -1,6 +1,6 @@
 "use client";
 
-import { Link, useRouter } from "@/i18n/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import {
@@ -160,6 +160,16 @@ export function InterventionEditClient({ id }: { id: string }) {
   const router = useRouter();
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
 
+  // Return to wherever the user came from (Agenda, the interventions list,
+  // dashboard, search, ...) instead of always jumping to the list page.
+  const goBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/interventions");
+    }
+  };
+
   const calendarEvent = useMemo(() => {
     if (!intervention) return null;
     return interventionToCalendarEvent(intervention, client ?? undefined);
@@ -186,10 +196,10 @@ export function InterventionEditClient({ id }: { id: string }) {
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-3">
-          <Link className="inline-flex items-center gap-2 text-sm underline" href="/interventions">
+          <button type="button" onClick={goBack} className="inline-flex items-center gap-2 text-sm underline">
             <ChevronLeft className="h-4 w-4" />
             {t("common.back")}
-          </Link>
+          </button>
         </div>
         <div className="rounded-2xl border bg-muted p-4 text-sm text-muted-foreground">
           {t("interventions.detail.notFound")}
@@ -204,10 +214,10 @@ export function InterventionEditClient({ id }: { id: string }) {
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-1">
             <div className="flex items-center gap-3">
-              <Link className="inline-flex items-center gap-2 text-sm underline" href="/interventions">
+              <button type="button" onClick={goBack} className="inline-flex items-center gap-2 text-sm underline">
                 <ChevronLeft className="h-4 w-4" />
                 {t("common.back")}
-              </Link>
+              </button>
             </div>
             <h1 className="mt-1 text-xl font-semibold tracking-tight md:text-2xl">
               {client?.name ?? t("common.intervention")}

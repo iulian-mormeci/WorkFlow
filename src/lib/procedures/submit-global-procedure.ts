@@ -57,6 +57,7 @@ export async function submitProcedureForGlobal(
     content: sanitizeProcedureHtml(values.content ?? "") || null,
     tags: values.tags.length ? values.tags : null,
     image_ids: values.imageIds.length ? values.imageIds : null,
+    sector_tags: values.sectorTags?.length ? values.sectorTags : [],
     status,
     source_procedure_id: sourceProcedureId ?? null,
     created_at: nowIso,

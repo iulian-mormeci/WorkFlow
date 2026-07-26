@@ -10,9 +10,11 @@ import { GlobalSearch } from "@/components/search/global-search";
 import { KeyboardShortcutsDialog } from "@/components/shortcuts/keyboard-shortcuts-dialog";
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 import {
+  isServiceNavItemVisible,
   SIDEBAR_NAV_ICONS,
   type SidebarNavItem
 } from "@/components/layout/sidebar-nav";
+import { useUserServicesStore } from "@/stores/user-services";
 import {
   mobileBottomNavItems,
   mobileMenuExtraItems
@@ -42,8 +44,11 @@ export function MobileMenu({ items }: Props) {
   const user = useAuthStore((s) => s.user);
   const isAdmin = isGlobalProcedureAdmin(user);
   const chatUnread = useChatUnreadStore((s) => s.count);
+  const activatedServiceIds = useUserServicesStore((s) => s.activatedIds);
 
-  const visibleItems = items.filter((item) => !item.adminOnly || isAdmin);
+  const visibleItems = items.filter(
+    (item) => (!item.adminOnly || isAdmin) && isServiceNavItemVisible(item, activatedServiceIds)
+  );
   const bottomItems = mobileBottomNavItems(visibleItems);
   const menuItems = mobileMenuExtraItems(visibleItems);
 

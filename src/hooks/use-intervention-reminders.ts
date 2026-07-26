@@ -323,9 +323,20 @@ export function useInterventionReminders(enabled = true): InterventionReminderPo
     secondsUntilNextPoll: INTERVENTION_REMINDER_POLL_MS / 1000,
     lastPollAt: null,
     lastSummary: "—",
-    notificationPermission:
-      typeof Notification === "undefined" ? "unsupported" : Notification.permission
+    // Always start as "unsupported" (matches SSR, where `Notification` doesn't exist) —
+    // reading `Notification.permission` here would mismatch the client's first render
+    // and trigger a hydration error. The real value is synced in the effect below.
+    notificationPermission: "unsupported"
   }));
+
+  // Sync the real permission value once mounted (client-only), regardless of `enabled`.
+  useEffect(() => {
+    setDebug((d) => ({
+      ...d,
+      notificationPermission:
+        typeof Notification === "undefined" ? "unsupported" : Notification.permission
+    }));
+  }, []);
 
   const runTick = useCallback(async () => {
     nextPollDeadlineRef.current = Date.now() + INTERVENTION_REMINDER_POLL_MS;

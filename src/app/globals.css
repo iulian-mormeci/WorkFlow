@@ -165,3 +165,33 @@ html {
   border-radius: 0.3em;
 }
 
+/* Dashboard widget grid (react-grid-layout) — match the app's theme instead of the library default red placeholder. */
+.wf-dashboard-grid .react-grid-item.react-grid-placeholder {
+  background: hsl(var(--primary));
+  opacity: 0.12;
+  border-radius: 1rem;
+}
+.wf-dashboard-grid .react-grid-item > .react-resizable-handle::after {
+  border-right-color: hsl(var(--muted-foreground));
+  border-bottom-color: hsl(var(--muted-foreground));
+  width: 7px;
+  height: 7px;
+}
+/* The library hides the resize handle until hover (opacity: 0), which made it
+   easy to miss entirely on touch devices / at a glance. Keep it faintly
+   visible at all times while editing, full-strength on hover. */
+.wf-dashboard-grid .react-grid-item > .react-resizable-handle {
+  width: 26px;
+  height: 26px;
+  opacity: 0.55 !important;
+}
+.wf-dashboard-grid .react-grid-item > .react-resizable-handle::after {
+  right: 6px;
+  bottom: 6px;
+  width: 9px;
+  height: 9px;
+}
+.wf-dashboard-grid .react-grid-item:hover > .react-resizable-handle {
+  opacity: 1 !important;
+}
+

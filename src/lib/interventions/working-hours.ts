@@ -175,7 +175,7 @@ export function clearWorkingHoursMemoryCache(): void {
 }
 
 /** Mon=0 .. Sun=6 from a Date (JS `getDay()` is Sun=0). */
-function weekdayMon0(d: Date): number {
+export function weekdayMon0(d: Date): number {
   return (d.getDay() + 6) % 7;
 }
 
@@ -274,23 +274,56 @@ export function computeWorkingOverlapSeconds(
   return Math.floor(totalMs / 1000);
 }
 
-/** Net scheduled minutes for a single day (slots − breaks), ignoring any window. */
-export function dayScheduledMinutes(day: WorkingDay): number {
+/**
+ * Net working ranges (slots − breaks) for a single day, in minutes past
+ * local midnight — used to render the "working hours" band on the calendar
+ * week view and to compute where it should auto-scroll to.
+ */
+export function dayWorkingRanges(day: WorkingDay): { start: number; end: number }[] {
   const working: Interval[] = [];
   for (const slot of day.slots) {
     const sm = hhmmToMinutes(slot.start);
     const em = hhmmToMinutes(slot.end);
     if (sm != null && em != null && em > sm) working.push({ s: sm, e: em });
   }
-  if (working.length === 0) return 0;
+  if (working.length === 0) return [];
   const breaks: Interval[] = [];
   for (const br of day.breaks) {
     const sm = hhmmToMinutes(br.start);
     const em = hhmmToMinutes(br.end);
     if (sm != null && em != null && em > sm) breaks.push({ s: sm, e: em });
   }
-  return sumLength(subtractIntervals(mergeIntervals(working), mergeIntervals(breaks)));
+  return subtractIntervals(mergeIntervals(working), mergeIntervals(breaks)).map((r) => ({
+    start: r.s,
+    end: r.e
+  }));
 }
+
+/** Net scheduled minutes for a single day (slots − breaks), ignoring any window. */
+export function dayScheduledMinutes(day: WorkingDay): number {
+  return sumLength(dayWorkingRanges(day).map((r) => ({ s: r.start, e: r.end })));
+}
+
+/**
+ * Earliest start / latest end across every enabled day of the week — used to
+ * scroll the calendar week view straight to the working hours instead of
+ * midnight. Falls back to a sensible 08:00–18:00 default when nothing is
+ * configured (e.g. every day disabled).
+ */
+export function overallWorkingWindow(cfg: WorkingHoursConfig): { startMinutes: number; endMinutes: number } {
+  let min = Infinity;
+  let max = -Infinity;
+  for (const day of cfg.days) {
+    if (!day.enabled) continue;
+    for (const r of dayWorkingRanges(day)) {
+      min = Math.min(min, r.start);
+      max = Math.max(max, r.end);
+    }
+  }
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return { startMinutes: 8 * 60, endMinutes: 18 * 60 };
+  return { startMinutes: min, endMinutes: max };
+}
+
 
 export type TimerStopAnalysis = {
   trackedSeconds: number;
