@@ -122,25 +122,39 @@ export function UnoErpIntegrationCard() {
 
   function startPolling() {
     if (pollRef.current) clearInterval(pollRef.current);
+    // Status starts out `null` (not yet "running") until the background sync's
+    // first DB write lands — treating "not running" as "done" here used to stop
+    // polling on the very first tick and silently show nothing. Only stop on an
+    // actual terminal state (success/error), with a safety cap so a truly stuck
+    // background task doesn't poll forever.
+    let attempts = 0;
+    const maxAttempts = Math.ceil((6 * 60 * 1000) / POLL_INTERVAL_MS);
     pollRef.current = setInterval(async () => {
+      attempts += 1;
       const data = await loadStatus();
-      if (data.connected && data.lastSyncStatus !== "running") {
-        if (pollRef.current) clearInterval(pollRef.current);
-        pollRef.current = null;
-        setSyncing(false);
-        void refreshCalendarEvents();
-        if (data.lastSyncStatus === "success") {
-          toast({
-            title: t("syncSuccessTitle"),
-            description: t("syncSuccessBody", { count: data.lastSyncCount })
-          });
-        } else if (data.lastSyncStatus === "error") {
-          toast({
-            title: t("syncFailedTitle"),
-            description: data.lastSyncError ?? undefined,
-            variant: "destructive"
-          });
-        }
+      const terminal = data.connected && (data.lastSyncStatus === "success" || data.lastSyncStatus === "error");
+      if (!terminal && attempts < maxAttempts) return;
+
+      if (pollRef.current) clearInterval(pollRef.current);
+      pollRef.current = null;
+      setSyncing(false);
+
+      if (!terminal) {
+        toast({ title: t("syncFailedTitle"), variant: "destructive" });
+        return;
+      }
+      void refreshCalendarEvents();
+      if (data.connected && data.lastSyncStatus === "success") {
+        toast({
+          title: t("syncSuccessTitle"),
+          description: t("syncSuccessBody", { count: data.lastSyncCount })
+        });
+      } else if (data.connected && data.lastSyncStatus === "error") {
+        toast({
+          title: t("syncFailedTitle"),
+          description: data.lastSyncError ?? undefined,
+          variant: "destructive"
+        });
       }
     }, POLL_INTERVAL_MS);
   }
@@ -160,7 +174,7 @@ export function UnoErpIntegrationCard() {
               ? t("syncRateLimitedBody")
               : data.error === "already_running"
                 ? t("syncAlreadyRunningBody")
-                : undefined,
+                : data.error,
           variant: "destructive"
         });
         return;

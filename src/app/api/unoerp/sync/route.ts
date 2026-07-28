@@ -42,7 +42,9 @@ export async function POST() {
   const service = createSupabaseServiceClient();
   if (!service) return NextResponse.json({ error: "unavailable" }, { status: 503 });
 
-  void runUnoErpSync(service, user.id);
+  void runUnoErpSync(service, user.id).then((result) => {
+    if (!result.ok) console.error("[unoerp-sync] failed:", result.error);
+  });
 
   return NextResponse.json({ started: true });
 }
