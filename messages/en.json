@@ -1724,7 +1724,12 @@
       "slotHint": "Click a free time slot to add an intervention or activity at that time."
     },
     "eventTooltip": {
-      "dueBy": "Due by:"
+      "dueBy": "Due by:",
+      "clientLabel": "Client:",
+      "timeLabel": "Time:",
+      "categoryLabel": "Category:",
+      "typeLabel": "Type:",
+      "priorityLabel": "Priority:"
     },
     "unoerp": {
       "badge": "ERP",

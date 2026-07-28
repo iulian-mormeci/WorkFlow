@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 import { useToast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { EventTooltipBody } from "@/components/agenda/event-tooltip-body";
 import { CalendarNavHeader } from "@/components/agenda/calendar-nav-header";
 import { type CalendarEvent, useCalendarEvents } from "@/lib/calendar/use-calendar-events";
 import { addWeeks, dayKey, getWeekDays, isSameDay } from "@/lib/calendar/grid";
@@ -46,29 +47,6 @@ function minutesFromMidnight(d: Date) {
 
 function snapMinutes(rawMinutes: number) {
   return Math.round(rawMinutes / SNAP_MINUTES) * SNAP_MINUTES;
-}
-
-function EventTooltipBody({ event }: { event: CalendarEvent }) {
-  const t = useTranslations("agenda");
-  return (
-    <div className="space-y-1">
-      <div className="font-semibold">{event.title || "—"}</div>
-      {event.subtitle && <div className="text-muted-foreground">{event.subtitle}</div>}
-      {event.description && <p className="whitespace-pre-line text-muted-foreground">{event.description}</p>}
-      {event.dueAt && (
-        <div className="text-muted-foreground">
-          {t("eventTooltip.dueBy")}{" "}
-          {event.dueAt.toLocaleString(undefined, {
-            weekday: "short",
-            day: "2-digit",
-            month: "short",
-            hour: "2-digit",
-            minute: "2-digit"
-          })}
-        </div>
-      )}
-    </div>
-  );
 }
 
 function EventBlock({
@@ -180,7 +158,7 @@ function EventBlock({
           )}
         </div>
       </TooltipTrigger>
-      <TooltipContent side="right">
+      <TooltipContent side="right" className="min-w-[280px] max-w-[400px]">
         <EventTooltipBody event={event} />
       </TooltipContent>
     </Tooltip>

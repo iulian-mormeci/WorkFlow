@@ -5,6 +5,8 @@ import { CalendarClock } from "lucide-react";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { IconBubble } from "@/components/ui/icon";
 import { ViewAllLink } from "@/components/dashboard/clickable-card";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { EventTooltipBody } from "@/components/agenda/event-tooltip-body";
 import { useCalendarEvents } from "@/lib/calendar/use-calendar-events";
 import { useTranslations } from "next-intl";
 
@@ -34,40 +36,48 @@ export function WidgetAgenda() {
         </div>
       </CardHeader>
       <div className="px-2 pb-2">
-        <div className="divide-y overflow-hidden rounded-xl border">
-          {upcoming.map((event) => (
-            <Link
-              key={`${event.kind}-${event.id}`}
-              href={event.kind === "unoerp" ? "/agenda" : event.href}
-              className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-            >
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  {event.kind === "unoerp" && (
-                    <span className="shrink-0 rounded-sm bg-violet-100 px-1 text-[9px] font-bold uppercase tracking-wide text-violet-900 dark:bg-violet-950 dark:text-violet-100">
-                      ERP
-                    </span>
-                  )}
-                  <div className="truncate text-sm font-semibold">{event.title || "—"}</div>
-                </div>
-                <div className="mt-0.5 text-xs text-muted-foreground">
-                  {event.start.toLocaleString(undefined, {
-                    weekday: "short",
-                    day: "2-digit",
-                    month: "short",
-                    hour: "2-digit",
-                    minute: "2-digit"
-                  })}
-                  {event.subtitle ? <> · {event.subtitle}</> : null}
-                </div>
-              </div>
-            </Link>
-          ))}
+        <TooltipProvider delayDuration={200}>
+          <div className="divide-y overflow-hidden rounded-xl border">
+            {upcoming.map((event) => (
+              <Tooltip key={`${event.kind}-${event.id}`}>
+                <TooltipTrigger asChild>
+                  <Link
+                    href={event.kind === "unoerp" ? "/agenda" : event.href}
+                    className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        {event.kind === "unoerp" && (
+                          <span className="shrink-0 rounded-sm bg-violet-100 px-1 text-[9px] font-bold uppercase tracking-wide text-violet-900 dark:bg-violet-950 dark:text-violet-100">
+                            ERP
+                          </span>
+                        )}
+                        <div className="truncate text-sm font-semibold">{event.title || "—"}</div>
+                      </div>
+                      <div className="mt-0.5 text-xs text-muted-foreground">
+                        {event.start.toLocaleString(undefined, {
+                          weekday: "short",
+                          day: "2-digit",
+                          month: "short",
+                          hour: "2-digit",
+                          minute: "2-digit"
+                        })}
+                        {event.subtitle ? <> · {event.subtitle}</> : null}
+                      </div>
+                    </div>
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent side="left" className="min-w-[280px] max-w-[400px]">
+                  <EventTooltipBody event={event} />
+                </TooltipContent>
+              </Tooltip>
+            ))}
 
-          {upcoming.length === 0 ? (
-            <div className="px-4 py-8 text-center text-sm text-muted-foreground">{t("empty")}</div>
-          ) : null}
-        </div>
+            {upcoming.length === 0 ? (
+              <div className="px-4 py-8 text-center text-sm text-muted-foreground">{t("empty")}</div>
+            ) : null}
+          </div>
+        </TooltipProvider>
       </div>
     </Card>
   );

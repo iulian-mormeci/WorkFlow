@@ -1724,7 +1724,12 @@
       "slotHint": "Clicca su un orario libero per aggiungere un intervento o un'attività in quel momento."
     },
     "eventTooltip": {
-      "dueBy": "Da finire entro:"
+      "dueBy": "Da finire entro:",
+      "clientLabel": "Cliente:",
+      "timeLabel": "Orario:",
+      "categoryLabel": "Categoria:",
+      "typeLabel": "Tipo:",
+      "priorityLabel": "Priorità:"
     },
     "unoerp": {
       "badge": "ERP",
