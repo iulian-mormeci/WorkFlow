@@ -1,4 +1,12 @@
 import type { UnoErpRawActivity } from "@/lib/unoerp/client";
+import { zonedTimeToUtc, zonedYearMonthDay } from "@/lib/unoerp/timezone";
+
+/**
+ * UnoERP's `dal`/`dalle`/`alle` are always Italian wall-clock time (the ERP's
+ * own time zone), independent of whatever time zone the app displays dates
+ * in for a given user — so this is fixed, not read from app config.
+ */
+const UNOERP_TIME_ZONE = "Europe/Rome";
 
 export type MappedUnoErpEvent = {
   unoerpId: string;
@@ -44,7 +52,10 @@ export function mapUnoErpActivity(raw: UnoErpRawActivity): MappedUnoErpEvent | n
   const unoerpId = str(raw.id_prot);
   if (!unoerpId) return null;
 
-  const day = new Date(dalNum * 1000);
+  // `dal` is a Unix timestamp for midnight of that day *in Italian time* —
+  // reading Y/M/D via the Rome time zone (not the server's own) is what
+  // keeps this correct regardless of what time zone the server itself runs in.
+  const { year, month, day } = zonedYearMonthDay(new Date(dalNum * 1000), UNOERP_TIME_ZONE);
   const startTime = parseHHMM(raw.dalle);
   const endTime = parseHHMM(raw.alle);
 
@@ -54,16 +65,12 @@ export function mapUnoErpActivity(raw: UnoErpRawActivity): MappedUnoErpEvent | n
 
   if (!startTime) {
     allDay = true;
-    startAt = new Date(day);
-    startAt.setHours(0, 0, 0, 0);
-    endAt = new Date(startAt);
-    endAt.setDate(endAt.getDate() + 1);
+    startAt = zonedTimeToUtc(year, month, day, 0, 0, UNOERP_TIME_ZONE);
+    endAt = zonedTimeToUtc(year, month, day + 1, 0, 0, UNOERP_TIME_ZONE);
   } else {
-    startAt = new Date(day);
-    startAt.setHours(startTime.hours, startTime.minutes, 0, 0);
+    startAt = zonedTimeToUtc(year, month, day, startTime.hours, startTime.minutes, UNOERP_TIME_ZONE);
     if (endTime) {
-      endAt = new Date(day);
-      endAt.setHours(endTime.hours, endTime.minutes, 0, 0);
+      endAt = zonedTimeToUtc(year, month, day, endTime.hours, endTime.minutes, UNOERP_TIME_ZONE);
       if (endAt.getTime() <= startAt.getTime()) endAt = new Date(startAt.getTime() + 60 * 60_000);
     } else {
       endAt = new Date(startAt.getTime() + 60 * 60_000);
