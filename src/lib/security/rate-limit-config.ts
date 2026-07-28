@@ -10,5 +10,7 @@ export const RATE_LIMITS = {
   mapStatic: { limit: 120, windowMs: 60 * 60 * 1000 },
   routeGeometry: { limit: 120, windowMs: 60 * 60 * 1000 },
   routeDistance: { limit: 120, windowMs: 60 * 60 * 1000 },
-  menuToCsv: { limit: 10, windowMs: 15 * 60 * 1000 }
+  menuToCsv: { limit: 10, windowMs: 15 * 60 * 1000 },
+  unoerpConnect: { limit: 8, windowMs: 15 * 60 * 1000 },
+  unoerpSync: { limit: 15, windowMs: 15 * 60 * 1000 }
 } as const;

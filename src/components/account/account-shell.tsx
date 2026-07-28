@@ -11,6 +11,7 @@ import { AccountPreferencesCard } from "@/components/account/account-preferences
 import { SettingsSecurityCard } from "@/components/settings/settings-security-card";
 import { WorkingHoursCard } from "@/components/settings/working-hours-card";
 import { CalendarSettingsCard } from "@/components/settings/calendar-settings-card";
+import { UnoErpIntegrationCard } from "@/components/settings/unoerp-integration-card";
 import { SettingsSyncCard } from "@/components/settings/settings-sync-card";
 import { SettingsAppearanceCard } from "@/components/settings/settings-appearance-card";
 import { SettingsDataCard } from "@/components/settings/settings-data-card";
@@ -64,7 +65,12 @@ export function AccountShell() {
         )}
         {active === "security" && <SettingsSecurityCard />}
         {active === "workingHours" && <WorkingHoursCard />}
-        {active === "calendar" && <CalendarSettingsCard />}
+        {active === "calendar" && (
+          <div className="grid gap-3 md:gap-4">
+            <CalendarSettingsCard />
+            <UnoErpIntegrationCard />
+          </div>
+        )}
         {active === "sync" && <SettingsSyncCard />}
         {active === "appearance" && <SettingsAppearanceCard />}
         {active === "data" && <SettingsDataCard />}

@@ -78,6 +78,8 @@ function isPublicPath(pathnameNoLocale: string) {
     pathnameNoLocale.startsWith("/auth/password") ||
     pathnameNoLocale.startsWith("/auth/session") ||
     pathnameNoLocale.startsWith("/auth/logout") ||
+    // Loopback-only, secret-authenticated (no user session) — see instrumentation.ts.
+    pathnameNoLocale.startsWith("/api/unoerp/cron") ||
     pathnameNoLocale.startsWith("/_next/") ||
     pathnameNoLocale.startsWith("/icons/") ||
     pathnameNoLocale === "/site.webmanifest" ||
@@ -240,6 +242,46 @@ export async function middleware(req: NextRequest) {
       return finish(
         req,
         NextResponse.json({ error: "Troppe richieste, riprova tra poco" }, { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } })
+      );
+    }
+  }
+
+  if (req.method === "POST" && pathnameNoLocale.startsWith("/api/unoerp/connect")) {
+    const c = RATE_LIMITS.unoerpConnect;
+    const rl = checkRateLimit(`api:unoerp-connect:${ip}`, c.limit, c.windowMs);
+    if (!rl.allowed) {
+      logSecurityEvent({
+        event: "rate_limited",
+        route: "/api/unoerp/connect",
+        ip,
+        retryAfterSec: rl.retryAfterSec
+      });
+      return finish(
+        req,
+        NextResponse.json(
+          { error: "Too many requests" },
+          { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } }
+        )
+      );
+    }
+  }
+
+  if (req.method === "POST" && pathnameNoLocale.startsWith("/api/unoerp/sync")) {
+    const c = RATE_LIMITS.unoerpSync;
+    const rl = checkRateLimit(`api:unoerp-sync:${ip}`, c.limit, c.windowMs);
+    if (!rl.allowed) {
+      logSecurityEvent({
+        event: "rate_limited",
+        route: "/api/unoerp/sync",
+        ip,
+        retryAfterSec: rl.retryAfterSec
+      });
+      return finish(
+        req,
+        NextResponse.json(
+          { error: "Too many requests" },
+          { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } }
+        )
       );
     }
   }

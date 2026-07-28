@@ -61,6 +61,10 @@ const CONTENT_SECURITY_POLICY = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // node-cron (used only from src/instrumentation.ts, Node.js runtime only) pulls in
+  // Node builtins (child_process, path) that webpack can't bundle for the edge/client
+  // compilation passes. Keep it as a native `require` at runtime instead of bundling it.
+  serverExternalPackages: ["node-cron"],
   /**
    * Quiet non-actionable webpack noise so production builds stay clean:
    *  - next-intl's production extractor uses a dynamic `import(t)` webpack can't

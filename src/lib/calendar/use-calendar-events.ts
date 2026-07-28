@@ -5,10 +5,12 @@ import { db } from "@/lib/db/workflow-db";
 import { isInterventionCompleted } from "@/lib/interventions/intervention-helpers";
 import { isActivityCompleted } from "@/lib/activities/activity-reminders";
 import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
+import { useUnoErpEventsStore } from "@/stores/unoerp-events";
+import { unoErpToCalendarEvent } from "@/lib/unoerp/calendar-event";
 
 export type CalendarEvent = {
   id: string;
-  kind: "intervention" | "activity";
+  kind: "intervention" | "activity" | "unoerp";
   title: string;
   subtitle?: string;
   /** Free-text notes (intervention) or description (activity) — shown in the hover tooltip. */
@@ -21,6 +23,12 @@ export type CalendarEvent = {
   hasRealDuration: boolean;
   completed: boolean;
   href: string;
+  /** All fields below are `kind: "unoerp"` only — synced read-only from the ERP. */
+  allDay?: boolean;
+  color?: string;
+  category?: string;
+  priority?: string;
+  ticketType?: string;
 };
 
 type RawCalendarEvent = Omit<CalendarEvent, "subtitle"> & { clientId?: string };
@@ -100,9 +108,15 @@ export function useCalendarEvents(): CalendarEvent[] | undefined {
     return events;
   }, [liveEpoch]);
 
+  const unoErpEvents = useUnoErpEventsStore((s) => s.events);
+  const unoErpVisible = useUnoErpEventsStore((s) => s.visible);
+
   if (!raw) return undefined;
-  return raw.map(({ clientId, ...rest }) => ({
+  const mapped = raw.map(({ clientId, ...rest }) => ({
     ...rest,
     subtitle: clientId ? clientById.get(clientId) : undefined
   }));
+  if (!unoErpVisible || unoErpEvents.length === 0) return mapped;
+
+  return [...mapped, ...unoErpEvents.map(unoErpToCalendarEvent)];
 }

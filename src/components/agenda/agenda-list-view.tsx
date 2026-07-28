@@ -2,7 +2,7 @@
 
 import { Link } from "@/i18n/navigation";
 import { useLiveQuery } from "dexie-react-hooks";
-import { CalendarClock, ClipboardList, ListTodo } from "lucide-react";
+import { CalendarClock, ClipboardList, ListTodo, Globe } from "lucide-react";
 import { db } from "@/lib/db/workflow-db";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { IconBubble } from "@/components/ui/icon";
@@ -10,27 +10,40 @@ import { isInterventionCompleted } from "@/lib/interventions/intervention-helper
 import { isActivityCompleted } from "@/lib/activities/activity-reminders";
 import { startOfDay } from "@/lib/dates";
 import { useWorkflowLiveEpoch } from "@/hooks/use-workflow-live-epoch";
+import { useUnoErpEventsStore } from "@/stores/unoerp-events";
+import { unoErpToCalendarEvent } from "@/lib/unoerp/calendar-event";
+import type { CalendarEvent } from "@/lib/calendar/use-calendar-events";
 import { useTranslations } from "next-intl";
 
 const AGENDA_WINDOW_DAYS = 14;
 
 type AgendaEntry = {
   id: string;
-  kind: "intervention" | "activity";
+  kind: "intervention" | "activity" | "unoerp";
   dateIso: string;
   title: string;
   subtitle?: string;
-  /** Interventions link straight to their detail page; activities open in a dialog instead (see onOpenActivity). */
+  /** Interventions link straight to their detail page; activities/unoerp events open in a dialog instead. */
   href?: string;
+  /** Set only for kind "unoerp" — the full event, needed by the read-only detail dialog. */
+  unoErpEvent?: CalendarEvent;
 };
 
 function dayKey(iso: string) {
   return startOfDay(new Date(iso)).toISOString();
 }
 
-export function AgendaListView({ onOpenActivity }: { onOpenActivity: (id: string) => void }) {
+export function AgendaListView({
+  onOpenActivity,
+  onOpenUnoErp
+}: {
+  onOpenActivity: (id: string) => void;
+  onOpenUnoErp: (event: CalendarEvent) => void;
+}) {
   const t = useTranslations("agenda");
   const liveEpoch = useWorkflowLiveEpoch();
+  const unoErpEvents = useUnoErpEventsStore((s) => s.events);
+  const unoErpVisible = useUnoErpEventsStore((s) => s.visible);
 
   const clients = useLiveQuery(async () => db.clients.toArray(), [liveEpoch]);
   const clientById = new Map(clients?.map((c) => [c.id, c.name]) ?? []);
@@ -75,8 +88,23 @@ export function AgendaListView({ onOpenActivity }: { onOpenActivity: (id: string
       });
     }
 
+    if (unoErpVisible) {
+      for (const e of unoErpEvents) {
+        const ms = e.start.getTime();
+        if (!Number.isFinite(ms) || ms > horizon) continue;
+        list.push({
+          id: e.id,
+          kind: "unoerp",
+          dateIso: e.start.toISOString(),
+          title: e.title,
+          subtitle: e.subtitle,
+          unoErpEvent: unoErpToCalendarEvent(e)
+        });
+      }
+    }
+
     return list.sort((x, y) => x.dateIso.localeCompare(y.dateIso));
-  }, [clientById.size, liveEpoch]);
+  }, [clientById.size, liveEpoch, unoErpEvents, unoErpVisible]);
 
   const groups: { key: string; label: string; items: AgendaEntry[] }[] = [];
   const today = startOfDay(new Date()).toISOString();
@@ -135,11 +163,20 @@ export function AgendaListView({ onOpenActivity }: { onOpenActivity: (id: string
                   <div className="flex min-w-0 items-center gap-2.5">
                     {entry.kind === "intervention" ? (
                       <ClipboardList className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    ) : entry.kind === "unoerp" ? (
+                      <Globe className="h-4 w-4 shrink-0 text-violet-600" />
                     ) : (
                       <ListTodo className="h-4 w-4 shrink-0 text-muted-foreground" />
                     )}
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold">{entry.title}</div>
+                      <div className="flex items-center gap-1.5">
+                        {entry.kind === "unoerp" && (
+                          <span className="shrink-0 rounded-sm bg-violet-100 px-1 text-[9px] font-bold uppercase tracking-wide text-violet-900 dark:bg-violet-950 dark:text-violet-100">
+                            ERP
+                          </span>
+                        )}
+                        <div className="truncate text-sm font-semibold">{entry.title || "—"}</div>
+                      </div>
                       <div className="mt-0.5 text-xs text-muted-foreground">
                         {new Date(entry.dateIso).toLocaleTimeString(undefined, {
                           hour: "2-digit",
@@ -156,6 +193,15 @@ export function AgendaListView({ onOpenActivity }: { onOpenActivity: (id: string
                   <Link key={`${entry.kind}-${entry.id}`} href={entry.href!} className={rowClassName}>
                     {content}
                   </Link>
+                ) : entry.kind === "unoerp" ? (
+                  <button
+                    key={`${entry.kind}-${entry.id}`}
+                    type="button"
+                    onClick={() => entry.unoErpEvent && onOpenUnoErp(entry.unoErpEvent)}
+                    className={rowClassName}
+                  >
+                    {content}
+                  </button>
                 ) : (
                   <button
                     key={`${entry.kind}-${entry.id}`}

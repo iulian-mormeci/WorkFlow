@@ -19,6 +19,7 @@ import { CalendarNavHeader } from "@/components/agenda/calendar-nav-header";
 import { type CalendarEvent, useCalendarEvents } from "@/lib/calendar/use-calendar-events";
 import { addMonths, dayKey, getMonthGrid, isSameDay } from "@/lib/calendar/grid";
 import { makeDragId, parseDragId } from "@/lib/calendar/drag-id";
+import { hexWithAlpha } from "@/lib/unoerp/color";
 import { moveActivityById, moveInterventionById } from "@/lib/calendar/calendar-mutations";
 
 const VISIBLE_PER_CELL = 3;
@@ -31,6 +32,7 @@ function DayCell({
   events,
   onSelectDay,
   onOpenActivity,
+  onOpenUnoErp,
   onRequestCreate
 }: {
   date: Date;
@@ -38,6 +40,7 @@ function DayCell({
   events: CalendarEvent[];
   onSelectDay: (d: Date) => void;
   onOpenActivity: (id: string) => void;
+  onOpenUnoErp: (event: CalendarEvent) => void;
   onRequestCreate: (d: Date) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: dayKey(date) });
@@ -75,7 +78,12 @@ function DayCell({
       </button>
       <div className="flex min-w-0 flex-col gap-0.5">
         {visible.map((event) => (
-          <EventChip key={`${event.kind}-${event.id}`} event={event} onOpenActivity={onOpenActivity} />
+          <EventChip
+            key={`${event.kind}-${event.id}`}
+            event={event}
+            onOpenActivity={onOpenActivity}
+            onOpenUnoErp={onOpenUnoErp}
+          />
         ))}
         {extra > 0 && <div className="px-1 text-[10px] text-muted-foreground">+{extra}</div>}
       </div>
@@ -85,27 +93,54 @@ function DayCell({
 
 function EventChip({
   event,
-  onOpenActivity
+  onOpenActivity,
+  onOpenUnoErp
 }: {
   event: CalendarEvent;
   onOpenActivity: (id: string) => void;
+  onOpenUnoErp: (event: CalendarEvent) => void;
 }) {
+  const isUnoErp = event.kind === "unoerp";
   const dragId = makeDragId(event.kind, event.id);
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: dragId,
-    disabled: event.completed
+    disabled: event.completed || isUnoErp
   });
 
+  const unoErpBg = isUnoErp ? hexWithAlpha(event.color, "26") : undefined;
   const className = cn(
     "truncate rounded-md border px-1.5 py-0.5 text-[11px] font-medium leading-tight",
     "touch-manipulation select-none",
-    event.kind === "intervention"
-      ? "border-primary/20 bg-primary/10 text-primary"
-      : "border-amber-400/30 bg-amber-400/10 text-amber-700 dark:text-amber-400",
+    isUnoErp
+      ? !unoErpBg && "border-dashed border-slate-400/40 bg-slate-400/10 text-slate-700 dark:text-slate-300"
+      : event.kind === "intervention"
+        ? "border-primary/20 bg-primary/10 text-primary"
+        : "border-amber-400/30 bg-amber-400/10 text-amber-700 dark:text-amber-400",
     event.completed && "opacity-50 line-through",
     isDragging && "opacity-70 shadow-md"
   );
-  const style = transform ? { transform: CSS.Translate.toString(transform), zIndex: 20 } : undefined;
+  const style = {
+    ...(transform ? { transform: CSS.Translate.toString(transform), zIndex: 20 } : undefined),
+    backgroundColor: unoErpBg,
+    borderColor: isUnoErp ? (event.color ?? undefined) : undefined
+  };
+
+  if (isUnoErp) {
+    return (
+      <button
+        type="button"
+        ref={setNodeRef}
+        style={style}
+        onClick={(e) => {
+          e.stopPropagation();
+          onOpenUnoErp(event);
+        }}
+        className={cn(className, "text-left")}
+      >
+        {event.title || "—"}
+      </button>
+    );
+  }
 
   if (event.kind === "activity") {
     return (
@@ -146,12 +181,14 @@ export function CalendarMonthView({
   onCursorChange,
   onSelectDay,
   onOpenActivity,
+  onOpenUnoErp,
   onRequestCreate
 }: {
   cursor: Date;
   onCursorChange: (d: Date) => void;
   onSelectDay: (d: Date) => void;
   onOpenActivity: (id: string) => void;
+  onOpenUnoErp: (event: CalendarEvent) => void;
   onRequestCreate: (d: Date) => void;
 }) {
   const t = useTranslations("agenda");
@@ -178,6 +215,7 @@ export function CalendarMonthView({
   const handleDragEnd = async (e: DragEndEvent) => {
     if (!e.over) return;
     const { kind, id } = parseDragId(String(e.active.id));
+    if (kind === "unoerp") return;
     const targetKey = String(e.over.id);
     const original = (events ?? []).find((ev) => ev.kind === kind && ev.id === id);
     if (!original) return;
@@ -224,6 +262,7 @@ export function CalendarMonthView({
                   events={eventsByDay.get(dayKey(date)) ?? []}
                   onSelectDay={onSelectDay}
                   onOpenActivity={onOpenActivity}
+                  onOpenUnoErp={onOpenUnoErp}
                   onRequestCreate={onRequestCreate}
                 />
               ))

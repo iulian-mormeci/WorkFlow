@@ -17,6 +17,7 @@ import { PROTECTED_NAV_ITEMS } from "@/lib/navigation/protected-nav";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { ChatNotificationsProvider } from "@/components/chat/chat-notifications-provider";
 import { UserServicesProvider } from "@/components/services/user-services-provider";
+import { UnoErpEventsProvider } from "@/components/unoerp/unoerp-events-provider";
 import { NotificationsProvider } from "@/components/notifications/notifications-provider";
 import { NotificationsBell } from "@/components/notifications/notifications-bell";
 import { getLocale, getTranslations, setRequestLocale } from "next-intl/server";
@@ -100,6 +101,8 @@ export default async function ProtectedLayout({
           <ChatNotificationsProvider />
           {/* Client: hydrates which optional services the sidebar should show. */}
           <UserServicesProvider />
+          {/* Client: hydrates synced UnoERP calendar events (read-only, online-only). */}
+          <UnoErpEventsProvider />
           {/* Client: in-app notifications (global procedures etc.) via Realtime. */}
           <NotificationsProvider />
           {children}

@@ -20,6 +20,7 @@ import { CalendarNavHeader } from "@/components/agenda/calendar-nav-header";
 import { type CalendarEvent, useCalendarEvents } from "@/lib/calendar/use-calendar-events";
 import { addWeeks, dayKey, getWeekDays, isSameDay } from "@/lib/calendar/grid";
 import { makeDragId, parseDragId } from "@/lib/calendar/drag-id";
+import { hexWithAlpha } from "@/lib/unoerp/color";
 import {
   moveActivityById,
   moveInterventionById,
@@ -75,18 +76,21 @@ function EventBlock({
   windowStartMinutes,
   hourHeight,
   onResizeCommit,
-  onOpenActivity
+  onOpenActivity,
+  onOpenUnoErp
 }: {
   event: CalendarEvent;
   windowStartMinutes: number;
   hourHeight: number;
   onResizeCommit: (id: string, deltaMinutes: number) => void;
   onOpenActivity: (id: string) => void;
+  onOpenUnoErp: (event: CalendarEvent) => void;
 }) {
+  const isUnoErp = event.kind === "unoerp";
   const dragId = makeDragId(event.kind, event.id);
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: dragId,
-    disabled: event.completed
+    disabled: event.completed || isUnoErp
   });
 
   const [resizeDeltaPx, setResizeDeltaPx] = useState(0);
@@ -100,32 +104,48 @@ function EventBlock({
   );
   const displayHeight = Math.max(14, baseHeight + resizeDeltaPx);
 
-  const canResize = event.hasRealDuration && !event.completed;
+  const canResize = event.hasRealDuration && !event.completed && !isUnoErp;
+  const unoErpBg = isUnoErp ? hexWithAlpha(event.color, "26") : undefined;
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <div
           ref={setNodeRef}
-          {...(event.completed ? {} : attributes)}
-          {...(event.completed ? {} : listeners)}
+          {...(event.completed || isUnoErp ? {} : attributes)}
+          {...(event.completed || isUnoErp ? {} : listeners)}
           onClick={(e) => e.stopPropagation()}
           style={{
             top,
             height: displayHeight,
             transform: transform ? CSS.Translate.toString(transform) : undefined,
-            zIndex: isDragging ? 30 : 10
+            zIndex: isDragging ? 30 : 10,
+            backgroundColor: unoErpBg,
+            borderColor: isUnoErp ? (event.color ?? undefined) : undefined
           }}
           className={cn(
             "absolute inset-x-0.5 touch-manipulation select-none overflow-hidden rounded-md border px-1.5 py-0.5 text-[11px] leading-tight",
-            event.kind === "intervention"
-              ? "border-primary/25 bg-primary/10 text-primary"
-              : "border-amber-400/30 bg-amber-400/10 text-amber-700 dark:text-amber-400",
+            isUnoErp
+              ? !unoErpBg && "border-dashed border-slate-400/40 bg-slate-400/10 text-slate-700 dark:text-slate-300"
+              : event.kind === "intervention"
+                ? "border-primary/25 bg-primary/10 text-primary"
+                : "border-amber-400/30 bg-amber-400/10 text-amber-700 dark:text-amber-400",
             event.completed && "opacity-50 line-through",
             isDragging && "opacity-80 shadow-md"
           )}
         >
-          {event.kind === "activity" ? (
+          {isUnoErp ? (
+            <button
+              type="button"
+              onClick={() => onOpenUnoErp(event)}
+              className="flex w-full items-center gap-1 truncate text-left font-medium"
+            >
+              <span className="shrink-0 rounded-sm bg-black/10 px-1 text-[9px] font-bold uppercase tracking-wide dark:bg-white/15">
+                ERP
+              </span>
+              <span className="truncate">{event.title || "—"}</span>
+            </button>
+          ) : event.kind === "activity" ? (
             <button type="button" onClick={() => onOpenActivity(event.id)} className="block w-full truncate text-left font-medium">
               {event.title || "—"}
             </button>
@@ -177,6 +197,7 @@ function DayColumn({
   hourHeight,
   onResizeCommit,
   onOpenActivity,
+  onOpenUnoErp,
   onRequestCreate
 }: {
   day: Date;
@@ -188,6 +209,7 @@ function DayColumn({
   hourHeight: number;
   onResizeCommit: (id: string, deltaMinutes: number) => void;
   onOpenActivity: (id: string) => void;
+  onOpenUnoErp: (event: CalendarEvent) => void;
   onRequestCreate: (d: Date) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: dayKey(day) });
@@ -229,6 +251,7 @@ function DayColumn({
           hourHeight={hourHeight}
           onResizeCommit={onResizeCommit}
           onOpenActivity={onOpenActivity}
+          onOpenUnoErp={onOpenUnoErp}
         />
       ))}
     </div>
@@ -239,6 +262,7 @@ export function CalendarWeekView({
   cursor,
   onCursorChange,
   onOpenActivity,
+  onOpenUnoErp,
   onRequestCreate,
   maxHeightClassName = "max-h-[36rem]",
   fitToWorkingHours = false
@@ -246,6 +270,7 @@ export function CalendarWeekView({
   cursor: Date;
   onCursorChange: (d: Date) => void;
   onOpenActivity: (id: string) => void;
+  onOpenUnoErp: (event: CalendarEvent) => void;
   onRequestCreate: (d: Date) => void;
   /** Tailwind max-height class for the scrollable hour grid — ignored when `fitToWorkingHours` is set. */
   maxHeightClassName?: string;
@@ -324,6 +349,7 @@ export function CalendarWeekView({
   const handleDragEnd = async (e: DragEndEvent) => {
     if (!e.over) return;
     const { kind, id } = parseDragId(String(e.active.id));
+    if (kind === "unoerp") return;
     const original = (events ?? []).find((ev) => ev.kind === kind && ev.id === id);
     if (!original) return;
 
@@ -429,6 +455,7 @@ export function CalendarWeekView({
                     hourHeight={hourHeight}
                     onResizeCommit={(id, delta) => void handleResizeCommit(id, delta)}
                     onOpenActivity={onOpenActivity}
+                    onOpenUnoErp={onOpenUnoErp}
                     onRequestCreate={onRequestCreate}
                   />
                 ))}

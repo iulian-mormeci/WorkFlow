@@ -1725,6 +1725,18 @@
     },
     "eventTooltip": {
       "dueBy": "Due by:"
+    },
+    "unoerp": {
+      "badge": "ERP",
+      "toggleLabel": "Show UnoERP events",
+      "detail": {
+        "clientLabel": "Client",
+        "categoryLabel": "Category",
+        "typeLabel": "Type",
+        "priorityLabel": "Priority",
+        "notesLabel": "Notes",
+        "readOnlyNote": "Event synced from UnoERP — editable only from the ERP"
+      }
     }
   },
   "adminServices": {
@@ -1992,6 +2004,48 @@
       "turnOff": "Turn off",
       "saving": "Saving…",
       "manualExportHint": "Use “Export to calendar” on intervention and activity detail pages, or enable auto-export above."
+    },
+    "unoerp": {
+      "title": "UnoERP integration",
+      "subtitle": "Sync your scheduled UnoERP activities directly into the agenda.",
+      "connectForm": {
+        "baseUrlLabel": "Instance URL",
+        "baseUrlPlaceholder": "https://myerp.unoerp.it",
+        "baseUrlHint": "Must start with https://",
+        "usernameLabel": "Username",
+        "passwordLabel": "Password",
+        "showPassword": "Show password",
+        "hidePassword": "Hide password",
+        "connectButton": "Connect",
+        "connecting": "Connecting…"
+      },
+      "errors": {
+        "invalidInput": "Fill in every field.",
+        "httpsRequired": "The URL must start with https://",
+        "authFailed": "Authentication failed. Check the URL, username and password.",
+        "genericFailed": "Something went wrong. Try again."
+      },
+      "connectedBadge": "Connected to {baseUrl}",
+      "lastSyncLabel": "Last sync",
+      "lastSyncNever": "Never synced",
+      "lastSyncSummary": "{when} — {count, plural, one {# event synced} other {# events synced}}",
+      "syncNowButton": "Sync now",
+      "syncing": "Syncing…",
+      "syncSuccessTitle": "Sync completed",
+      "syncSuccessBody": "{count, plural, one {# event synced} other {# events synced}}",
+      "syncFailedTitle": "Sync failed",
+      "syncAlreadyRunningBody": "A sync is already running.",
+      "syncRateLimitedBody": "Wait a few minutes before syncing again.",
+      "disconnectButton": "Disconnect",
+      "disconnectDialog": {
+        "title": "Disconnect UnoERP?",
+        "body": "Disconnecting removes all UnoERP events from the calendar. Continue?",
+        "confirm": "Disconnect",
+        "cancel": "Cancel"
+      },
+      "disconnectedTitle": "Disconnected",
+      "disconnectFailedTitle": "Disconnect failed",
+      "errorBanner": "Last sync failed: {error}. Try again or reconnect the account."
     },
     "appearance": {
       "title": "Appearance",

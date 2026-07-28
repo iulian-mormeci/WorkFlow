@@ -38,11 +38,18 @@ export function WidgetAgenda() {
           {upcoming.map((event) => (
             <Link
               key={`${event.kind}-${event.id}`}
-              href={event.href}
+              href={event.kind === "unoerp" ? "/agenda" : event.href}
               className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
             >
               <div className="min-w-0">
-                <div className="truncate text-sm font-semibold">{event.title || "—"}</div>
+                <div className="flex items-center gap-1.5">
+                  {event.kind === "unoerp" && (
+                    <span className="shrink-0 rounded-sm bg-violet-100 px-1 text-[9px] font-bold uppercase tracking-wide text-violet-900 dark:bg-violet-950 dark:text-violet-100">
+                      ERP
+                    </span>
+                  )}
+                  <div className="truncate text-sm font-semibold">{event.title || "—"}</div>
+                </div>
                 <div className="mt-0.5 text-xs text-muted-foreground">
                   {event.start.toLocaleString(undefined, {
                     weekday: "short",

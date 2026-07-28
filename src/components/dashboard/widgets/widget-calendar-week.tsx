@@ -6,6 +6,8 @@ import { db } from "@/lib/db/workflow-db";
 import { CalendarWeekView } from "@/components/agenda/calendar-week-view";
 import { AgendaCreateFlow } from "@/components/agenda/agenda-create-flow";
 import { ActivityFormDialog } from "@/components/activities/activity-form-dialog";
+import { UnoErpEventDetailDialog } from "@/components/agenda/unoerp-event-detail-dialog";
+import type { CalendarEvent } from "@/lib/calendar/use-calendar-events";
 
 /**
  * The real /agenda week view, embedded as a dashboard widget — same drag to
@@ -16,6 +18,7 @@ export function WidgetCalendarWeek() {
   const [cursor, setCursor] = useState(() => new Date());
   const [createPrefill, setCreatePrefill] = useState<Date | null>(null);
   const [editingActivityId, setEditingActivityId] = useState<string | null>(null);
+  const [viewingUnoErpEvent, setViewingUnoErpEvent] = useState<CalendarEvent | null>(null);
 
   const editingActivity = useLiveQuery(
     async () => (editingActivityId ? await db.activities.get(editingActivityId) : undefined),
@@ -28,6 +31,7 @@ export function WidgetCalendarWeek() {
         cursor={cursor}
         onCursorChange={setCursor}
         onOpenActivity={setEditingActivityId}
+        onOpenUnoErp={setViewingUnoErpEvent}
         onRequestCreate={setCreatePrefill}
         fitToWorkingHours
       />
@@ -40,6 +44,13 @@ export function WidgetCalendarWeek() {
           if (!o) setEditingActivityId(null);
         }}
         activity={editingActivity ?? null}
+      />
+
+      <UnoErpEventDetailDialog
+        event={viewingUnoErpEvent}
+        onOpenChange={(o) => {
+          if (!o) setViewingUnoErpEvent(null);
+        }}
       />
     </div>
   );

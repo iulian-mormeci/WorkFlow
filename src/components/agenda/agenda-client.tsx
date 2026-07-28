@@ -15,6 +15,9 @@ import { CalendarWeekView } from "@/components/agenda/calendar-week-view";
 import { CalendarYearView } from "@/components/agenda/calendar-year-view";
 import { AgendaCreateFlow } from "@/components/agenda/agenda-create-flow";
 import { ActivityFormDialog } from "@/components/activities/activity-form-dialog";
+import { UnoErpEventDetailDialog } from "@/components/agenda/unoerp-event-detail-dialog";
+import type { CalendarEvent } from "@/lib/calendar/use-calendar-events";
+import { useUnoErpEventsStore } from "@/stores/unoerp-events";
 
 type AgendaView = "list" | "week" | "month" | "year";
 const VALID_VIEWS: readonly AgendaView[] = ["list", "week", "month", "year"];
@@ -59,6 +62,10 @@ export function AgendaClient() {
   const [cursor, setCursor] = useState<Date>(() => parseDateParam(searchParams.get("date")));
   const [createPrefill, setCreatePrefill] = useState<Date | null>(null);
   const [editingActivityId, setEditingActivityId] = useState<string | null>(null);
+  const [viewingUnoErpEvent, setViewingUnoErpEvent] = useState<CalendarEvent | null>(null);
+  const hasUnoErpEvents = useUnoErpEventsStore((s) => s.events.length > 0);
+  const unoErpVisible = useUnoErpEventsStore((s) => s.visible);
+  const setUnoErpVisible = useUnoErpEventsStore((s) => s.setVisible);
 
   const editingActivity = useLiveQuery(
     async () => (editingActivityId ? await db.activities.get(editingActivityId) : undefined),
@@ -108,18 +115,33 @@ export function AgendaClient() {
             </button>
           ))}
         </div>
-        <Button type="button" size="sm" onClick={() => setCreatePrefill(nextQuarterHour())}>
-          <Plus className="h-4 w-4" />
-          {t("create.newButton")}
-        </Button>
+        <div className="flex items-center gap-3">
+          {hasUnoErpEvents && (
+            <label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={unoErpVisible}
+                onChange={(e) => setUnoErpVisible(e.target.checked)}
+              />
+              {t("unoerp.toggleLabel")}
+            </label>
+          )}
+          <Button type="button" size="sm" onClick={() => setCreatePrefill(nextQuarterHour())}>
+            <Plus className="h-4 w-4" />
+            {t("create.newButton")}
+          </Button>
+        </div>
       </div>
 
-      {view === "list" && <AgendaListView onOpenActivity={setEditingActivityId} />}
+      {view === "list" && (
+        <AgendaListView onOpenActivity={setEditingActivityId} onOpenUnoErp={setViewingUnoErpEvent} />
+      )}
       {view === "week" && (
         <CalendarWeekView
           cursor={cursor}
           onCursorChange={(d) => navigate("week", d)}
           onOpenActivity={setEditingActivityId}
+          onOpenUnoErp={setViewingUnoErpEvent}
           onRequestCreate={setCreatePrefill}
         />
       )}
@@ -128,6 +150,7 @@ export function AgendaClient() {
           cursor={cursor}
           onCursorChange={(d) => navigate("month", d)}
           onOpenActivity={setEditingActivityId}
+          onOpenUnoErp={setViewingUnoErpEvent}
           onRequestCreate={setCreatePrefill}
           onSelectDay={(d) => navigate("week", d)}
         />
@@ -149,6 +172,13 @@ export function AgendaClient() {
           if (!o) setEditingActivityId(null);
         }}
         activity={editingActivity ?? null}
+      />
+
+      <UnoErpEventDetailDialog
+        event={viewingUnoErpEvent}
+        onOpenChange={(o) => {
+          if (!o) setViewingUnoErpEvent(null);
+        }}
       />
     </div>
   );

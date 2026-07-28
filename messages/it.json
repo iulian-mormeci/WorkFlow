@@ -1725,6 +1725,18 @@
     },
     "eventTooltip": {
       "dueBy": "Da finire entro:"
+    },
+    "unoerp": {
+      "badge": "ERP",
+      "toggleLabel": "Mostra eventi UnoERP",
+      "detail": {
+        "clientLabel": "Cliente",
+        "categoryLabel": "Categoria",
+        "typeLabel": "Tipo",
+        "priorityLabel": "Priorità",
+        "notesLabel": "Note",
+        "readOnlyNote": "Evento sincronizzato da UnoERP — modificabile solo dall'ERP"
+      }
     }
   },
   "adminServices": {
@@ -1992,6 +2004,48 @@
       "turnOff": "Disattiva",
       "saving": "Salvataggio…",
       "manualExportHint": "Usa “Esporta in calendario” nelle pagine di dettaglio intervento e attività, oppure attiva l’esportazione automatica sopra."
+    },
+    "unoerp": {
+      "title": "Integrazione UnoERP",
+      "subtitle": "Sincronizza le tue attività programmate UnoERP direttamente nell'agenda.",
+      "connectForm": {
+        "baseUrlLabel": "URL istanza",
+        "baseUrlPlaceholder": "https://mioerp.unoerp.it",
+        "baseUrlHint": "Deve iniziare con https://",
+        "usernameLabel": "Nome utente",
+        "passwordLabel": "Password",
+        "showPassword": "Mostra password",
+        "hidePassword": "Nascondi password",
+        "connectButton": "Connetti",
+        "connecting": "Connessione…"
+      },
+      "errors": {
+        "invalidInput": "Compila tutti i campi.",
+        "httpsRequired": "L'URL deve iniziare con https://",
+        "authFailed": "Autenticazione fallita. Controlla URL, nome utente e password.",
+        "genericFailed": "Qualcosa è andato storto. Riprova."
+      },
+      "connectedBadge": "Connesso a {baseUrl}",
+      "lastSyncLabel": "Ultima sincronizzazione",
+      "lastSyncNever": "Mai sincronizzato",
+      "lastSyncSummary": "{when} — {count, plural, one {# evento sincronizzato} other {# eventi sincronizzati}}",
+      "syncNowButton": "Sincronizza ora",
+      "syncing": "Sincronizzazione…",
+      "syncSuccessTitle": "Sincronizzazione completata",
+      "syncSuccessBody": "{count, plural, one {# evento sincronizzato} other {# eventi sincronizzati}}",
+      "syncFailedTitle": "Sincronizzazione non riuscita",
+      "syncAlreadyRunningBody": "Una sincronizzazione è già in corso.",
+      "syncRateLimitedBody": "Aspetta qualche minuto prima di risincronizzare.",
+      "disconnectButton": "Disconnetti",
+      "disconnectDialog": {
+        "title": "Disconnettere UnoERP?",
+        "body": "Disconnettendo, tutti gli eventi UnoERP verranno rimossi dal calendario. Continuare?",
+        "confirm": "Disconnetti",
+        "cancel": "Annulla"
+      },
+      "disconnectedTitle": "Disconnesso",
+      "disconnectFailedTitle": "Disconnessione non riuscita",
+      "errorBanner": "Ultima sincronizzazione fallita: {error}. Riprova o riconnetti l'account."
     },
     "appearance": {
       "title": "Aspetto",
