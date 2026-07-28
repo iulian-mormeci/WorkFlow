@@ -113,7 +113,12 @@ export function InterventionsClient() {
       status === "all"
         ? list
         : status === "completed"
-          ? list.filter((it) => isInterventionCompleted(it))
+          ? list
+              .filter((it) => isInterventionCompleted(it))
+              // Completed items are ordered by when they were closed (most
+              // recent first), not by their original scheduled startAt —
+              // the DB query above sorts by startAt for the open/upcoming case.
+              .sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""))
           : list.filter((it) => !isInterventionCompleted(it));
 
     const query = q.trim().toLowerCase();

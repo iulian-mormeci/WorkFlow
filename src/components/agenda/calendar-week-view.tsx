@@ -195,6 +195,7 @@ function DayColumn({
   windowStartMinutes,
   windowEndMinutes,
   hourHeight,
+  now,
   onResizeCommit,
   onOpenActivity,
   onOpenUnoErp,
@@ -207,6 +208,7 @@ function DayColumn({
   windowStartMinutes: number;
   windowEndMinutes: number;
   hourHeight: number;
+  now: Date;
   onResizeCommit: (id: string, deltaMinutes: number) => void;
   onOpenActivity: (id: string) => void;
   onOpenUnoErp: (event: CalendarEvent) => void;
@@ -216,6 +218,11 @@ function DayColumn({
   const dayConfig = workingHours.days[weekdayMon0(day)];
   const workingRanges = dayConfig?.enabled ? dayWorkingRanges(dayConfig) : [];
   const hourCount = (windowEndMinutes - windowStartMinutes) / 60;
+
+  const nowMinutes = minutesFromMidnight(now);
+  const showNowLine =
+    isSameDay(day, now) && nowMinutes >= windowStartMinutes && nowMinutes <= windowEndMinutes;
+  const nowTop = ((nowMinutes - windowStartMinutes) / 60) * hourHeight;
 
   return (
     <div
@@ -254,6 +261,12 @@ function DayColumn({
           onOpenUnoErp={onOpenUnoErp}
         />
       ))}
+      {showNowLine && (
+        <div
+          className="pointer-events-none absolute inset-x-0 z-20 h-px bg-red-500"
+          style={{ top: nowTop }}
+        />
+      )}
     </div>
   );
 }
@@ -294,15 +307,35 @@ export function CalendarWeekView({
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const days = useMemo(() => getWeekDays(cursor), [cursor]);
 
+  // Current-time indicator — recomputed every 60s so the line/dot creep down the grid live.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
   useEffect(() => {
     const cfg = loadWorkingHours();
     setWorkingHours(cfg);
     if (fitToWorkingHours) return;
+
+    // If this week includes today, prioritize scrolling to the current time
+    // (near the top of the viewport) over the working-hours window, so the
+    // now-line is visible without the user having to scroll manually.
+    const today = new Date();
+    const showingCurrentWeek = days.some((d) => isSameDay(d, today));
+    if (showingCurrentWeek) {
+      const nowMinutes = minutesFromMidnight(today);
+      const top = Math.max(0, (nowMinutes / 60) * DEFAULT_HOUR_HEIGHT - DEFAULT_HOUR_HEIGHT * 2);
+      scrollRef.current?.scrollTo({ top });
+      return;
+    }
+
     const { startMinutes } = overallWorkingWindow(cfg);
     // A little headroom above the first working slot instead of cutting it off at the edge.
     const top = Math.max(0, (startMinutes / 60) * DEFAULT_HOUR_HEIGHT - DEFAULT_HOUR_HEIGHT / 2);
     scrollRef.current?.scrollTo({ top });
-  }, [fitToWorkingHours]);
+  }, [fitToWorkingHours, days]);
 
   // Measure the actual space we're given (e.g. a resizable dashboard widget)
   // so the grid can size each hour row to fill it instead of overflowing.
@@ -334,6 +367,13 @@ export function CalendarWeekView({
       ? Math.min(MAX_FIT_HOUR_HEIGHT, Math.max(MIN_FIT_HOUR_HEIGHT, measuredHeight / hourCount))
       : DEFAULT_HOUR_HEIGHT;
   const gridHeight = hourCount * hourHeight;
+
+  const nowMinutesForAxis = minutesFromMidnight(now);
+  const showNowDot =
+    days.some((d) => isSameDay(d, now)) &&
+    nowMinutesForAxis >= windowStartMinutes &&
+    nowMinutesForAxis <= windowEndMinutes;
+  const nowTopForAxis = ((nowMinutesForAxis - windowStartMinutes) / 60) * hourHeight;
 
   const eventsByDay = useMemo(() => {
     const map = new Map<string, CalendarEvent[]>();
@@ -442,6 +482,12 @@ export function CalendarWeekView({
                       </div>
                     );
                   })}
+                  {showNowDot && (
+                    <div
+                      className="pointer-events-none absolute right-0.5 h-2 w-2 -translate-y-1/2 rounded-full bg-red-500"
+                      style={{ top: nowTopForAxis }}
+                    />
+                  )}
                 </div>
                 {days.map((day) => (
                   <DayColumn
@@ -453,6 +499,7 @@ export function CalendarWeekView({
                     windowStartMinutes={windowStartMinutes}
                     windowEndMinutes={windowEndMinutes}
                     hourHeight={hourHeight}
+                    now={now}
                     onResizeCommit={(id, delta) => void handleResizeCommit(id, delta)}
                     onOpenActivity={onOpenActivity}
                     onOpenUnoErp={onOpenUnoErp}
